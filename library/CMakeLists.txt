@@ -1,3 +1,4 @@
 add_subdirectory(http_fetcher)
 add_subdirectory(http_server)
 add_subdirectory(respacker)
+add_subdirectory(kwstorage)
