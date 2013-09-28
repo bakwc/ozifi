@@ -1,0 +1,17 @@
+name:
+ mongoose
+
+version:
+ 3.8
+
+description:
+ Mongoose - easy to use web server
+
+web-site:
+ http://code.google.com/p/mongoose/
+
+authors:
+ Sergey Lyubka (few more minor contributors)
+
+license stuff:
+ Liberal, commercial-friendly MIT license (http://en.wikipedia.org/wiki/MIT_License)

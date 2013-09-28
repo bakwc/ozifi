@@ -1,0 +1,1 @@
+add_subdirectory(thmb_demon)

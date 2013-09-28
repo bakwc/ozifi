@@ -1,0 +1,22 @@
+name:
+ htmlcxx
+
+version:
+ 0.85
+
+description:
+ htmlcxx is a simple non-validating css1 and html parser for C++
+
+web-site:
+ http://htmlcxx.sourceforge.net/
+
+authors:
+ Davi de Castro Reis - <davi (a) users sf net>
+ Robson Braga Araújo - <braga (a) users sf net> 
+
+license stuff:
+ Code is now under the LGPL. This was our initial intention, and is now possible thanks to the
+ author of tree.hh, who allowed us to use it under LGPL only for HTML::Node template instances.
+ Check http://www.fsf.org or the COPYING file in the distribution for details about the LGPL
+ license. The uri parsing code is a derivative work of Apache web server uri parsing routines.
+ Check www.apache.org/licenses/LICENSE-2.0 or the ASF-2.0 file in the distribution for details.
