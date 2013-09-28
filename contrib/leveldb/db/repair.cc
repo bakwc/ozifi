@@ -34,9 +34,9 @@
 #include "db/table_cache.h"
 #include "db/version_edit.h"
 #include "db/write_batch_internal.h"
-#include "comparator.h"
-#include "db.h"
-#include "env.h"
+#include "leveldb/comparator.h"
+#include "leveldb/db.h"
+#include "leveldb/env.h"
 
 namespace leveldb {
 
@@ -263,12 +263,6 @@ class Repairer {
     std::string fname = TableFileName(dbname_, t->meta.number);
     int counter = 0;
     Status status = env_->GetFileSize(fname, &t->meta.file_size);
-    if (!status.ok()) {
-      fname = SSTTableFileName(dbname_, t->meta.number);
-      Status s2 = env_->GetFileSize(fname, &t->meta.file_size);
-      if (s2.ok())
-        status = Status::OK();
-    }
     if (status.ok()) {
       Iterator* iter = table_cache_->NewIterator(
           ReadOptions(), t->meta.number, t->meta.file_size);
@@ -299,8 +293,6 @@ class Repairer {
       }
       delete iter;
     }
-    // If there was trouble opening an .sst file this will report that the .ldb
-    // file was not found, which is kind of lame but shouldn't happen often.
     Log(options_.info_log, "Table #%llu: %d entries %s",
         (unsigned long long) t->meta.number,
         counter,

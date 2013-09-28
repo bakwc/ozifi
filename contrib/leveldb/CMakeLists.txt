@@ -22,7 +22,9 @@ add_library (leveldb
     table/table.cc
     table/table_builder.cc
     table/two_level_iterator.cc
+    table/filter_block.cc
     util/env.cc
+    util/env_boost.cc
     util/arena.cc
     util/cache.cc
     util/coding.cc
@@ -32,4 +34,15 @@ add_library (leveldb
     util/histogram.cc
     util/logging.cc
     util/options.cc
-    util/status.cc)
+    util/status.cc
+    util/getpid.cc
+    util/filter_policy.cc
+    util/win_logger.cc
+    port/port_win.cc
+    port/mman.cc
+    include/leveldb/filter_policy.h
+    include/leveldb/env.h
+    helpers/memenv/memenv.cc)
+
+target_link_libraries(leveldb utils
+                             ${Boost_LIBRARIES})

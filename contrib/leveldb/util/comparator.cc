@@ -4,8 +4,8 @@
 
 #include <algorithm>
 #include <stdint.h>
-#include "comparator.h"
-#include "slice.h"
+#include "leveldb/comparator.h"
+#include "leveldb/slice.h"
 #include "port/port.h"
 #include "util/logging.h"
 

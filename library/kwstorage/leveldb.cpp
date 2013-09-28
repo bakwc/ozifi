@@ -1,5 +1,5 @@
 #include <memory>
-#include <contrib/leveldb/db.h>
+#include <leveldb/db.h>
 #include <utils/exception.h>
 
 #include "leveldb.h"

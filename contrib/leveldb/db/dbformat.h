@@ -6,11 +6,11 @@
 #define STORAGE_LEVELDB_DB_FORMAT_H_
 
 #include <stdio.h>
-#include "comparator.h"
-#include "db.h"
-#include "filter_policy.h"
-#include "slice.h"
-#include "table_builder.h"
+#include "leveldb/comparator.h"
+#include "leveldb/db.h"
+#include "leveldb/filter_policy.h"
+#include "leveldb/slice.h"
+#include "leveldb/table_builder.h"
 #include "util/coding.h"
 #include "util/logging.h"
 
@@ -37,9 +37,6 @@ static const int kL0_StopWritesTrigger = 12;
 // the largest level since that can generate a lot of wasted disk
 // space if the same key space is being repeatedly overwritten.
 static const int kMaxMemCompactLevel = 2;
-
-// Approximate gap in bytes between samples of data read during iteration.
-static const int kReadBytesPeriod = 1048576;
 
 }  // namespace config
 

@@ -33,11 +33,8 @@ class AtomicCounter {
  public:
   AtomicCounter() : count_(0) { }
   void Increment() {
-    IncrementBy(1);
-  }
-  void IncrementBy(int count) {
     MutexLock l(&mu_);
-    count_ += count;
+    count_++;
   }
   int Read() {
     MutexLock l(&mu_);
@@ -48,10 +45,6 @@ class AtomicCounter {
     count_ = 0;
   }
 };
-
-void DelayMilliseconds(int millis) {
-  Env::Default()->SleepForMicroseconds(millis * 1000);
-}
 }
 
 // Special Env used to delay background operations
@@ -66,25 +59,16 @@ class SpecialEnv : public EnvWrapper {
   // Simulate non-writable file system while this pointer is non-NULL
   port::AtomicPointer non_writable_;
 
-  // Force sync of manifest files to fail while this pointer is non-NULL
-  port::AtomicPointer manifest_sync_error_;
-
-  // Force write to manifest files to fail while this pointer is non-NULL
-  port::AtomicPointer manifest_write_error_;
-
   bool count_random_reads_;
   AtomicCounter random_read_counter_;
 
   AtomicCounter sleep_counter_;
-  AtomicCounter sleep_time_counter_;
 
   explicit SpecialEnv(Env* base) : EnvWrapper(base) {
     delay_sstable_sync_.Release_Store(NULL);
     no_space_.Release_Store(NULL);
     non_writable_.Release_Store(NULL);
     count_random_reads_ = false;
-    manifest_sync_error_.Release_Store(NULL);
-    manifest_write_error_.Release_Store(NULL);
   }
 
   Status NewWritableFile(const std::string& f, WritableFile** r) {
@@ -111,33 +95,9 @@ class SpecialEnv : public EnvWrapper {
       Status Flush() { return base_->Flush(); }
       Status Sync() {
         while (env_->delay_sstable_sync_.Acquire_Load() != NULL) {
-          DelayMilliseconds(100);
+          env_->SleepForMicroseconds(100000);
         }
         return base_->Sync();
-      }
-    };
-    class ManifestFile : public WritableFile {
-     private:
-      SpecialEnv* env_;
-      WritableFile* base_;
-     public:
-      ManifestFile(SpecialEnv* env, WritableFile* b) : env_(env), base_(b) { }
-      ~ManifestFile() { delete base_; }
-      Status Append(const Slice& data) {
-        if (env_->manifest_write_error_.Acquire_Load() != NULL) {
-          return Status::IOError("simulated writer error");
-        } else {
-          return base_->Append(data);
-        }
-      }
-      Status Close() { return base_->Close(); }
-      Status Flush() { return base_->Flush(); }
-      Status Sync() {
-        if (env_->manifest_sync_error_.Acquire_Load() != NULL) {
-          return Status::IOError("simulated sync error");
-        } else {
-          return base_->Sync();
-        }
       }
     };
 
@@ -147,10 +107,8 @@ class SpecialEnv : public EnvWrapper {
 
     Status s = target()->NewWritableFile(f, r);
     if (s.ok()) {
-      if (strstr(f.c_str(), ".ldb") != NULL) {
+      if (strstr(f.c_str(), ".sst") != NULL) {
         *r = new SSTableFile(this, *r);
-      } else if (strstr(f.c_str(), "MANIFEST") != NULL) {
-        *r = new ManifestFile(this, *r);
       }
     }
     return s;
@@ -182,9 +140,8 @@ class SpecialEnv : public EnvWrapper {
 
   virtual void SleepForMicroseconds(int micros) {
     sleep_counter_.Increment();
-    sleep_time_counter_.IncrementBy(micros);
+    target()->SleepForMicroseconds(micros);
   }
-
 };
 
 class DBTest {
@@ -470,38 +427,6 @@ class DBTest {
     }
     return result;
   }
-
-  bool DeleteAnSSTFile() {
-    std::vector<std::string> filenames;
-    ASSERT_OK(env_->GetChildren(dbname_, &filenames));
-    uint64_t number;
-    FileType type;
-    for (size_t i = 0; i < filenames.size(); i++) {
-      if (ParseFileName(filenames[i], &number, &type) && type == kTableFile) {
-        ASSERT_OK(env_->DeleteFile(TableFileName(dbname_, number)));
-        return true;
-      }
-    }
-    return false;
-  }
-
-  // Returns number of files renamed.
-  int RenameLDBToSST() {
-    std::vector<std::string> filenames;
-    ASSERT_OK(env_->GetChildren(dbname_, &filenames));
-    uint64_t number;
-    FileType type;
-    int files_renamed = 0;
-    for (size_t i = 0; i < filenames.size(); i++) {
-      if (ParseFileName(filenames[i], &number, &type) && type == kTableFile) {
-        const std::string from = TableFileName(dbname_, number);
-        const std::string to = SSTTableFileName(dbname_, number);
-        ASSERT_OK(env_->RenameFile(from, to));
-        files_renamed++;
-      }
-    }
-    return files_renamed;
-  }
 };
 
 TEST(DBTest, Empty) {
@@ -652,7 +577,7 @@ TEST(DBTest, GetEncountersEmptyLevel) {
     }
 
     // Step 4: Wait for compaction to finish
-    DelayMilliseconds(1000);
+    env_->SleepForMicroseconds(1000000);
 
     ASSERT_EQ(NumTableFilesAtLevel(0), 0);
   } while (ChangeOptions());
@@ -1336,7 +1261,7 @@ TEST(DBTest, L0_CompactionBug_Issue44_a) {
   Reopen();
   Reopen();
   ASSERT_EQ("(a->v)", Contents());
-  DelayMilliseconds(1000);  // Wait for compaction to finish
+  env_->SleepForMicroseconds(1000000);  // Wait for compaction to finish
   ASSERT_EQ("(a->v)", Contents());
 }
 
@@ -1352,7 +1277,7 @@ TEST(DBTest, L0_CompactionBug_Issue44_b) {
   Put("","");
   Reopen();
   Put("","");
-  DelayMilliseconds(1000);  // Wait for compaction to finish
+  env_->SleepForMicroseconds(1000000);  // Wait for compaction to finish
   Reopen();
   Put("d","dv");
   Reopen();
@@ -1362,7 +1287,7 @@ TEST(DBTest, L0_CompactionBug_Issue44_b) {
   Delete("b");
   Reopen();
   ASSERT_EQ("(->)(c->cv)", Contents());
-  DelayMilliseconds(1000);  // Wait for compaction to finish
+  env_->SleepForMicroseconds(1000000);  // Wait for compaction to finish
   ASSERT_EQ("(->)(c->cv)", Contents());
 }
 
@@ -1517,12 +1442,6 @@ TEST(DBTest, DBOpen_Options) {
   db = NULL;
 }
 
-TEST(DBTest, Locking) {
-  DB* db2 = NULL;
-  Status s = DB::Open(CurrentOptions(), dbname_, &db2);
-  ASSERT_TRUE(!s.ok()) << "Locking did not prevent re-opening db";
-}
-
 // Check that number of files does not grow when we are out of space
 TEST(DBTest, NoSpace) {
   Options options = CurrentOptions();
@@ -1547,30 +1466,6 @@ TEST(DBTest, NoSpace) {
   ASSERT_GE(env_->sleep_counter_.Read(), 5);
 }
 
-TEST(DBTest, ExponentialBackoff) {
-  Options options = CurrentOptions();
-  options.env = env_;
-  Reopen(&options);
-
-  ASSERT_OK(Put("foo", "v1"));
-  ASSERT_EQ("v1", Get("foo"));
-  Compact("a", "z");
-  env_->non_writable_.Release_Store(env_);  // Force errors for new files
-  env_->sleep_counter_.Reset();
-  env_->sleep_time_counter_.Reset();
-  for (int i = 0; i < 5; i++) {
-    dbfull()->TEST_CompactRange(2, NULL, NULL);
-  }
-  env_->non_writable_.Release_Store(NULL);
-
-  // Wait for compaction to finish
-  DelayMilliseconds(1000);
-
-  ASSERT_GE(env_->sleep_counter_.Read(), 5);
-  ASSERT_LT(env_->sleep_counter_.Read(), 10);
-  ASSERT_GE(env_->sleep_time_counter_.Read(), 10e6);
-}
-
 TEST(DBTest, NonWritableFileSystem) {
   Options options = CurrentOptions();
   options.write_buffer_size = 1000;
@@ -1584,86 +1479,11 @@ TEST(DBTest, NonWritableFileSystem) {
     fprintf(stderr, "iter %d; errors %d\n", i, errors);
     if (!Put("foo", big).ok()) {
       errors++;
-      DelayMilliseconds(100);
+      env_->SleepForMicroseconds(100000);
     }
   }
   ASSERT_GT(errors, 0);
   env_->non_writable_.Release_Store(NULL);
-}
-
-TEST(DBTest, ManifestWriteError) {
-  // Test for the following problem:
-  // (a) Compaction produces file F
-  // (b) Log record containing F is written to MANIFEST file, but Sync() fails
-  // (c) GC deletes F
-  // (d) After reopening DB, reads fail since deleted F is named in log record
-
-  // We iterate twice.  In the second iteration, everything is the
-  // same except the log record never makes it to the MANIFEST file.
-  for (int iter = 0; iter < 2; iter++) {
-    port::AtomicPointer* error_type = (iter == 0)
-        ? &env_->manifest_sync_error_
-        : &env_->manifest_write_error_;
-
-    // Insert foo=>bar mapping
-    Options options = CurrentOptions();
-    options.env = env_;
-    options.create_if_missing = true;
-    options.error_if_exists = false;
-    DestroyAndReopen(&options);
-    ASSERT_OK(Put("foo", "bar"));
-    ASSERT_EQ("bar", Get("foo"));
-
-    // Memtable compaction (will succeed)
-    dbfull()->TEST_CompactMemTable();
-    ASSERT_EQ("bar", Get("foo"));
-    const int last = config::kMaxMemCompactLevel;
-    ASSERT_EQ(NumTableFilesAtLevel(last), 1);   // foo=>bar is now in last level
-
-    // Merging compaction (will fail)
-    error_type->Release_Store(env_);
-    dbfull()->TEST_CompactRange(last, NULL, NULL);  // Should fail
-    ASSERT_EQ("bar", Get("foo"));
-
-    // Recovery: should not lose data
-    error_type->Release_Store(NULL);
-    Reopen(&options);
-    ASSERT_EQ("bar", Get("foo"));
-  }
-}
-
-TEST(DBTest, MissingSSTFile) {
-  ASSERT_OK(Put("foo", "bar"));
-  ASSERT_EQ("bar", Get("foo"));
-
-  // Dump the memtable to disk.
-  dbfull()->TEST_CompactMemTable();
-  ASSERT_EQ("bar", Get("foo"));
-
-  Close();
-  ASSERT_TRUE(DeleteAnSSTFile());
-  Options options = CurrentOptions();
-  options.paranoid_checks = true;
-  Status s = TryReopen(&options);
-  ASSERT_TRUE(!s.ok());
-  ASSERT_TRUE(s.ToString().find("issing") != std::string::npos)
-      << s.ToString();
-}
-
-TEST(DBTest, StillReadSST) {
-  ASSERT_OK(Put("foo", "bar"));
-  ASSERT_EQ("bar", Get("foo"));
-
-  // Dump the memtable to disk.
-  dbfull()->TEST_CompactMemTable();
-  ASSERT_EQ("bar", Get("foo"));
-  Close();
-  ASSERT_GT(RenameLDBToSST(), 0);
-  Options options = CurrentOptions();
-  options.paranoid_checks = true;
-  Status s = TryReopen(&options);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ("bar", Get("foo"));
 }
 
 TEST(DBTest, FilesDeletedAfterCompaction) {
@@ -1810,13 +1630,13 @@ TEST(DBTest, MultiThreaded) {
     }
 
     // Let them run for a while
-    DelayMilliseconds(kTestSeconds * 1000);
+    env_->SleepForMicroseconds(kTestSeconds * 1000000);
 
     // Stop the threads and wait for them to finish
     mt.stop.Release_Store(&mt);
     for (int id = 0; id < kNumThreads; id++) {
       while (mt.thread_done[id].Acquire_Load() == NULL) {
-        DelayMilliseconds(100);
+        env_->SleepForMicroseconds(100000);
       }
     }
   } while (ChangeOptions());

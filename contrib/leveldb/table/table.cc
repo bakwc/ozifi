@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "table.h"
+#include "leveldb/table.h"
 
-#include "cache.h"
-#include "comparator.h"
-#include "env.h"
-#include "filter_policy.h"
-#include "options.h"
+#include "leveldb/cache.h"
+#include "leveldb/comparator.h"
+#include "leveldb/env.h"
+#include "leveldb/filter_policy.h"
+#include "leveldb/options.h"
 #include "table/block.h"
 #include "table/filter_block.h"
 #include "table/format.h"
@@ -228,6 +228,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k,
         !filter->KeyMayMatch(handle.offset(), k)) {
       // Not found
     } else {
+      Slice handle = iiter->value();
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
       if (block_iter->Valid()) {

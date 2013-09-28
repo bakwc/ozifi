@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "table_builder.h"
+#include "leveldb/table_builder.h"
 
 #include <assert.h>
-#include "comparator.h"
-#include "env.h"
-#include "filter_policy.h"
-#include "options.h"
+#include "leveldb/comparator.h"
+#include "leveldb/env.h"
+#include "leveldb/filter_policy.h"
+#include "leveldb/options.h"
 #include "table/block_builder.h"
 #include "table/filter_block.h"
 #include "table/format.h"

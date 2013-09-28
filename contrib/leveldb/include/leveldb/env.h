@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 #include <stdint.h>
-#include "status.h"
+#include "leveldb/status.h"
 
 namespace leveldb {
 
@@ -175,11 +175,6 @@ class SequentialFile {
   //
   // REQUIRES: External synchronization
   virtual Status Skip(uint64_t n) = 0;
-
- private:
-  // No copying allowed
-  SequentialFile(const SequentialFile&);
-  void operator=(const SequentialFile&);
 };
 
 // A file abstraction for randomly reading the contents of a file.
@@ -199,11 +194,6 @@ class RandomAccessFile {
   // Safe for concurrent use by multiple threads.
   virtual Status Read(uint64_t offset, size_t n, Slice* result,
                       char* scratch) const = 0;
-
- private:
-  // No copying allowed
-  RandomAccessFile(const RandomAccessFile&);
-  void operator=(const RandomAccessFile&);
 };
 
 // A file abstraction for sequential writing.  The implementation

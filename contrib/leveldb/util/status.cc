@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include "port/port.h"
-#include "status.h"
+#include "leveldb/status.h"
 
 namespace leveldb {
 

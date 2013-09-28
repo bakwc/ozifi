@@ -9,6 +9,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost 1.48.0 COMPONENTS locale system filesystem thread chrono REQUIRED)
 
+include_directories(${PROJECT_SOURCE_DIR}/contrib/leveldb/include)
 include_directories(${PROJECT_SOURCE_DIR}
                     ${PROJECT_SOURCE_DIR}/contrib/libcurl
                     ${Boost_INCLUDE_DIRS}
