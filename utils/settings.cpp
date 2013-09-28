@@ -38,7 +38,7 @@ void USettings::Load(const std::string& fname, const std::string& required) {
     }
 	
     if ( Parameters.find(required) == Parameters.end() ) {
-		std::cout<<"Required parameter " + required + " not found"<<std::endl;
+        //std::cout<<"Required parameter " + required + " not found"<<std::endl;
             //throw UException("Required parameter " + *i + " not found");
     }
 }

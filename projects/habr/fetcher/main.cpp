@@ -15,10 +15,24 @@ public:
         options.DirectoryName = storageDir;
         Storage.reset(NKwStorage::CreateLevelDbStorage(options));
     }
-    void Run(size_t idFrom, size_t idTo) {
 
-        for(; idFrom < idTo; ++idFrom) {
+    void Run(size_t idFrom, size_t idTo) {
+        cout << "started\n";
+        for(size_t i = idFrom; i < idTo; ++i) {
+            string key = ToString(i);
+            if (Storage->Exists(key)) {
+                continue;
+            }
+            string url = "http://habrahabr.ru/post/" + key + "/";
+            optional<string> data = NHttpFetcher::FetchUrl(url, chrono::seconds(20));
+            if (data.is_initialized()) {
+                Storage->Put(key, *data);
+                cout << 100.0 * (i - idFrom) / (idTo - idFrom) << "% (" << key << ") - ok\n";
+            } else {
+                cout << 100.0 * (i - idFrom) / (idTo - idFrom) << "% (" << key << ") - fail\n";
+            }
         }
+        cout << "completed\n";
     }
 private:
     unique_ptr<NKwStorage::TKwStorage> Storage;
