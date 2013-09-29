@@ -11,9 +11,7 @@ using namespace std;
 class THabrFetcher {
 public:
     THabrFetcher(const string& storageDir) {
-        NKwStorage::TLevelDbStorageOptions options;
-        options.DirectoryName = storageDir;
-        Storage.reset(NKwStorage::CreateLevelDbStorage(options));
+        Storage.reset(NKwStorage::CreateLevelDbStorage(storageDir));
     }
 
     void Run(size_t idFrom, size_t idTo) {
@@ -40,7 +38,7 @@ private:
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        cerr << "usage: ./habr_fetcher habr_fetcher.conf";
+        cerr << "usage: ./habr_fetcher habr_fetcher.conf\n";
         return 42;
     }
 

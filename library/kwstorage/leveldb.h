@@ -5,8 +5,9 @@
 namespace NKwStorage {
 
 struct TLevelDbStorageOptions {
-    TLevelDbStorageOptions()
-        : CreateUnexistDirectory(true)
+    TLevelDbStorageOptions(const std::string& directoryName)
+        : DirectoryName(directoryName)
+        , CreateUnexistDirectory(true)
     {
     }
     std::string DirectoryName;    // Directory to store internal leveldb files
@@ -18,6 +19,6 @@ struct TLevelDbStorageOptions {
  * @param options - leveldb options
  * @return - KwStorage interface
  */
-TKwStorage* CreateLevelDbStorage(const TLevelDbStorageOptions& options = TLevelDbStorageOptions());
+TKwStorage* CreateLevelDbStorage(const TLevelDbStorageOptions& options);
 
 } // NKwStorage
