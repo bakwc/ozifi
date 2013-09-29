@@ -3,6 +3,8 @@
 #include <boost/thread/detail/singleton.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <utils/exception.h>
+
 #include "fetcher.h"
 
 namespace NHttpFetcher {
@@ -31,9 +33,7 @@ public:
 
         curl = curl_easy_init();
         if (!curl) {
-            //todo: throw exception here
-            cerr << "failed to initialize curl\n";
-            _exit(42);
+            throw UException("failed to initialize curl");
         }
         curl_easy_setopt(curl, CURLOPT_URL, request.Url.c_str());
         if (request.User.is_initialized()) {

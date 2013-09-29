@@ -1,6 +1,7 @@
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
 #include <utils/string.h>
+#include <utils/iostream.h>
 #include <contrib/htmlcxx/html/ParserDom.h>
 
 #include "html_parser.h"
@@ -86,10 +87,10 @@ public:
             }
         }
 
-        if (!node.isTag() && !node.isComment()) {
-            string text = node.text();
-            boost::algorithm::trim(text);
-        }
+//        if (!node.isTag() && !node.isComment()) {
+//            string text = node.text();
+//            boost::algorithm::trim(text);
+//        }
 
         for (size_t i = 0; i < tree.number_of_children(element); ++i) {
             BuildIndex(tree.child(element, i), recodeCharset);

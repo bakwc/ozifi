@@ -32,9 +32,9 @@ public:
             if (title.empty()) {
                 continue;
             }
-            Cout <<title << "\n";
-        }
-        cout << "completed\n";
+            Cout << NormalizeText(title, false) << "\n";
+       }
+       cout << "completed\n";
     }
 private:
     unique_ptr<NKwStorage::TKwStorage> HtmlStorage;
