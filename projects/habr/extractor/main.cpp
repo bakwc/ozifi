@@ -2,9 +2,13 @@
 #include <iostream>
 #include <memory>
 
+#include <boost/algorithm/string.hpp>
+
 #include <library/kwstorage/leveldb.h>
 #include <library/html_parser/html_parser.h>
 #include <utils/settings.h>
+#include <utils/string.h>
+#include <utils/iostream.h>
 
 using namespace std;
 
@@ -25,9 +29,10 @@ public:
             }
             NHtmlParser::THtmlParser dom(*html);
             string title = dom(".post_title").Text();
-            cout << "key:   " << key << "\n";
-            cout << "Title: " << title << "\n";
-            break;
+            if (title.empty()) {
+                continue;
+            }
+            Cout <<title << "\n";
         }
         cout << "completed\n";
     }
@@ -38,7 +43,7 @@ private:
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        cerr << "usage: ./habr_extractor habr_extractor.conf\n";
+        Cerr << "usage: ./habr_extractor habr_extractor.conf\n";
         return 42;
     }
 
@@ -52,7 +57,7 @@ int main(int argc, char** argv) {
         THabrExtractor extractor(storageDir, extractedDir);
         extractor.Run(idFrom, idTo);
     } catch (const exception& e) {
-        cerr << "error: " << e.what() << "\n";
+        Cerr << "error: " << e.what() << "\n";
         return 42;
     }
     return 0;

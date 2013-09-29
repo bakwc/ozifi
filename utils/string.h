@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 
+#include "locale_setter.h"
+
 using namespace std;
 
 string LoadFile(const string& fileName);

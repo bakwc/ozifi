@@ -12,23 +12,28 @@ using namespace std;
 namespace NHtmlParser {
 
 typedef tree<HTML::Node> TDomTree;
-typedef std::unordered_multimap<std::string, TDomTree::iterator> TDomTreeHash;
+typedef std::unordered_multimap<std::string, TDomTree> TDomTreeHash;
 
 class THtmlNodeImpl {
 public:
-    THtmlNodeImpl(const TDomTree::iterator& iterator)
-        : Iterator(iterator)
+    THtmlNodeImpl(const TDomTree& tree)
+        : Tree(tree)
     {
     }
 public:
     std::string Text() {
-        return Iterator->text();
-    }
-    void Text(const std::string& text) {
-        Iterator->text(text);
+        string result;
+        TDomTree::iterator it = Tree.begin();
+        for (; it != Tree.end(); ++it) {
+            HTML::Node& node = *it;
+            if (!node.isTag() && !node.isComment()) {
+                result += node.text();
+            }
+        }
+        return result;
     }
 private:
-    TDomTree::iterator Iterator;
+    TDomTree Tree;
 };
 
 THtmlNode::THtmlNode(THtmlNodeImpl* impl)
@@ -53,31 +58,41 @@ public:
     {
     }
 
-    void BuildIndex(const TDomTree& tree, const boost::optional<string> recodeCharset) {
-        for (TDomTree::iterator element = tree.begin(); element != tree.end(); ++element) {
-            HTML::Node& node = *element;
-            if (!node.text().empty() && recodeCharset.is_initialized()) {
-                node.text(RecodeText(node.text(), *recodeCharset, "UTF-8"));
-            }
-            if (node.isTag()) {
-                node.parseAttributes();
-                map<string, string> attributes = node.attributes();
-                map<string, string>::iterator it;
-                for (it = attributes.begin(); it != attributes.end(); it++) {
-                    string key = it->first;
-                    string value = it->second;
-                    boost::algorithm::to_lower(key);
-                    boost::algorithm::to_lower(value);
-                    if (key == "class" || key == "id") {
-                        TDomTreeHash* hash = key == "class" ? &ElementsByClass : &ElementsById;
-                        vector<string> values;
-                        boost::algorithm::split(values, value, boost::algorithm::is_any_of(" "));
-                        for (size_t i = 0; i < values.size(); i++) {
-                            hash->insert(pair<string, TDomTree::iterator>(value, element));
-                        }
+    void BuildIndex(const TDomTree& tree,
+                    const boost::optional<string> recodeCharset)
+    {
+        TDomTree::iterator element = tree.begin();
+        HTML::Node& node = *element;
+        if (!node.text().empty() && recodeCharset.is_initialized()) {
+            node.text(RecodeText(node.text(), *recodeCharset, "UTF-8"));
+        }
+        if (node.isTag()) {
+            node.parseAttributes();
+            map<string, string> attributes = node.attributes();
+            map<string, string>::iterator it;
+            for (it = attributes.begin(); it != attributes.end(); it++) {
+                string key = it->first;
+                string value = it->second;
+                boost::algorithm::to_lower(key);
+                boost::algorithm::to_lower(value);
+                if (key == "class" || key == "id") {
+                    TDomTreeHash* hash = key == "class" ? &ElementsByClass : &ElementsById;
+                    vector<string> values;
+                    boost::algorithm::split(values, value, boost::algorithm::is_any_of(" "));
+                    for (size_t i = 0; i < values.size(); i++) {
+                        hash->insert(pair<string, TDomTree>(values[i], tree));
                     }
                 }
             }
+        }
+
+        if (!node.isTag() && !node.isComment()) {
+            string text = node.text();
+            boost::algorithm::trim(text);
+        }
+
+        for (size_t i = 0; i < tree.number_of_children(element); ++i) {
+            BuildIndex(tree.child(element, i), recodeCharset);
         }
     }
 
@@ -100,7 +115,7 @@ public:
         {
             charsetFrom = charset;
         }
-        BuildIndex(DOM.begin(), charsetFrom);
+        BuildIndex(DOM, charsetFrom);
     }
 
     std::vector<THtmlNode> SearchIn(const TDomTreeHash& hash, const std::string& key) {
