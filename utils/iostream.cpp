@@ -39,7 +39,6 @@ public:
     int_type overflow(int_type __c) {
         unsigned char byte = __c;
         Buff.push_back(byte);
-        size_t size = Buff.size();
         // if byte > 127 => we can't convert string to UTF-8
         if (byte <= 127) {
             #ifdef __WIN32__
