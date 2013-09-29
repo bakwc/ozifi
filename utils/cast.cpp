@@ -2,23 +2,18 @@
 #include <string>
 #include <sstream>
 
-#include "cast.h"
+#include <boost/lexical_cast.hpp>
 
-template <typename T>
-T from_string(std::string const& s) {
-    std::stringstream ss(s);
-    T result;
-    ss >> result;
-    return result;
-}
+#include "cast.h"
+#include "string.h"
 
 template< >
 unsigned char FromString<unsigned char>(const std::string& str){
     unsigned char res=0;
     try{
-        res = from_string<unsigned char>(str);
+        res = boost::lexical_cast<unsigned char>(str);
     }
-    catch(std::invalid_argument&)
+    catch(std::exception&)
     {
         throw UException("Cast error");
     }
@@ -29,8 +24,8 @@ template< >
 int FromString<int>(const std::string& str){
     int res=0;
     try{
-        res = from_string<int>(str);
-    } catch(std::invalid_argument&) {
+        res = boost::lexical_cast<int>(str);
+    } catch(std::exception&) {
        throw UException("Cast error");
     }
     return res;
@@ -40,9 +35,9 @@ template< >
 double FromString<double>(const std::string& str){
     double res=0;
     try{
-        res = from_string<double>(str);
+        res = boost::lexical_cast<double>(str);
     }
-    catch(std::invalid_argument&)
+    catch(std::exception)
     {
         throw UException("Cast error");
     }
@@ -53,9 +48,9 @@ template< >
 float FromString<float>(const std::string& str){
     float res=0;
     try{
-        res = from_string<float>(str);
+        res = boost::lexical_cast<float>(str);
     }
-    catch(std::invalid_argument&)
+    catch(std::exception&)
     {
         throw UException("Cast error");
     }
@@ -66,9 +61,9 @@ template< >
 unsigned int FromString<unsigned int>(const std::string& str){//
     unsigned int res=0;
     try{
-        res = from_string<unsigned int>(str);
+        res = boost::lexical_cast<unsigned int>(str);
     }
-    catch(std::invalid_argument&)
+    catch(std::exception&)
     {
         throw UException("Cast error");
     }
@@ -79,9 +74,9 @@ template< >
 unsigned short FromString<unsigned short>(const std::string& str){
     unsigned short res=0;
     try{
-        res = from_string<unsigned short>(str);
+        res = boost::lexical_cast<unsigned short>(str);
     }
-    catch(std::invalid_argument&)
+    catch(std::exception&)
     {
         throw UException("Cast error");
     }
@@ -92,9 +87,9 @@ template< >
 unsigned long FromString<unsigned long>(const std::string& str){
     unsigned long res=0;
     try{
-        res = from_string<unsigned long>(str);
+        res = boost::lexical_cast<unsigned long>(str);
     }
-    catch(std::invalid_argument&)
+    catch(std::exception&)
     {
         throw UException("Cast error");
     }
@@ -105,7 +100,7 @@ template< >
 unsigned long long FromString<unsigned long long>(const std::string& str){
     unsigned long long res=0;
     try{
-        res = from_string<unsigned long long>(str);
+        res = boost::lexical_cast<unsigned long long>(str);
     }
     catch(std::invalid_argument&)
     {

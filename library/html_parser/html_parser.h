@@ -28,7 +28,8 @@ class THtmlNode {
 public:
     THtmlNode(THtmlNodeImpl* impl);
     ~THtmlNode();
-    std::string Text() const;
+    std::string Text(bool trim = true) const;
+    THtmlNode Find(const std::string& selector);
     inline bool Exists() {
         return NodeImpl != 0;
     }

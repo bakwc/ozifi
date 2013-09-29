@@ -33,6 +33,47 @@ public:
         }
         return result;
     }
+    bool Find(const string& selector, TDomTree& element, TDomTree* tree = NULL) {
+        if (!tree) {
+            if (selector.empty() || (selector[0] != '.' && selector[0] != '#')) {
+                return false;
+            }
+            tree = &Tree;
+        } else {
+            HTML::Node& node = *tree->begin();
+            if (node.isTag()) {
+                node.parseAttributes();
+                map<string, string> attributes = node.attributes();
+                map<string, string>::iterator it;
+                for (it = attributes.begin(); it != attributes.end(); it++) {
+                    string key = it->first;
+                    string value = it->second;
+                    boost::algorithm::to_lower(key);
+                    boost::algorithm::to_lower(value);
+                    if ((key == "class" && selector[0] == '.') ||
+                            (key == "id" && selector[0] == '#'))
+                    {
+                        vector<string> values;
+                        boost::algorithm::split(values, value, boost::algorithm::is_any_of(" "));
+                        for (size_t i = 0; i < values.size(); i++) {
+                            if (strcmp(values[i].c_str(), selector.c_str() + 1)) {
+                                element = *tree;
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        TDomTree::iterator it = tree->begin();
+        for (size_t i = 0; i != tree->number_of_children(it); ++i) {
+            TDomTree jt = tree->child(it, i);
+            if (Find(selector, element, &jt)) {
+                return true;
+            }
+        }
+        return false;
+    }
 private:
     TDomTree Tree;
 };
@@ -45,11 +86,21 @@ THtmlNode::THtmlNode(THtmlNodeImpl* impl)
 THtmlNode::~THtmlNode() {
 }
 
-std::string THtmlNode::Text() const {
+std::string THtmlNode::Text(bool trim) const {
     if (NodeImpl) {
-        return NodeImpl->Text();
+        std::string text = NodeImpl->Text();
+        boost::algorithm::trim(text);
+        return text;
     }
     return std::string();
+}
+
+THtmlNode THtmlNode::Find(const string& selector) {
+    TDomTree tree;
+    if (NodeImpl && NodeImpl->Find(selector, tree)) {
+        return THtmlNode(new THtmlNodeImpl(tree));
+    }
+    return THtmlNode(NULL);
 }
 
 class THtmlParserImpl {
