@@ -22,6 +22,10 @@
 
 #include "curl_setup.h"
 
+#define SIZEOF_SHORT 2
+#define SIZEOF_INT 4
+#define SIZEOF_SIZE_T 4
+
 #if defined(__INTEL_COMPILER) && defined(__unix__)
 
 #ifdef HAVE_NETINET_IN_H

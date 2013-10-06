@@ -4,7 +4,9 @@
 
 #include "util/win_logger.h"
 
+#ifdef __WIN32__
 #include <windows.h>
+#endif
 
 namespace leveldb {
 

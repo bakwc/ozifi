@@ -22,7 +22,12 @@
  *
  ***************************************************************************/
 
+
 #include "curl_setup.h"
+
+#ifndef __WIN32__
+#include <netinet/in.h>
+#endif
 
 struct Curl_sockaddr_storage {
   union {

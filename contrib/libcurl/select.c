@@ -24,6 +24,7 @@
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
+#define HAVE_SELECT 1
 #endif
 
 #if !defined(HAVE_SELECT) && !defined(HAVE_POLL_FINE)

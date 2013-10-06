@@ -9,6 +9,8 @@
 
 #ifdef __WIN32__
 #define LEVELDB_PLATFORM_WINDOWS
+#else
+#define LEVELDB_PLATFORM_POSIX
 #endif
 
 // Include the appropriate platform specific file below.  If you are

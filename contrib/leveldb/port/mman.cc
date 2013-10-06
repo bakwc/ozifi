@@ -1,6 +1,10 @@
+#ifdef __WIN32__
 #include <windows.h>
+#endif
 #include <errno.h>
+#ifdef __WIN32__
 #include <io.h>
+#endif
 
 #include "mman.h"
 

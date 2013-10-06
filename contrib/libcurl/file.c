@@ -22,6 +22,11 @@
 
 #include "curl_setup.h"
 
+#ifndef __WIN32__
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
+
 #ifndef CURL_DISABLE_FILE
 
 #ifdef HAVE_NETINET_IN_H

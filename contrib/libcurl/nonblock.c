@@ -39,6 +39,11 @@
 
 #include "nonblock.h"
 
+#ifndef __WIN32__
+#define HAVE_FCNTL_O_NONBLOCK
+#include <fcntl.h>
+#endif
+
 /*
  * curlx_nonblock() set the given socket to either blocking or non-blocking
  * mode based on the 'nonblock' boolean argument. This function is highly

@@ -18,6 +18,10 @@
 
 #include "curl_setup.h"
 
+#ifndef __WIN32__
+#include <errno.h>
+#endif
+
 #ifndef HAVE_INET_PTON
 
 #ifdef HAVE_SYS_PARAM_H

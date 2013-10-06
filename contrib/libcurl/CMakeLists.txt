@@ -116,4 +116,10 @@ add_library(libcurl
 	wildcard.c
 	x509asn1.c)
 
+IF (WIN32)
 target_link_libraries(libcurl pthread wsock32 ws2_32)
+ENDIF (WIN32)
+IF (UNIX)
+target_link_libraries(libcurl pthread)
+ENDIF(UNIX)
+

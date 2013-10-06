@@ -22,6 +22,10 @@
 
 #include "curl_setup.h"
 
+#ifndef __WIN32__
+#include <sys/stat.h>
+#endif
+
 #include <curl/curl.h>
 
 #if !defined(CURL_DISABLE_HTTP) || defined(USE_SSLEAY)

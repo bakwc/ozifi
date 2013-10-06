@@ -31,6 +31,17 @@
 #define WIN32
 #endif
 
+#ifndef __WIN32__
+#include <errno.h>
+#define HAVE_SYS_SELECT_H 1
+#define SEND_TYPE_ARG1 int
+#define SEND_TYPE_ARG2 char *
+#define SEND_TYPE_ARG3 int
+#define SEND_TYPE_ARG4 int
+#define HAVE_SOCKET 1
+#define OS "unix"
+#endif
+
 /*
  * Include configuration script results or hand-crafted
  * configuration file for platforms which lack config tool.

@@ -37,6 +37,10 @@
 
 #include "curl_setup.h"
 
+#ifndef __WIN32__
+#include <errno.h>
+#endif
+
 #ifndef CURL_DISABLE_FTP
 
 #include <curl/curl.h>

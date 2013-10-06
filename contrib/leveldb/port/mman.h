@@ -7,7 +7,9 @@
 #define _SYS_MMAN_H_
 
 /* All the headers include this file. */
+#ifdef __WIN32__
 #include <_mingw.h>
+#endif
 
 #include <sys/types.h>
 

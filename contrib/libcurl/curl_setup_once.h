@@ -33,6 +33,13 @@
 #include <stdarg.h>
 #include <ctype.h>
 
+#ifndef RECV_TYPE_ARG1
+#define RECV_TYPE_ARG1 int
+#define RECV_TYPE_ARG2 char*
+#define RECV_TYPE_ARG3 size_t
+#define RECV_TYPE_ARG4 int
+#endif
+
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
 #endif
@@ -107,10 +114,12 @@
  */
 
 #ifndef HAVE_STRUCT_TIMEVAL
+#ifndef _STRUCT_TIMEVAL
 struct timeval {
  long tv_sec;
  long tv_usec;
 };
+#endif
 #endif
 
 
@@ -171,9 +180,10 @@ struct timeval {
 #endif
 #else /* HAVE_RECV */
 #ifndef sread
-  /* */
-  Error Missing_definition_of_macro_sread
-  /* */
+#define sread(x,y,z) (ssize_t)recv((RECV_TYPE_ARG1)(x), \
+                                   (RECV_TYPE_ARG2)(y), \
+                                   (RECV_TYPE_ARG3)(z), \
+                                   (RECV_TYPE_ARG4)(0))
 #endif
 #endif /* HAVE_RECV */
 
@@ -202,9 +212,10 @@ struct timeval {
 #endif
 #else /* HAVE_SEND */
 #ifndef swrite
-  /* */
-  Error Missing_definition_of_macro_swrite
-  /* */
+#define swrite(x,y,z) (ssize_t)send((SEND_TYPE_ARG1)(x), \
+                                    (SEND_TYPE_ARG2)(y), \
+                                    (SEND_TYPE_ARG3)(z), \
+                                    (SEND_TYPE_ARG4)(SEND_4TH_ARG))
 #endif
 #endif /* HAVE_SEND */
 
