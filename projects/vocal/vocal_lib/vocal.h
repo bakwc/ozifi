@@ -3,8 +3,96 @@
 #include <string>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
+#include <boost/optional.hpp>
 
 namespace NVocal {
+
+// General
+
+typedef std::function<void(const std::string&)> TDataCallback;
+typedef TDataCallback TNamedCallback;
+typedef std::function<void(const std::string&, const std::string&)> TNamedDataCallback;
+typedef std::function<std::string(size_t)> TDataRequireCallback;
+typedef std::functiom<void(bool)> TBoolCallback;
+typedef std::functiom<void(const std::string&, bool)> TNamedBoolCallback;
+typedef std::string TMessage;
+typedef std::function<void(const std::string&, const TMessage&)> TMessageCallback;
+
+
+// Friend
+
+enum EFriendStatus {
+    FS_Offline,
+    FS_Unauthorized,
+    FS_Busy,
+    FS_Away,
+    FS_Available
+};
+
+class TFriend {
+public:
+    const std::string& GetLogin();
+    const std::string& GetName();
+    EFriendStatus GetStatus();
+    const std::string& GetStatusMessage();
+    std::vector<TMessage> GetHistory(); // old messages
+    void SendMessage(const std::string& message);
+    void SendFile(const std::string& name,
+                  size_t size,
+                  TDataRequireCallback fileDataCallback);
+    void StartCall(TDataRequireCallback videoDataRequireCallback, // same function for accept call
+                   TDataRequireCallback audioDataRequireCallback,
+                   TDataCallback audioDataCallback,
+                   TDataCallback videoDataCallback,
+                   TBoolCallback partnerVideoStatusCallback,
+                   bool videoEnabled);
+    void EnableVideo();
+    void DisableVideo();
+    void FinishCall();
+};
+
+typedef std::unordered_map<std::string, TFriend> TFriends;
+typedef TFriends::iterator TFriendIterator;
+
+
+// Conference
+
+typedef std::unordered_set<std::string> TStringSet;
+typedef TStringSet TStringSetIterator;
+typedef TStringSetIterator TParticipantIterator;
+
+class TConference {
+public:
+    std::string GetId();
+    std::string GetAddress();
+    const std::string& GetTopic();
+    void SetTopic(const std::string& topic);
+    void AddFriend(const std::string& friendLogin);
+    TParticipantIterator ParticipantsBegin();
+    TParticipantIterator ParticipantsEnd();
+    void StartCall(TDataRequireCallback videoDataRequireCallback, // same function for accept call
+                   TDataRequireCallback audioDataRequireCallback,
+                   TDataCallback audioDataCallback,
+                   TNamedDataCallback videoDataCallback,
+                   TNamedBoolCallback partnerVideoStatusCallback,
+                   bool videoEnabled);
+    void FinishCall();
+    std::vector<TMessage> GetHistory(); // old messages
+    void SendMessage(const TMessage& message);
+private:
+    std::string Id;
+    boost::optional<std::string> Name;
+    std::string Topic;
+    TStringSet Participants;
+    std::string Server;
+};
+
+typedef std::unordered_map<std::string, TConference> TConferences;
+typedef TConferences::iterator TConferenceIterator;
+
+
+// Client
 
 enum EClientState {
     CS_UnAuthorized,
@@ -29,17 +117,8 @@ enum ERegisterResult {
     RR_Success
 };
 
-enum EFriendStatus {
-    FS_Offline,
-    FS_Busy,
-    FS_Away,
-    FS_Available
-};
-
-typedef std::function<void(const std::string&)> TDataCallback;
 typedef std::function<void(ELoginResult)> TLoginCallback;
 typedef std::function<void(ERegisterResult)> TRegisterCallback;
-typedef std::function<std::string(size_t)> TDataRequireCallback;
 
 struct TClientConfig {
     std::string SerializedState;                // internal state data, could be empty on first start
@@ -47,33 +126,21 @@ struct TClientConfig {
     TDataCallback CaptchaAvailableCallback;     // on captcha available (for login, reigster, etc.)
     TLoginCallback LoginResultCallback;         // on login failed / success
     TRegisterCallback RegisterResultCallback;   // on register success / fail
+    TNamedCallback CallCallback;                // on incoming call
+    TNamedCallback ConferenceCallCallback;      // on incoming conference call
+    TNamedCallback ConferenceJoinCallback;      // on join to conference
+    TNamedCallback ConferenceLeftCallback;      // on conference left
+    TMessageCallback MessageCallback;           // on message received
+    TMessageCallback ConferenceMessageCallback; // on conference message received
+    TMessageCallback FriendRequestCallback;     // on friend request received
 };
-
-class TFriend {
-public:
-    const std::string& GetLogin();
-    const std::string& GetName();
-    EFriendStatus GetStatus();
-    const std::string& GetStatusMessage();
-    void SendMessage(const std::string& message);
-    void SendFile(const std::string& name,
-                  size_t size,
-                  TDataRequireCallback fileDataCallback);
-    void VoiceCall(TDataRequireCallback audioDataRequireCallback,
-                   TDataCallback audioDataCallback);
-    void VideoCall(TDataRequireCallback videoDataRequireCallback,
-                   TDataRequireCallback audioDataRequireCallback,
-                   TDataCallback audioDataCallback,
-                   TDataCallback videoDataCallback);
-};
-
-typedef std::unordered_map<std::string, TFriend> TFriends;
-typedef std::unordered_map<std::string, TFriend>::iterator TFriendIterator;
 
 class TClient {
 public:
     TClient(const TClientConfig& config);
     EClientState GetState();
+
+    // connection
     void Connect();                                     // initialize connection
     void Disconnect();                                  // initialize disconnection
     void Login(const std::string& login);               // initialize login
@@ -85,16 +152,26 @@ public:
                   const std::string& preferedPassword,
                   const std::string& email,
                   const std::string& captcha);
+
+    // friends
     void AddFriend(const std::string& friendLogin);     // initialize adding friend
     void AddFriend(const std::string& friendLogin,      // continue adding friend
                    const std::string& requestMessage,
                    const std::string& captcha);
     void RemoveFriend(const std::string& friendLogin);  // remove friend from friendlist
-    TFriend& Friend(const std::string& login);          // friend by login
-    TFriendIterator FriendsBegin();                     // use it to iterate throw friend
+    TFriend& GetFriend(const std::string& login);       // friend by login
+    TFriendIterator FriendsBegin();                     // use it to iterate over friends
     TFriendIterator FriendsEnd();
+
+    // conference
+    void CreateConference();                            // init new conference creation
+    void LeaveConference(const std::string& id);        // leaves conference
+    TConference& GetConference(const std::string& id);  // conference by id
+    TConferenceIterator ConferencesBegin();             // use it to iterate over conferences
+    TConferenceIterator ConferencesEnd();
 private:
     TFriends Friends;
+    TConferences Conferences;
 };
 
 } // NVocal
