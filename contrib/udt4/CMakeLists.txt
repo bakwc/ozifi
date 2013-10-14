@@ -15,7 +15,8 @@ add_library(udt4
                 md5.cpp
                 packet.cpp
                 queue.cpp
-                window.cpp)
+                window.cpp
+                udt.h)
 
 IF (WIN32)
 target_link_libraries(udt4 pthread wsock32 ws2_32)

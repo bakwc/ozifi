@@ -7,7 +7,8 @@ add_library (utils
                 settings.cpp
                 unused.h
                 iostream.cpp
-                locale_setter.cpp)
+                locale_setter.cpp
+                types.h)
 IF (WIN32)
 target_link_libraries(utils iconv html_entities
                             ${Boost_LIBRARIES}
