@@ -6,6 +6,10 @@
 #include "types.h"
 
 struct TNetworkAddress {
+    TNetworkAddress()
+        : Port(0)
+    {
+    }
     TNetworkAddress(ui32 host, ui16 port) {
         boost::asio::ip::address_v4::bytes_type bytes;
         memcpy(bytes.data(), &host, 4);

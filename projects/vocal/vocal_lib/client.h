@@ -4,19 +4,28 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
+#include <chrono>
 #include <boost/optional.hpp>
+#include <utils/buffer.h>
 
 namespace NVocal {
 
 // General
 
-typedef std::function<void(const std::string&)> TDataCallback;
+struct TMessage {
+    std::string Message;
+    std::string From;                       // sender login
+    std::string To;                         // destination login or chat id
+    std::chrono::microseconds Timestamp;    // sender timestamp (consider is real; auto-synced with server)
+    boost::array<char, 16> UID;             // random id
+};
+
+typedef std::function<void(const TBuffer& /*data*/)> TDataCallback;
 typedef TDataCallback TNamedCallback;
-typedef std::function<void(const std::string&, const std::string&)> TNamedDataCallback;
+typedef std::function<void(const std::string& /*name*/, const TBuffer& /*data*/)> TNamedDataCallback;
 typedef std::function<std::string(size_t)> TDataRequireCallback;
 typedef std::functiom<void(bool)> TBoolCallback;
-typedef std::functiom<void(const std::string&, bool)> TNamedBoolCallback;
-typedef std::string TMessage;
+typedef std::functiom<void(const std::string& /*name*/, bool /*result*/)> TNamedBoolCallback;
 typedef std::function<void(const std::string&, const TMessage&)> TMessageCallback;
 
 

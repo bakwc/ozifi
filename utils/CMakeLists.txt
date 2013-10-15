@@ -9,7 +9,8 @@ add_library (utils
                 iostream.cpp
                 locale_setter.cpp
                 types.h
-                network_address.h)
+                network_address.h
+		buffer.h)
 
 IF (WIN32)
 target_link_libraries(utils iconv html_entities

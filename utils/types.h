@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 typedef unsigned char ui8;
 typedef char i8;
 typedef unsigned short ui16;

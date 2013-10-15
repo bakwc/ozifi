@@ -7,6 +7,7 @@
 #include <functional>
 #include <unordered_map>
 #include <mutex>
+#include <boost/asio/detail/array.hpp>
 #include <contrib/udt4/udt.h>
 #include <utils/exception.h>
 
@@ -15,9 +16,49 @@
 using namespace std;
 using namespace std::placeholders;
 
-namespace NVocal {
+namespace NUdt {
 
-typedef unordered_map<TNetworkAddress, UDTSOCKET> TClients;
+struct TClient {
+    TClient(UDPSOCKET socket, const TNetworkAddress& address)
+        : Socket(socket)
+        , Address(address)
+    {
+    }
+    UDTSOCKET Socket;
+    TNetworkAddress Address;
+};
+
+typedef shared_ptr<TClient> TClientRef;
+
+typedef unordered_map<TNetworkAddress, TClientRef> TClientsByAddr;
+typedef unordered_map<UDTSOCKET, TClientRef> TClientsBySocket;
+
+class TClients {
+public:
+    // todo: throw exceptions instead of assert.. or not
+    inline void Insert(TClientRef cli) {
+        assert(ClientsBySock.find(cli->Socket) == ClientsBySock.end() && "client already exists");
+        ClientsByAddr[cli->Address] = cli;
+        ClientsBySock[cli->Socket] = cli;
+    }
+    inline TClientRef Get(UDTSOCKET socket) {
+        assert(ClientsBySock.find(socket) != ClientsBySock.end() && "client not found");
+        return ClientsBySock[socket];
+    }
+    inline TClientRef Get(const TNetworkAddress& address) {
+        assert(ClientsByAddr.find(address) != ClientsByAddr.end() && "client not found");
+        return ClientsByAddr[address];
+    }
+    inline void Remove(UDTSOCKET socket) {
+        assert(ClientsBySock.find(socket) != ClientsBySock.end() && "client not found");
+        TClientRef client = ClientsBySock[socket];
+        ClientsBySock.erase(client->Socket);
+        ClientsByAddr.erase(client->Address);
+    }
+private:
+    TClientsByAddr ClientsByAddr;
+    TClientsBySocket ClientsBySock;
+};
 
 class TServerImpl {
 public:
@@ -55,13 +96,40 @@ public:
         UDT::epoll_release(MainEid);
         UDT::close(Server);
     }
-
+    bool Send(const TBuffer& data, const TNetworkAddress& address) {
+        UDTSOCKET sock;
+        {
+            lock_guard<mutex> guard(Lock);
+            sock = Clients.Get(address)->Socket;
+        }
+        int result = UDT::send(sock, data.Data(), data.Size(), 0);
+        if (result == UDT::ERROR) {
+            UDT::ERRORINFO error = UDT::getlasterror();
+            if (error.getErrorCode() == UDT::ERRORINFO::ECONNLOST) {
+                // todo: process disconnected client
+            }
+            return false;
+        }
+        assert(data.Size() == result && "sended not all bytes");
+        return true;
+    }
     void WorkerThread() {
+        boost::asio::detail::array<char, 1024> buff;
         while (!Done) {
             set<UDTSOCKET> eventedSockets;
             UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
-                // todo: process sockets
+                int result = UDT::recv(*it, buff.data(), 1024, 0);
+                if (UDT::ERROR != result) {
+                    TNetworkAddress clientAddr;
+                    {
+                        lock_guard<mutex> guard(Lock);
+                        clientAddr = Clients.Get(*it)->Address;
+                    }
+                    Config.DataReceivedCallback(boost::asio::buffer(buff.data(), result), clientAddr);
+                } else {
+                    // todo: process connection lost and other
+                }
             }
         }
     }
@@ -76,15 +144,16 @@ public:
                 int clientAddrLen;
                 UDTSOCKET clientSocket = UDT::accept(Server, (sockaddr*)&clientAddr, &clientAddrLen);
                 if (clientSocket != UDT::INVALID_SOCK) {
-                    TNetworkAddress addrs(*(ui32*)clientAddr.sin_addr.s_addr, clientAddr.sin_port);
-                    if (Config.NewConnectionCallback(addrs)) {
-                        lock_guard<mutex> guard(Lock);
-                        Clients[addrs] = clientSocket;
+                    TNetworkAddress addr(*(ui32*)clientAddr.sin_addr.s_addr, clientAddr.sin_port);
+                    if (Config.NewConnectionCallback(addr)) {
+                        {
+                            lock_guard<mutex> guard(Lock);
+                            Clients.Insert(make_shared<TClient>(clientSocket, addr));
+                        }
                         UDT::epoll_add_usock(MainEid, clientSocket);
                     } else {
                         UDT::close(clientSocket);
                     }
-
                 }
             }
         }
@@ -107,9 +176,13 @@ TServer::TServer(const TServerConfig& config)
 {
 }
 
+void TServer::Send(const TBuffer& data, const TNetworkAddress& address) {
+    Impl->Send(data, address);
+}
+
 TServer::~TServer()
 {
 }
 
 
-}
+} // NUdt
