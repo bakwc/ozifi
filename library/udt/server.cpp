@@ -126,7 +126,7 @@ public:
                         lock_guard<mutex> guard(Lock);
                         clientAddr = Clients.Get(*it)->Address;
                     }
-                    Config.DataReceivedCallback(boost::asio::buffer(buff.data(), result), clientAddr);
+                    Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
                 } else {
                     // todo: process connection lost and other
                 }

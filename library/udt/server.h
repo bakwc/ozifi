@@ -11,7 +11,7 @@ namespace NUdt {
 
 // bool newConnection(ipAddr); - true to accept, false to decline
 typedef std::function<bool(const TNetworkAddress& address)> TNewConnectionCallback;
-typedef std::function<void(const boost::asio::const_buffer& data, const TNetworkAddress& address)> TDataReceivedCallback;
+typedef std::function<void(const TBuffer& data, const TNetworkAddress& address)> TDataReceivedCallback;
 
 struct TServerConfig {
     ui16 Port;
