@@ -2,9 +2,10 @@
 #include <mutex>
 #include <boost/optional.hpp>
 #include <utils/exception.h>
-#include <contrib/udt4/udt.h>
 
 #include "client.h"
+
+#include <contrib/udt4/udt.h>
 
 using namespace std;
 

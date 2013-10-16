@@ -2,7 +2,6 @@
 
 #include <functional>
 #include <memory>
-#include <boost/asio/buffer.hpp>
 #include <utils/types.h>
 #include <utils/network_address.h>
 #include <utils/buffer.h>
