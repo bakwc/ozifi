@@ -2,6 +2,8 @@
 
 #include <functional>
 #include <memory>
+#include <boost/asio/buffer.hpp>
+#include <utils/types.h>
 #include <utils/network_address.h>
 #include <utils/buffer.h>
 
@@ -22,7 +24,7 @@ class TClient {
 public:
     TClient(const TClientConfig& config);
     ~TClient();
-    void Connect(const TNetworkAddress& address, TConnectionCallback callback);
+    void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback);
     void Send(const TBuffer& data);
 private:
     std::unique_ptr<TClientImpl> Impl;

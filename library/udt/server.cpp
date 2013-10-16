@@ -66,23 +66,23 @@ public:
         : Config(config)
         , Done(false)
     {
-        Server = UDT::socket(AF_INET, SOCK_STREAM, 0);
+        Socket = UDT::socket(AF_INET, SOCK_STREAM, 0);
         sockaddr_in addr;
         addr.sin_family = AF_INET;
         addr.sin_port = htons(config.Port);
         addr.sin_addr.s_addr = INADDR_ANY;
         memset(&(addr.sin_zero), '\0', 8);
-        if (UDT::ERROR == UDT::bind(Server, (sockaddr*)&addr, sizeof(addr))) {
+        if (UDT::ERROR == UDT::bind(Socket, (sockaddr*)&addr, sizeof(addr))) {
             throw UException(string("failed to start server: ") + UDT::getlasterror().getErrorMessage());
         }
         bool block = false;
-        if (UDT::ERROR == UDT::setsockopt(Server, 0, UDT_SNDSYN, &block, sizeof(bool))) {
+        if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_SNDSYN, &block, sizeof(bool))) {
             throw UException(string("failed to star server: ") + UDT::getlasterror().getErrorMessage());
         }
-        if (UDT::ERROR == UDT::setsockopt(Server, 0, UDT_RCVSYN, &block, sizeof(bool))) {
+        if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_RCVSYN, &block, sizeof(bool))) {
             throw UException(string("failed to star server: ") + UDT::getlasterror().getErrorMessage());
         }
-        if (UDT::ERROR == UDT::listen(Server, config.MaxConnections)) {
+        if (UDT::ERROR == UDT::listen(Socket, config.MaxConnections)) {
             throw UException(string("failed to star server: ") + UDT::getlasterror().getErrorMessage());
         }
         MainEid = UDT::epoll_create();
@@ -94,7 +94,7 @@ public:
         WorkerThreadHolder->join();
         ConnectionsThreadHolder->join();
         UDT::epoll_release(MainEid);
-        UDT::close(Server);
+        UDT::close(Socket);
     }
     bool Send(const TBuffer& data, const TNetworkAddress& address) {
         UDTSOCKET sock;
@@ -135,14 +135,14 @@ public:
     }
     void ConnectionsThread() {
         int eid = UDT::epoll_create();
-        UDT::epoll_add_usock(eid, Server);
+        UDT::epoll_add_usock(eid, Socket);
         while (!Done) {
             set<UDTSOCKET> eventedSockets;
             UDT::epoll_wait(eid, &eventedSockets, &eventedSockets, 1000);
             if (eventedSockets.size() > 0) {
                 sockaddr_in clientAddr;
                 int clientAddrLen;
-                UDTSOCKET clientSocket = UDT::accept(Server, (sockaddr*)&clientAddr, &clientAddrLen);
+                UDTSOCKET clientSocket = UDT::accept(Socket, (sockaddr*)&clientAddr, &clientAddrLen);
                 if (clientSocket != UDT::INVALID_SOCK) {
                     TNetworkAddress addr(*(ui32*)clientAddr.sin_addr.s_addr, clientAddr.sin_port);
                     if (Config.NewConnectionCallback(addr)) {
@@ -161,7 +161,7 @@ public:
     }
 private:
     TServerConfig Config;
-    UDTSOCKET Server;
+    UDTSOCKET Socket;
     TClients Clients;
     unique_ptr<thread> WorkerThreadHolder;
     unique_ptr<thread> ConnectionsThreadHolder;
