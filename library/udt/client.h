@@ -15,7 +15,7 @@ typedef std::function<void(const TBuffer& /*data*/)> TDataCallback;
 struct TClientConfig {
     TConnectionCallback ConnectionCallback; // on connected (or failed to connect)
     TFunction ConnectionLostCallback;       // on connection lost
-    TDataCallback DataReceiveCallback;      // on data received
+    TDataCallback DataReceivedCallback;     // on data received
 };
 
 class TClientImpl;

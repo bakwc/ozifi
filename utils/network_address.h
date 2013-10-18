@@ -9,6 +9,10 @@ struct TNetworkAddress {
     TNetworkAddress()
         : Port(0)
     {
+        Addr.sin_family = AF_INET;
+        Addr.sin_port = 0;
+        Addr.sin_addr.s_addr = INADDR_ANY;
+        memset(&(Addr.sin_zero), '\0', 8);
     }
     TNetworkAddress(ui32 host, ui16 port) {
         boost::asio::ip::address_v4::bytes_type bytes;
@@ -16,12 +20,23 @@ struct TNetworkAddress {
         boost::asio::ip::address_v4 addr(bytes);
         Address = boost::asio::ip::address(addr);
         Port = port;
+        Addr.sin_family = AF_INET;
+        Addr.sin_port = port;
+        Addr.sin_addr.s_addr = host;
+        memset(&(Addr.sin_zero), '\0', 8);
     }
     bool operator==(const TNetworkAddress& other) const {
         return Address == other.Address && Port == other.Port;
     }
+    const sockaddr* Sockaddr() const {
+        return (sockaddr*)(&Addr);
+    }
+    size_t SockaddrLength() const {
+        return sizeof(Addr);
+    }
     boost::asio::ip::address Address;
     ui16 Port;
+    sockaddr_in Addr;
 };
 
 namespace std {

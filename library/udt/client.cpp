@@ -18,6 +18,12 @@ public:
     {
         Socket = UDT::socket(AF_INET, SOCK_STREAM, 0);
     }
+    ~TClientImpl() {
+        Done = true;
+        WorkerThreadHolder->join();
+        UDT::epoll_release(MainEid);
+    }
+
     inline void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
         if (CurrentConnection.is_initialized()) {
             SetAsyncMode(false);
@@ -25,15 +31,18 @@ public:
             CurrentConnection = boost::optional<TNetworkAddress>();
             Done = true;
             WorkerThreadHolder->join();
+            UDT::epoll_release(MainEid);
         }
         if (overNat) {
             if (!CurrentLocalAddress.is_initialized()) {
                 throw UException("cannot traverse nat cause local address not available");
             }
-            // todo: bind socket using CurrentLocalAddress
+            UDT::bind(Socket, CurrentLocalAddress->Sockaddr(), CurrentLocalAddress->SockaddrLength());
         }
         SetAsyncMode(true);
-        // todo: connect to server using address
+        UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength());
+        MainEid = UDT::epoll_create();
+        UDT::epoll_add_usock(MainEid, Socket);
         Done = false;
         WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
     }
@@ -54,7 +63,19 @@ private:
     }
 
     void WorkerThread() {
-        // todo: process receiving and connection drops
+        boost::asio::detail::array<char, 1024> buff;
+        while (!Done) {
+            set<UDTSOCKET> eventedSockets;
+            UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 200);
+            for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
+                int result = UDT::recv(*it, buff.data(), 1024, 0);
+                if (UDT::ERROR != result) {
+                    Config.DataReceivedCallback(TBuffer(buff.data(), result));
+                } else {
+                    // todo: process connection lost and other
+                }
+            }
+        }
     }
 
 private:
@@ -65,6 +86,7 @@ private:
     unique_ptr<thread> WorkerThreadHolder;
     mutex Lock;
     bool Done;
+    int MainEid;
 };
 
 TClient::TClient(const TClientConfig& config)
