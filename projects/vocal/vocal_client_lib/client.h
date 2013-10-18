@@ -8,98 +8,12 @@
 #include <boost/optional.hpp>
 #include <utils/buffer.h>
 
+#include "callback.h"
+#include "message.h"
+#include "friend.h"
+#include "conference.h"
+
 namespace NVocal {
-
-// General
-
-struct TMessage {
-    std::string Message;
-    std::string From;                       // sender login
-    std::string To;                         // destination login or chat id
-    std::chrono::microseconds Timestamp;    // sender timestamp (consider is real; auto-synced with server)
-    boost::array<char, 16> UID;             // random id
-};
-
-typedef std::function<void(const TBuffer& /*data*/)> TDataCallback;
-typedef TDataCallback TNamedCallback;
-typedef std::function<void(const std::string& /*name*/, const TBuffer& /*data*/)> TNamedDataCallback;
-typedef std::function<std::string(size_t)> TDataRequireCallback;
-typedef std::functiom<void(bool)> TBoolCallback;
-typedef std::functiom<void(const std::string& /*name*/, bool /*result*/)> TNamedBoolCallback;
-typedef std::function<void(const std::string&, const TMessage&)> TMessageCallback;
-
-
-// Friend
-
-enum EFriendStatus {
-    FS_Offline,
-    FS_Unauthorized,
-    FS_Busy,
-    FS_Away,
-    FS_Available
-};
-
-class TFriend {
-public:
-    const std::string& GetLogin();
-    const std::string& GetName();
-    EFriendStatus GetStatus();
-    const std::string& GetStatusMessage();
-    std::vector<TMessage> GetHistory(); // old messages
-    void SendMessage(const std::string& message);
-    void SendFile(const std::string& name,
-                  size_t size,
-                  TDataRequireCallback fileDataCallback);
-    void StartCall(TDataRequireCallback videoDataRequireCallback, // same function for accept call
-                   TDataRequireCallback audioDataRequireCallback,
-                   TDataCallback audioDataCallback,
-                   TDataCallback videoDataCallback,
-                   TBoolCallback partnerVideoStatusCallback,
-                   bool videoEnabled);
-    void EnableVideo();
-    void DisableVideo();
-    void FinishCall();
-};
-
-typedef std::unordered_map<std::string, TFriend> TFriends;
-typedef TFriends::iterator TFriendIterator;
-
-
-// Conference
-
-typedef std::unordered_set<std::string> TStringSet;
-typedef TStringSet TStringSetIterator;
-typedef TStringSetIterator TParticipantIterator;
-
-class TConference {
-public:
-    std::string GetId();
-    std::string GetAddress();
-    const std::string& GetTopic();
-    void SetTopic(const std::string& topic);
-    void AddFriend(const std::string& friendLogin);
-    TParticipantIterator ParticipantsBegin();
-    TParticipantIterator ParticipantsEnd();
-    void StartCall(TDataRequireCallback videoDataRequireCallback, // same function for accept call
-                   TDataRequireCallback audioDataRequireCallback,
-                   TDataCallback audioDataCallback,
-                   TNamedDataCallback videoDataCallback,
-                   TNamedBoolCallback partnerVideoStatusCallback,
-                   bool videoEnabled);
-    void FinishCall();
-    std::vector<TMessage> GetHistory(); // old messages
-    void SendMessage(const TMessage& message);
-private:
-    std::string Id;
-    boost::optional<std::string> Name;
-    std::string Topic;
-    TStringSet Participants;
-    std::string Server;
-};
-
-typedef std::unordered_map<std::string, TConference> TConferences;
-typedef TConferences::iterator TConferenceIterator;
-
 
 // Client
 

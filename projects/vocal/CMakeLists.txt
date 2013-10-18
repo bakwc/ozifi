@@ -1,1 +1,1 @@
-add_subdirectory(vocal_lib)
+add_subdirectory(vocal_client_lib)
