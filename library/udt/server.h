@@ -26,6 +26,7 @@ public:
     TServer(const TServerConfig& config);
     ~TServer();
     void Send(const TBuffer& data, const TNetworkAddress& address);
+    void DisconnectClient(const TNetworkAddress& client);
 private:
     std::unique_ptr<TServerImpl> Impl;
 };

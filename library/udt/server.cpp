@@ -113,6 +113,9 @@ public:
         assert(data.Size() == result && "sended not all bytes");
         return true;
     }
+    void DisconnectClient(const TNetworkAddress& client) {
+        // todo: drop client
+    }
     void WorkerThread() {
         boost::asio::detail::array<char, 1024> buff;
         while (!Done) {
@@ -178,6 +181,10 @@ TServer::TServer(const TServerConfig& config)
 
 void TServer::Send(const TBuffer& data, const TNetworkAddress& address) {
     Impl->Send(data, address);
+}
+
+void TServer::DisconnectClient(const TNetworkAddress& client) {
+    Impl->DisconnectClient(client);
 }
 
 TServer::~TServer()
