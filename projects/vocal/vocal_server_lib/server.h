@@ -3,27 +3,37 @@
 #include <string>
 #include <memory>
 #include <iostream>
+#include <unordered_map>
 #include <utils/types.h>
+#include <library/udt/server.h>
+#include <library/http_server/server.h>
+
+#include "storage.h"
 
 namespace NVocal {
 
 struct TServerConfig {
     ui16 Port;                  // local port
     ui16 AdminPort;             // web admin port
+    std::string Hostname;       // hostname with correct srv records
     std::string DataDirectory;  // directory for database
 };
 
-class TServerImpl;
 class TServer {
 public:
     TServer(const TServerConfig& config);
-    ~TServer();
-    // total status
     void PrintStatus(std::ostream& out);
-    // status for given client login
     void PrintClientStatus(const std::string& client, std::ostream& out);
 private:
-    std::unique_ptr<TServerImpl> Impl;
+    bool OnClientConnected(const TNetworkAddress& client);
+    void OnDataReceived(const TBuffer& data, const TNetworkAddress& client);
+private:
+     TServerConfig Config;
+     unique_ptr<NUdt::TServer> Server;
+     unique_ptr<NHttpServer::THttpServer> HttpServer;
+     unique_ptr<TClientInfoStorage> ClientInfoStorage;
+     unique_ptr<TSelfStorage> SelfStorage;
+     unique_ptr<TMessageStorage> MessageStorage;
 };
 
 }

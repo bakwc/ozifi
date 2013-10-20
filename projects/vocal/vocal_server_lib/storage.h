@@ -6,39 +6,18 @@
 #include <unordered_map>
 #include <boost/optional.hpp>
 
+#include "types.h"
+
 namespace NVocal {
 
-enum EFriendType {
-    FT_Friend,
-    FT_Conference
-};
-
-struct TFriendInfo {
-    std::string Login;
-    std::string EncryptedKey;
-    EFriendType Type;
-};
-
-struct TClientInfo {
-    std::string Login;
-    std::unordered_map<std::string, TFriendInfo> Friends; // and conferences
-    std::string PublicKey;
-    std::string EncryptedPrivateKey;
-    std::string LoginPasswordHash;
-};
-
-class TClientInfoStorageImpl;
 class TClientInfoStorage {
 public:
     TClientInfoStorage(const std::string& storageDir);
     ~TClientInfoStorage();
     void Put(const TClientInfo& clientInfo);
     boost::optional<TClientInfo> Get(const std::string& login);
-private:
-    std::unique_ptr<TClientInfoStorageImpl> Impl;
 };
 
-class TMessageStorageImpl;
 class TMessageStorage {
 public:
     TMessageStorage(const std::string& storageDir);
@@ -47,22 +26,15 @@ public:
     std::vector<std::string> GetMessages(const std::string& login,
                                          std::chrono::microseconds from,
                                          std::chrono::microseconds to);
-private:
-    std::unique_ptr<TMessageStorageImpl> Impl;
 };
 
-class TServerStatusStorageImpl;
-class TServerStatusStorage {
+class TSelfStorage {
 public:
-    TServerStatusStorage(const std::string& storageDir);
-    ~TServerStatusStorage();
+    TSelfStorage(const std::string& storageDir);
+    ~TSelfStorage();
     void GenerateKeys();
-    void SetHostname(const std::string& hostname);
-    const std::string& GetHostname();
     const std::string& GetPublickKey();
     const std::string& GetPrivateKey();
-private:
-    std::unique_ptr<TServerStatusStorageImpl> Impl;
 };
 
 } // NVocal
