@@ -110,10 +110,12 @@
  */
 
 #ifndef HAVE_STRUCT_TIMEVAL
+# ifndef _STRUCT_TIMEVAL
 struct timeval {
  long tv_sec;
  long tv_usec;
 };
+#endif
 #endif
 
 
@@ -166,6 +168,7 @@ struct timeval {
   /* */
   Error Missing_definition_of_return_and_arguments_types_of_recv
   /* */
+#endif
 #else
 #define sread(x,y,z) (ssize_t)recv((RECV_TYPE_ARG1)(x), \
                                    (RECV_TYPE_ARG2)(y), \
@@ -197,19 +200,17 @@ struct timeval {
   /* */
   Error Missing_definition_of_return_and_arguments_types_of_send
   /* */
+#endif
 #else
 #define swrite(x,y,z) (ssize_t)send((SEND_TYPE_ARG1)(x), \
                                     (SEND_TYPE_ARG2)(y), \
                                     (SEND_TYPE_ARG3)(z), \
                                     (SEND_TYPE_ARG4)(SEND_4TH_ARG))
-#endif
-#else /* HAVE_SEND */
 #ifndef swrite
   /* */
   Error Missing_definition_of_macro_swrite
   /* */
 #endif
-#endif /* HAVE_SEND */
 
 
 #if 0

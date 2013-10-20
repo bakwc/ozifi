@@ -47,6 +47,8 @@ written by
    #endif
 #else
    #include <unistd.h>
+   #include <sys/socket.h>
+   #define SOCKADDR_IN6 sockaddr_in6
 #endif
 #include <cstring>
 #include "api.h"

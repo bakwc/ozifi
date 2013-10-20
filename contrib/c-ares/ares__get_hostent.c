@@ -16,6 +16,12 @@
 
 #include "ares_setup.h"
 
+#ifdef __unix__
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
+
 #ifdef HAVE_NETINET_IN_H
 #  include <netinet/in.h>
 #endif

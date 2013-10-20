@@ -22,6 +22,7 @@
 #endif
 
 #ifndef HAVE_STRUCT_SOCKADDR_IN6
+#ifndef __unix__
 struct sockaddr_in6
 {
   unsigned short       sin6_family;
@@ -31,8 +32,10 @@ struct sockaddr_in6
   unsigned int         sin6_scope_id;
 };
 #endif
+#endif
 
 #ifndef HAVE_STRUCT_ADDRINFO
+#ifndef __unix__
 struct addrinfo
 {
   int              ai_flags;
@@ -44,6 +47,7 @@ struct addrinfo
   struct sockaddr *ai_addr;
   struct addrinfo *ai_next;
 };
+#endif
 #endif
 
 #ifndef NS_IN6ADDRSZ

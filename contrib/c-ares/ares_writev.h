@@ -22,12 +22,14 @@
 
 #ifndef HAVE_WRITEV
 
+#ifndef __unix__
 /* Structure for scatter/gather I/O. */
 struct iovec
 {
   void *iov_base;  /* Pointer to data. */
   size_t iov_len;  /* Length of data.  */
 };
+#endif
 
 extern ssize_t ares_writev(ares_socket_t s, const struct iovec *iov, int iovcnt);
 

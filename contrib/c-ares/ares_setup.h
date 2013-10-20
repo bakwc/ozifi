@@ -23,6 +23,27 @@
 #define WIN32
 #endif
 
+#ifdef __unix__
+#define HAVE_NETINET_IN_H
+#define HAVE_NETDB_H
+#define HAVE_ARPA_INET_H
+#define HAVE_ARPA_NAMESER_H
+#define HAVE_ARPA_NAMESER_COMPAT_H
+#include "errno.h"
+#define SIZEOF_SHORT 2
+#define SIZEOF_INT 4
+#define SEND_TYPE_ARG1 int
+#define SEND_TYPE_ARG2 void*
+#define SEND_TYPE_ARG3 size_t
+#define SEND_TYPE_ARG4 int
+#define RECV_TYPE_ARG1 int
+#define RECV_TYPE_ARG2 void*
+#define RECV_TYPE_ARG3 size_t
+#define RECV_TYPE_ARG4 int
+#define HAVE_FCNTL_O_NONBLOCK
+#include "limits.h"
+#endif
+
 /*
  * Include configuration script results or hand-crafted
  * configuration file for platforms which lack config tool.

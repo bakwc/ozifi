@@ -2,6 +2,7 @@
 #include <memory>
 
 #include <boost/thread/thread.hpp>
+#include <thread>
 #include <boost/algorithm/string.hpp>
 #include <utils/settings.h>
 
@@ -61,7 +62,7 @@ void TThumbDemon::Run() {
             cerr << "Error processing task: " << e.what() << "\n";
         }
 
-        boost::this_thread::sleep_for(chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
