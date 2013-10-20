@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 #include <boost/asio/ip/address.hpp>
 
 #include "types.h"
@@ -38,6 +39,8 @@ struct TNetworkAddress {
     ui16 Port;
     sockaddr_in Addr;
 };
+
+typedef std::shared_ptr<TNetworkAddress> TNetworkAddressRef;
 
 namespace std {
   template <>
