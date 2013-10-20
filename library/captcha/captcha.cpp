@@ -4,6 +4,6 @@
 
 #include "captcha.h"
 
-std::string GenerateCaptcha(size_t width, size_t height) {
-    return string();
+TCaptcha GenerateCaptcha(size_t width, size_t height) {
+    return TCaptcha();
 }
