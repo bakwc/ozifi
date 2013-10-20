@@ -14,8 +14,10 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${PROJECT_SOURCE_DIR}/contrib/libcurl
                     ${Boost_INCLUDE_DIRS}
                     ${PROJECT_BINARY_DIR})
+link_directories(${PROJECT_BINARY_DIR})
 
 add_subdirectory(contrib)
 add_subdirectory(library)
 add_subdirectory(projects)
+add_subdirectory(junk)
 add_subdirectory(utils)
