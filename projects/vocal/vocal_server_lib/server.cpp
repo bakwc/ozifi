@@ -7,15 +7,12 @@ using namespace std::placeholders;
 
 namespace NVocal {
 
-enum EClientStatus {
-    CS_Unknown,
-    CS_Authorized
-};
+TClient::TClient(const TNetworkAddress& address)
+    : Address(address)
+    , Status(CS_Unknown)
+{
+}
 
-class TClient {
-    TNetworkAddress Address;
-    EClientStatus Status;
-};
 
 TServer::TServer(const TServerConfig& config)
     : Config(config)
@@ -39,10 +36,17 @@ void TServer::PrintStatus(std::ostream& out) {
 void TServer::PrintClientStatus(const std::string& client, std::ostream& out) {
 }
 
-bool TServer::OnClientConnected(const TNetworkAddress& client) {
+bool TServer::OnClientConnected(const TNetworkAddress& addr) {
+    // todo: some ip filtering here
+    TClientRef client = make_shared<TClient>(addr);
+    assert(Clients.find(addr) == Clients.end());
+    Clients[addr] = client;
+    return true;
 }
 
-void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& client) {
+void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
+    assert(Clients.find(addr) != Clients.end());
+    TClientRef client = Clients[addr];
 }
 
 }

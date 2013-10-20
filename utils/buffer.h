@@ -7,7 +7,7 @@
 
 class TBuffer {
 public:
-    TBuffer(char* data, size_t size)
+    TBuffer(const char* data, size_t size)
         : DataPtr(data)
         , Length(size)
     {
