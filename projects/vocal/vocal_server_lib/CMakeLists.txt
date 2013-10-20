@@ -3,4 +3,5 @@ target_link_libraries(vocal_server_lib utils
                              vocal_lib
                              udtlib
                              http_server
+                             captcha
                              ${Boost_LIBRARIES})

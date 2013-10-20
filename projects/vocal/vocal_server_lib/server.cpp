@@ -46,7 +46,9 @@ bool TServer::OnClientConnected(const TNetworkAddress& addr) {
 
 void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
     assert(Clients.find(addr) != Clients.end());
+    assert(data.Size() >= 1);
     TClientRef client = Clients[addr];
+
 }
 
 }

@@ -342,7 +342,7 @@ long ares__tvdiff(struct timeval t1, struct timeval t2);
   do {                                                                  \
     if ((c)->sock_state_cb)                                             \
       (c)->sock_state_cb((c)->sock_state_cb_data, (s), (r), (w));       \
-  } WHILE_FALSE
+    } while(0)
 
 #ifdef CURLDEBUG
 /* This is low-level hard-hacking memory leak tracking and similar. Using the
