@@ -30,6 +30,7 @@ struct TClient {
     TNetworkAddress Address;
     EClientStatus Status;
     std::string Login;
+    std::string CaptchaText;
 };
 
 typedef std::shared_ptr<TClient> TClientRef;

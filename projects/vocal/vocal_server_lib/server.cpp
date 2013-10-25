@@ -1,4 +1,7 @@
+#include <library/captcha/captcha.h>
 #include <projects/vocal/vocal_lib/resolver.h>
+#include <projects/vocal/vocal_lib/defines.h>
+#include <projects/vocal/vocal_lib/serializer.h>
 
 #include "server.h"
 
@@ -48,7 +51,24 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
     assert(Clients.find(addr) != Clients.end());
     assert(data.Size() >= 1);
     TClientRef client = Clients[addr];
+    boost::optional<string> response;
+    bool disconnectClient = false;
+    if (client->Status == CS_Unknown) {
+        ERequestType requestType = (ERequestType)data[0];
+        switch (requestType) {
+        case RT_Register: {
+            TCaptcha captcha = GenerateCaptcha(CAPTCHA_WIDTH, CAPTCHA_HEIGHT);
+            client->CaptchaText = captcha.Text;
+            response = Serialize(captcha.PngImage) + Serialize(SelfStorage->GetPublickKey());
+        } break;
+        }
+    }
 
+    if (disconnectClient) {
+        Server->DisconnectClient(addr);
+    } else if (response.is_initialized()) {
+        Server->Send(TBuffer(response.get()), addr);
+    }
 }
 
 }

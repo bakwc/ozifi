@@ -17,6 +17,9 @@ public:
         , Length(str.size())
     {
     }
+    inline char operator[](size_t pos) const {
+        return DataPtr[pos];
+    }
     inline const char* Data() const {
         return DataPtr;
     }
