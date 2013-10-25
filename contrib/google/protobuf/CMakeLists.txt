@@ -1,0 +1,36 @@
+include_directories(${PROJECT_SOURCE_DIR}/contrib/google/protobuf)
+add_library(protobuf
+                    descriptor.cc
+                    descriptor.pb.cc
+                    descriptor_database.cc
+                    dynamic_message.cc
+                    extension_set.cc
+                    extension_set_heavy.cc
+                    generated_message_reflection.cc
+                    generated_message_util.cc
+                    message.cc
+                    message_lite.cc
+                    reflection_ops.cc
+                    repeated_field.cc
+                    service.cc
+                    text_format.cc
+                    unknown_field_set.cc
+                    wire_format.cc
+                    wire_format_lite.cc
+                    
+                    stubs/atomicops_internals_x86_gcc.cc
+                    stubs/atomicops_internals_x86_msvc.cc
+                    stubs/common.cc
+                    stubs/once.cc
+                    stubs/stringprintf.cc
+                    stubs/structurally_valid.cc
+                    stubs/strutil.cc
+                    stubs/substitute.cc
+
+                    io/coded_stream.cc
+                    io/gzip_stream.cc
+                    io/printer.cc
+                    io/tokenizer.cc
+                    io/zero_copy_stream.cc
+                    io/zero_copy_stream_impl.cc
+                    io/zero_copy_stream_impl_lite.cc)

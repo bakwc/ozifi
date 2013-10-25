@@ -11,6 +11,7 @@ find_package(Boost 1.48.0 COMPONENTS locale system filesystem thread chrono REQU
 
 include_directories(${PROJECT_SOURCE_DIR}/contrib/leveldb/include)
 include_directories(${PROJECT_SOURCE_DIR}
+                    ${PROJECT_SOURCE_DIR}/contrib/
                     ${PROJECT_SOURCE_DIR}/contrib/libcurl
                     ${Boost_INCLUDE_DIRS}
                     ${PROJECT_BINARY_DIR})
