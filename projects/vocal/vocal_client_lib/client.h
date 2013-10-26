@@ -27,6 +27,7 @@ enum EClientState {
     CS_Logining,
     CS_LoginingConfirmWait,
     CS_Registering,
+    CS_RegisteringConfirmWait,
     CS_Connected
 };
 

@@ -2,7 +2,7 @@ package NVocal;
 
 message TServerRegisterPacket {
     required string Captcha = 1;
-    required string PublickKey = 2;
+    required string PublicKey = 2;
 }
 
 message TClientRegisterPacket {
@@ -11,6 +11,7 @@ message TClientRegisterPacket {
     required string PublicKey = 3;
     required string EncryptedPrivateKey = 4;
     required string LoginPasswordHash = 5;
+    required string EMail = 6;
 }
 
 message TServerLoginPacket {

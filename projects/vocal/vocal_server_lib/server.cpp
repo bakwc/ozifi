@@ -68,7 +68,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             client->Status = CS_Registering;
             TServerRegisterPacket packet;
             packet.set_captcha(captcha.PngImage);
-            packet.set_publickkey(SelfStorage->GetPublicKey());
+            packet.set_publickey(SelfStorage->GetPublicKey());
             response = Serialize(Compress(packet.SerializeAsString()));
         } break;
         case RT_Login: {

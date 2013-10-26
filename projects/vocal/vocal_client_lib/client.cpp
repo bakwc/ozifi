@@ -45,6 +45,15 @@ void TClient::OnConnected(bool success) {
         data.push_back((char)RT_Login);
         Client->Send(data);
     } break;
+    case CS_Registering: {
+        if (!success) {
+            Config.RegisterResultCallback(RR_ConnectionFailure);
+            return;
+        }
+        string data;
+        data.push_back((char)RT_Register);
+        Client->Send(data);
+    } break;
     default:
         assert(false && "unknown state");
         break;
@@ -53,10 +62,43 @@ void TClient::OnConnected(bool success) {
 
 void TClient::OnDataReceived(const TBuffer& data) {
     switch (CurrentState) {
+    case CS_Registering: {
+        Buffer += data.ToString();
+        string packetStr;
+        if (Deserialize(Buffer, packetStr)) {
+            TServerRegisterPacket packet;
+            if (!packet.ParseFromString(packetStr)) {
+                ForceDisconnect();
+                Config.RegisterResultCallback(RR_ConnectionFailure);
+                return;
+            }
+            string captcha = packet.captcha();
+            State.set_serverpublickey(packet.publickey());
+            Config.CaptchaAvailableCallback(captcha);
+        }
+    } break;
+    case CS_RegisteringConfirmWait: {
+        Buffer += data.ToString();
+        string packetStr;
+        if (Deserialize(Buffer, packetStr)) {
+            packetStr = Decompress(DecryptAsymmetrical(State.privatekey(), packetStr));
+            if (packetStr.size() != 1) {
+                ForceDisconnect();
+                Config.RegisterResultCallback(RR_ConnectionFailure);
+                return;
+            }
+            ERegisterResult registerResult;
+            registerResult = (ERegisterResult)packetStr[0];
+            Config.RegisterResultCallback(registerResult);
+            ForceDisconnect();
+            return;
+        }
+    } break;
     case CS_Logining: {
         Buffer += data.ToString();
         string packetStr;
         if (Deserialize(Buffer, packetStr)) {
+            packetStr = Decompress(packetStr);
             TServerLoginPacket packet;
             if (!packet.ParseFromString(packetStr)) {
                 ForceDisconnect();
@@ -116,11 +158,14 @@ void TClient::Disconnect() {
 }
 
 void TClient::Login(const std::string& login) { // login@service.com
+    State.Clear();
     lock_guard<mutex> guard(Lock);
     if (CurrentState != CS_Disconnected) {
         throw UException("should be disconnected before logining");
     }
     pair<string, string> loginHost = GetLoginHost(login);
+    State.set_login(loginHost.first);
+    State.set_host(loginHost.second);
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(loginHost.first, loginHost.second);
     if (addresses.size() == 0) {
         throw UException("no address found for host");
@@ -149,6 +194,24 @@ void TClient::Login(const std::string& login,
 }
 
 void TClient::Register(const std::string& preferedLogin) {
+    State.Clear();
+    lock_guard<mutex> guard(Lock);
+    if (CurrentState != CS_Disconnected) {
+        throw UException("should be disconnected before logining");
+    }
+    pair<string, string> loginHost = GetLoginHost(preferedLogin);
+    State.set_login(loginHost.first);
+    State.set_host(loginHost.second);
+    std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(loginHost.first, loginHost.second);
+    if (addresses.size() == 0) {
+        throw UException("no address found for host");
+    }
+    // todo: random address selection
+    CurrentState = CS_Registering;
+    pair<string, string> keys = GenerateKeys();
+    State.set_publickey(keys.second);
+    State.set_privatekey(keys.first);
+    Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
 }
 
 void TClient::Register(const std::string& preferedLogin,
@@ -156,6 +219,19 @@ void TClient::Register(const std::string& preferedLogin,
                        const std::string& email,
                        const std::string& captcha)
 {
+    lock_guard<mutex> guard(Lock);
+    if (CurrentState != CS_Registering) {
+        throw UException("not logining");
+    }
+    TClientRegisterPacket packet;
+    packet.set_login(preferedLogin);
+    packet.set_loginpasswordhash(Hash(preferedLogin + preferedPassword));
+    packet.set_captchatext(captcha);
+    packet.set_email(email);
+    assert(State.has_serverpublickkey() && "no server public key found");
+    string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
+    CurrentState = CS_RegisteringConfirmWait;
+    Client->Send(Serialize(data));
 }
 
 void TClient::AddFriend(const std::string& friendLogin) {
