@@ -3,12 +3,9 @@
 #include <string>
 #include <unordered_map>
 
-namespace NVocal {
+#include <projects/vocal/vocal_server_lib/storage.pb.h>
 
-enum EFriendType {
-    FT_Friend,
-    FT_Conference
-};
+namespace NVocal {
 
 struct TFriendInfo {
     std::string Login;

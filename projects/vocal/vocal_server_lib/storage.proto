@@ -1,0 +1,20 @@
+package NVocal;
+
+enum EFriendType {
+    FT_Friend = 1;
+    FT_Conference = 2;
+}
+
+message TFriendInfoData {
+    required string Login = 1;
+    required string EncryptedKey = 2;
+    required EFriendType Type = 3;
+}
+
+message TClientInfoData {
+    required string Login = 1;
+    repeated TFriendInfoData Friends = 2;
+    required string PublickKey = 3;
+    required string EncryptedPrivateKey = 4;
+    required string LoginPasswordHash = 5;
+}
