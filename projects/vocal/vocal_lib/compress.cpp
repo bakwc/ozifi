@@ -2,10 +2,10 @@
 
 namespace NVocal {
 
-std::string compress(const std::string& data) {
+std::string Compress(const std::string& data) {
 }
 
-std::string decompress(const std::string& data) {
+std::string Decompress(const std::string& data) {
 }
 
 }

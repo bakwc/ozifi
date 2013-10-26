@@ -31,6 +31,7 @@ struct TClient {
     EClientStatus Status;
     std::string Login;
     std::string CaptchaText;
+    std::string Buffer;
 };
 
 typedef std::shared_ptr<TClient> TClientRef;

@@ -1,7 +1,12 @@
+#include <utils/exception.h>
+#include <utils/cast.h>
 #include <library/captcha/captcha.h>
 #include <projects/vocal/vocal_lib/resolver.h>
 #include <projects/vocal/vocal_lib/defines.h>
 #include <projects/vocal/vocal_lib/serializer.h>
+#include <projects/vocal/vocal_lib/compress.h>
+#include <projects/vocal/vocal_lib/crypto.h>
+#include <projects/vocal/vocal_lib/vocal.pb.h>
 
 #include "server.h"
 
@@ -53,21 +58,63 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
     TClientRef client = Clients[addr];
     boost::optional<string> response;
     bool disconnectClient = false;
-    if (client->Status == CS_Unknown) {
+    switch (client->Status) {
+    case CS_Unknown: {
         ERequestType requestType = (ERequestType)data[0];
         switch (requestType) {
         case RT_Register: {
             TCaptcha captcha = GenerateCaptcha(CAPTCHA_WIDTH, CAPTCHA_HEIGHT);
             client->CaptchaText = captcha.Text;
-            response = Serialize(captcha.PngImage) + Serialize(SelfStorage->GetPublickKey());
+            client->Status = CS_Registering;
+            TServerRegisterPacket packet;
+            packet.set_captcha(captcha.PngImage);
+            packet.set_publickkey(SelfStorage->GetPublickKey());
+            response = Serialize(Compress(packet.SerializeAsString()));
         } break;
+        case RT_Login: {
+            // todo: implement login
+        } break;
+        case RT_Authorize: {
+            // todo: implement authorization
         }
+        }
+    } break;
+    case CS_Registering: {
+        client->Buffer += data.ToString();
+        string packetStr;
+        try {
+            if (Deserialize(client->Buffer, packetStr)) {
+                packetStr = Decompress(DecryptAsymmetrical(SelfStorage->GetPrivateKey(), packetStr));
+                TClientRegisterPacket packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse string");
+                }
+                if (packet.captchatext() != client->CaptchaText) {
+                    response = ToString((ui8)RR_WrongCaptcha);
+                } else if (ClientInfoStorage->Exists(packet.login())) {
+                    response = ToString((ui8)RR_WrongLogin);
+                } else {
+                    TClientInfo clientInfo;
+                    clientInfo.Login = packet.login();
+                    clientInfo.EncryptedPrivateKey = packet.encryptedprivatekey();
+                    clientInfo.LoginPasswordHash = packet.loginpasswordhash();
+                    clientInfo.PublicKey = packet.publickkey();
+                    ClientInfoStorage->Put(clientInfo);
+                    response = ToString((ui8)RR_Success);
+                }
+            }
+        } catch (const std::exception&) {
+            response = boost::optional<string>();
+        }
+        disconnectClient = true;
+    }
     }
 
-    if (disconnectClient) {
-        Server->DisconnectClient(addr);
-    } else if (response.is_initialized()) {
+    if (response.is_initialized()) {
         Server->Send(TBuffer(response.get()), addr);
+    }
+    if (disconnectClient) { // check if it waits for data to be send
+        Server->DisconnectClient(addr);
     }
 }
 

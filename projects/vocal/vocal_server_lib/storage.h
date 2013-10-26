@@ -15,6 +15,7 @@ public:
     TClientInfoStorage(const std::string& storageDir);
     ~TClientInfoStorage();
     void Put(const TClientInfo& clientInfo);
+    bool Exists(const std::string& login);
     boost::optional<TClientInfo> Get(const std::string& login);
 };
 

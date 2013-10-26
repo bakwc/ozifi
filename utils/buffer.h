@@ -26,6 +26,9 @@ public:
     inline size_t Size() const {
         return Length;
     }
+    inline std::string ToString() const {
+        return std::string(DataPtr, Length);
+    }
 private:
     const char* DataPtr;
     size_t Length;
