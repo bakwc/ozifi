@@ -18,3 +18,9 @@ message TClientInfoData {
     required string EncryptedPrivateKey = 4;
     required string LoginPasswordHash = 5;
 }
+
+message TMessageData {
+    required string Login = 1;
+    required uint64 Date = 2;
+    required string EncryptedMessage = 3;
+}

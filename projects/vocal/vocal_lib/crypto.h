@@ -18,5 +18,6 @@ bool CheckSignature(const std::string& pubKey,
                     const std::string& signature);
 std::string GenerateRandomSequence(size_t length = DEFAULT_RANDOM_SEQUNCE_BITS);
 std::string Hash(const std::string& data);
+ui64 LittleHash(const std::string& data);
 
 }

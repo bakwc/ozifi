@@ -26,7 +26,9 @@ class TMessageStorage {
 public:
     TMessageStorage(const std::string& storageDir);
     ~TMessageStorage();
-    void Put(const std::string& login, const std::string& message);
+    void Put(const std::string& login,
+             const std::string& encryptedMessage,
+             std::chrono::microseconds date);
     std::vector<std::string> GetMessages(const std::string& login,
                                          std::chrono::microseconds from,
                                          std::chrono::microseconds to);

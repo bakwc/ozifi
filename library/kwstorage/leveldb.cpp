@@ -4,7 +4,42 @@
 
 #include "leveldb.h"
 
+using namespace std;
+
 namespace NKwStorage {
+
+class TLevelDbIterator: public TKwIteratorImpl {
+public:
+    TLevelDbIterator(leveldb::Iterator* iterator)
+        : Iterator(iterator)
+    {
+    }
+
+    virtual void Next() {
+        Iterator->Next();
+    }
+
+    virtual bool End() {
+        Iterator->Valid();
+    }
+
+    virtual bool Reset() {
+        Iterator->SeekToFirst();
+    }
+
+    virtual void Seek(const std::string& key) {
+        Iterator->Seek(key);
+    }
+
+    virtual pair<string, string> Get() {
+       leveldb::Slice key = Iterator->key();
+       leveldb::Slice value = Iterator->value();
+       return pair<string, string>(string(key.data(), key.size()),
+                                   string(value.data(), value.size()));
+    }
+private:
+    unique_ptr<leveldb::Iterator> Iterator;
+};
 
 class TLevelDbStorage: public TKwStorage {
 public:
@@ -55,8 +90,11 @@ public:
         }
         return false;
     }
+    TKwIterator Iterator() {
+        return make_shared<TLevelDbIterator>(Db->NewIterator(leveldb::ReadOptions()));
+    }
 private:
-    std::unique_ptr<leveldb::DB> Db;
+    unique_ptr<leveldb::DB> Db;
 };
 
 TKwStorage* CreateLevelDbStorage(const TLevelDbStorageOptions& options) {

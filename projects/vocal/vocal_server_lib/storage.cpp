@@ -1,4 +1,5 @@
 #include <utils/exception.h>
+#include <utils/cast.h>
 #include <projects/vocal/vocal_lib/compress.h>
 #include <projects/vocal/vocal_lib/crypto.h>
 #include <projects/vocal/vocal_server_lib/storage.pb.h>
@@ -64,9 +65,7 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
 
 // TMessageStorage
 
-// todo: implement this
-
-TMessageStorage::TMessageStorage(const std::string& storageDir)
+TMessageStorage::TMessageStorage(const string& storageDir)
     : Storage(NKwStorage::CreateLevelDbStorage(storageDir))
 {
 }
@@ -74,13 +73,45 @@ TMessageStorage::TMessageStorage(const std::string& storageDir)
 TMessageStorage::~TMessageStorage() {
 }
 
-void TMessageStorage::Put(const std::string& login, const std::string& message) {
+void TMessageStorage::Put(const string& login,
+                          const string& encryptedMessage,
+                          chrono::microseconds date)
+{
+    TMessageData message;
+    message.set_login(login);
+    message.set_date(date.count());
+    message.set_encryptedmessage(encryptedMessage);
+
+    string key = login + ToString(date.count()) + ToString(LittleHash(encryptedMessage));
+    Storage->Put(key, Compress(message.SerializeAsString()));
 }
 
-std::vector<std::string> TMessageStorage::GetMessages(const std::string& login,
-                                     std::chrono::microseconds from,
-                                     std::chrono::microseconds to)
+std::vector<std::string> TMessageStorage::GetMessages(const string& login,
+                                     chrono::microseconds from,
+                                     chrono::microseconds to)
 {
+    NKwStorage::TKwIterator it = Storage->Iterator();
+    string fromStr = login + ToString(from.count());
+    string toStr = login + ToString(to.count());
+    vector<string> messages;
+    it->Seek(fromStr);
+    while (true) {
+        pair<string, string> value = it->Get();
+        if (value.first > toStr) {
+            break;
+        }
+
+        TMessageData data;
+        if (!data.ParseFromString(Decompress(value.second))) {
+            throw UException("failed to parse message");
+        }
+        messages.push_back(data.encryptedmessage());
+        it->Next();
+        if (it->End()) {
+            break;
+        }
+    }
+    return messages;
 }
 
 
