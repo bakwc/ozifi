@@ -15,16 +15,6 @@ TClientInfoStorage::TClientInfoStorage(const std::string& storageDir)
 TClientInfoStorage::~TClientInfoStorage() {
 }
 
-/*
-message TClientInfoData {
-    required string Login = 1;
-    repeated TFriendInfoData Friends = 2;
-    required string PublickKey = 3;
-    required string EncryptedPrivateKey = 4;
-    required string LoginPasswordHash = 5;
-}
-*/
-
 void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
     TClientInfoData data;
     data.set_login(clientInfo.Login);
