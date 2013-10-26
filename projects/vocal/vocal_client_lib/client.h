@@ -24,6 +24,7 @@ enum EClientState {
     CS_Disconnected,
     CS_Disconnecting,
     CS_Connecting,
+    CS_ConnectingConfirmWait,
     CS_Logining,
     CS_LoginingConfirmWait,
     CS_Registering,
@@ -40,6 +41,7 @@ struct TClientConfig {
     TDataCallback CaptchaAvailableCallback;     // on captcha available (for login, reigster, etc.)
     TLoginCallback LoginResultCallback;         // on login failed / success
     TRegisterCallback RegisterResultCallback;   // on register success / fail
+    TBoolCallback ConnectedCallback;            // on connection established / failed
     TNamedCallback CallCallback;                // on incoming call
     TNamedCallback ConferenceCallCallback;      // on incoming conference call
     TNamedCallback ConferenceJoinCallback;      // on join to conference

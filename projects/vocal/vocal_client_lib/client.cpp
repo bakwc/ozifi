@@ -54,6 +54,15 @@ void TClient::OnConnected(bool success) {
         data.push_back((char)RT_Register);
         Client->Send(data);
     } break;
+    case CS_Connecting: {
+        if (!success) {
+            // todo: try to reconnect several times to different servers
+            Config.ConnectedCallback(success);
+        }
+        string data;
+        data.push_back((char)RT_Authorize);
+        Client->Send(data);
+    }
     default:
         assert(false && "unknown state");
         break;
@@ -131,6 +140,41 @@ void TClient::OnDataReceived(const TBuffer& data) {
             }
             ForceDisconnect();
         }
+    } break;
+    case CS_Connecting: {
+        Buffer += data.ToString();
+        string packetStr;
+        if (Deserialize(Buffer, packetStr)) {
+            TServerAuthorizeRequest packet;
+            if (!packet.ParseFromString(packetStr)) {
+                ForceDisconnect();
+                Config.ConnectedCallback(false);
+                return;
+            }
+            if (!CheckSignature(State.serverpublickey(), packet.randomsequence(), packet.signature())) {
+                ForceDisconnect();
+                Config.ConnectedCallback(false);
+                return;
+            }
+            TClientAuthorizeRequest request;
+            assert(State.has_login() && "no login in state");
+            request.set_login(State.login());
+            request.set_randomsequencehash(Hash(packet.randomsequence()));
+            string response = EncryptAsymmetrical(State.serverpublickey(), Compress(request.SerializeAsString()));
+            CurrentState = CS_ConnectingConfirmWait;
+            Client->Send(response);
+        }
+    } break;
+    case CS_ConnectingConfirmWait: {
+        Buffer += data.ToString();
+        string packetStr;
+        if (Deserialize(Buffer, packetStr)) {
+            assert(State.has_privatekey());
+            string sessionKey = Decompress(DecryptAsymmetrical(State.privatekey(), packetStr));
+            State.set_sessionkey(sessionKey);
+            CurrentState = CS_Connected;
+            Config.ConnectedCallback(true);
+        }
     }
     default:
         assert(false && "unknown state");
@@ -152,14 +196,32 @@ EClientState TClient::GetState() {
 
 // connection
 void TClient::Connect() {
+    lock_guard<mutex> guard(Lock);
+    if (!State.has_host() ||
+        !State.has_login() ||
+        !State.has_privatekey() ||
+        !State.has_publickey())
+    {
+        throw UException("don't have enough data");
+    }
+    if (CurrentState != CS_Disconnected) {
+        throw UException("should be disconnected before connecting");
+    }
+    std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(State.login(), State.host());
+    if (addresses.size() == 0) {
+        throw UException("no address found for host");
+    }
+    // todo: random address selection
+    CurrentState = CS_Connecting;
+    Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
 }
 
 void TClient::Disconnect() {
 }
 
 void TClient::Login(const std::string& login) { // login@service.com
-    State.Clear();
     lock_guard<mutex> guard(Lock);
+    State.Clear();
     if (CurrentState != CS_Disconnected) {
         throw UException("should be disconnected before logining");
     }
@@ -194,8 +256,8 @@ void TClient::Login(const std::string& login,
 }
 
 void TClient::Register(const std::string& preferedLogin) {
-    State.Clear();
     lock_guard<mutex> guard(Lock);
+    State.Clear();
     if (CurrentState != CS_Disconnected) {
         throw UException("should be disconnected before logining");
     }

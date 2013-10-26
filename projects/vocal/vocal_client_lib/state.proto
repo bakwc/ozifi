@@ -6,4 +6,5 @@ message TClientState {
     optional string PrivateKey = 3;
     optional string Login = 4;
     optional string Host = 5;
+    optional string SessionKey = 6;
 }

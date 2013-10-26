@@ -85,7 +85,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             string randomSequence = GenerateRandomSequence();
             request.set_randomsequence(randomSequence);
             request.set_signature(Sign(SelfStorage->GetPrivateKey(), randomSequence));
-            response = Compress(request.SerializeAsString());
+            response = Serialize(Compress(request.SerializeAsString()));
             client->Login = CS_Authorizing;
             client->RandomSequence = randomSequence;
         }
@@ -102,9 +102,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     throw UException("failed to parse string");
                 }
                 if (packet.captchatext() != client->CaptchaText) {
-                    response = ToString((ui8)RR_WrongCaptcha);
+                    response = Serialize(ToString((ui8)RR_WrongCaptcha));
                 } else if (!ClientInfoStorage->Exists(packet.login())) {
-                    response = ToString((ui8)RR_WrongLogin);
+                    response = Serialize(ToString((ui8)RR_WrongLogin));
                 } else {
                     TClientInfo clientInfo;
                     clientInfo.Login = packet.login();
@@ -112,9 +112,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     clientInfo.LoginPasswordHash = packet.loginpasswordhash();
                     clientInfo.PublicKey = packet.publickey();
                     ClientInfoStorage->Put(clientInfo);
-                    response = ToString((ui8)RR_Success);
+                    response = Serialize(ToString((ui8)RR_Success));
                 }
-                response = EncryptAsymmetrical(packet.publickey(), Compress(*response));
+                response = Serialize(EncryptAsymmetrical(packet.publickey(), Compress(*response)));
                 disconnectClient = true;
             }
         } catch (const std::exception&) {
@@ -150,7 +150,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                         }
                     }
                 }
-                response = Compress(confirm.SerializeAsString());
+                response = Serialize(Compress(confirm.SerializeAsString()));
                 disconnectClient = true;
             }
         } catch (const std::exception&) {
@@ -179,7 +179,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 string key = GenerateKey();
                 client->Status = CS_Authorized;
                 client->SessionKey = key;
-                response = Compress(EncryptAsymmetrical(clientInfo->PublicKey, key));
+                response = Serialize(Compress(EncryptAsymmetrical(clientInfo->PublicKey, key)));
             }
         } catch (const std::exception&) {
             response = boost::optional<string>();
