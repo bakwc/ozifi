@@ -1,0 +1,7 @@
+package NVocal;
+
+message TClientState {
+    optional string ServerPublicKey = 1;
+    optional string PublicKey = 2;
+    optional string PrivateKey = 3;
+}

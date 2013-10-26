@@ -11,6 +11,7 @@ enum ERequestType {
 };
 
 enum ERegisterResult {
+    RR_ConnectionFailure,
     RR_Success,
     RR_WrongCaptcha,
     RR_WrongLogin
@@ -18,5 +19,6 @@ enum ERegisterResult {
 
 const size_t CAPTCHA_WIDTH = 90;
 const size_t CAPTCHA_HEIGHT = 40;
+const size_t DEFAULT_RANDOM_SEQUNCE_BITS = 2048;
 
 } // NVocal

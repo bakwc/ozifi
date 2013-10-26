@@ -39,8 +39,8 @@ public:
     TSelfStorage(const std::string& storageDir);
     ~TSelfStorage();
     void GenerateKeys();
-    const std::string& GetPublickKey();
-    const std::string& GetPrivateKey();
+    std::string GetPublicKey();
+    std::string GetPrivateKey();
 private:
     std::unique_ptr<NKwStorage::TKwStorage> Storage;
 };

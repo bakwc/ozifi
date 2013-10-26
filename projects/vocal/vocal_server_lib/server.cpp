@@ -68,14 +68,26 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             client->Status = CS_Registering;
             TServerRegisterPacket packet;
             packet.set_captcha(captcha.PngImage);
-            packet.set_publickkey(SelfStorage->GetPublickKey());
+            packet.set_publickkey(SelfStorage->GetPublicKey());
             response = Serialize(Compress(packet.SerializeAsString()));
         } break;
         case RT_Login: {
-            // todo: implement login
+            TCaptcha captcha = GenerateCaptcha(CAPTCHA_WIDTH, CAPTCHA_HEIGHT);
+            client->CaptchaText = captcha.Text;
+            client->Status = CS_Logining;
+            TServerLoginPacket packet;
+            packet.set_captcha(captcha.PngImage);
+            packet.set_publickey(SelfStorage->GetPublicKey());
+            response = Serialize(Compress(packet.SerializeAsString()));
         } break;
         case RT_Authorize: {
-            // todo: implement authorization
+            TServerAuthorizeRequest request;
+            string randomSequence = GenerateRandomSequence();
+            request.set_randomsequence(randomSequence);
+            request.set_signature(Sign(SelfStorage->GetPrivateKey(), randomSequence));
+            response = Compress(request.SerializeAsString());
+            client->Login = CS_Authorizing;
+            client->RandomSequence = randomSequence;
         }
         }
     } break;
@@ -91,23 +103,89 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 }
                 if (packet.captchatext() != client->CaptchaText) {
                     response = ToString((ui8)RR_WrongCaptcha);
-                } else if (ClientInfoStorage->Exists(packet.login())) {
+                } else if (!ClientInfoStorage->Exists(packet.login())) {
                     response = ToString((ui8)RR_WrongLogin);
                 } else {
                     TClientInfo clientInfo;
                     clientInfo.Login = packet.login();
                     clientInfo.EncryptedPrivateKey = packet.encryptedprivatekey();
                     clientInfo.LoginPasswordHash = packet.loginpasswordhash();
-                    clientInfo.PublicKey = packet.publickkey();
+                    clientInfo.PublicKey = packet.publickey();
                     ClientInfoStorage->Put(clientInfo);
                     response = ToString((ui8)RR_Success);
                 }
+                response = EncryptAsymmetrical(packet.publickey(), Compress(*response));
+                disconnectClient = true;
             }
         } catch (const std::exception&) {
             response = boost::optional<string>();
+            disconnectClient = true;
         }
-        disconnectClient = true;
-    }
+    } break;
+    case CS_Logining: {
+        client->Buffer += data.ToString();
+        string packetStr;
+        try {
+            if (Deserialize(client->Buffer, packetStr)) {
+                packetStr = Decompress(DecryptAsymmetrical(SelfStorage->GetPrivateKey(), packetStr));
+                TClientLoginPacket packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse string");
+                }
+                TServerLoginConfirm confirm;
+                if (packet.captchatext() != client->CaptchaText) {
+                    confirm.set_result(LR_WrongCaptcha);
+                } else {
+                    boost::optional<TClientInfo> clientInfo;
+                    clientInfo = ClientInfoStorage->Get(packet.login());
+                    if (!clientInfo.is_initialized()) {
+                        confirm.set_result(LR_WrongUserOrPassword);
+                    } else {
+                        if (clientInfo->LoginPasswordHash != packet.loginpasswordhash()) {
+                            confirm.set_result(LR_WrongUserOrPassword);
+                        } else {
+                            confirm.set_result(LR_Success);
+                            confirm.set_encryptedprivatekey(clientInfo->EncryptedPrivateKey);
+                            confirm.set_publickey(clientInfo->PublicKey);
+                        }
+                    }
+                }
+                response = Compress(confirm.SerializeAsString());
+                disconnectClient = true;
+            }
+        } catch (const std::exception&) {
+            response = boost::optional<string>();
+            disconnectClient = true;
+        }
+    } break;
+    case CS_Authorizing: {
+        client->Buffer += data.ToString();
+        string packetStr;
+        try {
+            if (Deserialize(client->Buffer, packetStr)) {
+                packetStr = Decompress(DecryptAsymmetrical(SelfStorage->GetPrivateKey(), packetStr));
+                TClientAuthorizeRequest packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse string");
+                }
+                boost::optional<TClientInfo> clientInfo;
+                clientInfo = ClientInfoStorage->Get(packet.login());
+                if (!clientInfo.is_initialized()) {
+                    throw UException("no such client");
+                }
+                if (Hash(client->RandomSequence) != packet.randomsequencehash()) {
+                    throw UException("wrong hash");
+                }
+                string key = GenerateKey();
+                client->Status = CS_Authorized;
+                client->SessionKey = key;
+                response = Compress(EncryptAsymmetrical(clientInfo->PublicKey, key));
+            }
+        } catch (const std::exception&) {
+            response = boost::optional<string>();
+            disconnectClient = true;
+        }
+    } break;
     }
 
     if (response.is_initialized()) {

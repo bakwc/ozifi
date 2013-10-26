@@ -22,6 +22,8 @@ struct TServerConfig {
 enum EClientStatus {
     CS_Unknown,
     CS_Registering,
+    CS_Logining,
+    CS_Authorizing,
     CS_Authorized
 };
 
@@ -32,6 +34,8 @@ struct TClient {
     std::string Login;
     std::string CaptchaText;
     std::string Buffer;
+    std::string RandomSequence;
+    std::string SessionKey;
 };
 
 typedef std::shared_ptr<TClient> TClientRef;

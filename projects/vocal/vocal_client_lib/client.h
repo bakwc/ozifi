@@ -5,8 +5,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <chrono>
+#include <mutex>
 #include <boost/optional.hpp>
 #include <utils/buffer.h>
+#include <library/udt/client.h>
+#include <projects/vocal/vocal_client_lib/state.pb.h>
 
 #include "callback.h"
 #include "message.h"
@@ -18,26 +21,13 @@ namespace NVocal {
 // Client
 
 enum EClientState {
-    CS_UnAuthorized,
     CS_Disconnected,
+    CS_Disconnecting,
     CS_Connecting,
     CS_Logining,
+    CS_LoginingConfirmWait,
     CS_Registering,
     CS_Connected
-};
-
-enum ELoginResult {
-    LR_ConnectionFailure,
-    LR_WrongCaptcha,
-    LR_WrongLoginPassword,
-    LR_Success
-};
-
-enum ERegisterResult {
-    RR_ConnectionFailure,
-    RR_WrongCaptcha,
-    RR_LoginReserved,
-    RR_Success
 };
 
 typedef std::function<void(ELoginResult)> TLoginCallback;
@@ -93,8 +83,20 @@ public:
     TConferenceIterator ConferencesBegin();             // use it to iterate over conferences
     TConferenceIterator ConferencesEnd();
 private:
+    void OnConnected(bool success);
+    void OnDataReceived(const TBuffer& data);
+    void OnDisconnected();
+    void ForceDisconnect();
+private:
+    EClientState CurrentState;
+    TClientConfig Config;
     TFriends Friends;
     TConferences Conferences;
+    std::unique_ptr<NUdt::TClient> Client;
+    TClientState State;
+    std::string Buffer;
+    std::mutex Lock;
+    std::string Password;
 };
 
 } // NVocal

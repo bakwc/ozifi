@@ -46,6 +46,11 @@ public:
         Done = false;
         WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
     }
+    inline void Disconnect() {
+        // todo: ensure that ondisconnected callback will be called
+        UDT::close(Socket);
+    }
+
     inline void Send(const TBuffer& data) {
         if (!CurrentConnection) {
             throw UException("not connected");
@@ -99,6 +104,10 @@ TClient::~TClient() {
 
 void TClient::Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
     Impl->Connect(address, overNat, callback);
+}
+
+void TClient::Disconnect() {
+    Impl->Disconnect();
 }
 
 void TClient::Send(const TBuffer& data) {

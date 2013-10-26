@@ -24,6 +24,7 @@ public:
     TClient(const TClientConfig& config);
     ~TClient();
     void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback);
+    void Disconnect();
     void Send(const TBuffer& data);
 private:
     std::unique_ptr<TClientImpl> Impl;

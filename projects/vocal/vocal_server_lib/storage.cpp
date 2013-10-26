@@ -1,11 +1,14 @@
 #include <utils/exception.h>
 #include <projects/vocal/vocal_lib/compress.h>
+#include <projects/vocal/vocal_lib/crypto.h>
 #include <projects/vocal/vocal_server_lib/storage.pb.h>
 #include "storage.h"
 
 using namespace std;
 
 namespace NVocal {
+
+// TClientInfoStorage
 
 TClientInfoStorage::TClientInfoStorage(const std::string& storageDir)
     : Storage(NKwStorage::CreateLevelDbStorage(storageDir))
@@ -56,6 +59,62 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         friendInfo.Type = frnd.type();
     }
     return result;
+}
+
+
+// TMessageStorage
+
+// todo: implement this
+
+TMessageStorage::TMessageStorage(const std::string& storageDir)
+    : Storage(NKwStorage::CreateLevelDbStorage(storageDir))
+{
+}
+
+TMessageStorage::~TMessageStorage() {
+}
+
+void TMessageStorage::Put(const std::string& login, const std::string& message) {
+}
+
+std::vector<std::string> TMessageStorage::GetMessages(const std::string& login,
+                                     std::chrono::microseconds from,
+                                     std::chrono::microseconds to)
+{
+}
+
+
+// TSelfStorage
+
+TSelfStorage::TSelfStorage(const std::string& storageDir)
+    : Storage(NKwStorage::CreateLevelDbStorage(storageDir))
+{
+}
+
+TSelfStorage::~TSelfStorage() {
+}
+
+void TSelfStorage::GenerateKeys() {
+    std::pair<string, string> keys;
+    keys = NVocal::GenerateKeys();
+    Storage->Put("private_key", keys.first);
+    Storage->Put("public_key", keys.second);
+}
+
+string TSelfStorage::GetPublicKey() {
+    boost::optional<string> pubKey = Storage->Get("public_key");
+    if (!pubKey.is_initialized()) {
+        throw UException("no keys found");
+    }
+    return *pubKey;
+}
+
+string TSelfStorage::GetPrivateKey() {
+    boost::optional<string> pubKey = Storage->Get("private_key");
+    if (!pubKey.is_initialized()) {
+        throw UException("no keys found");
+    }
+    return *pubKey;
 }
 
 } // NVocal
