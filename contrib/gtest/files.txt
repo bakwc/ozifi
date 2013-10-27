@@ -1,0 +1,9 @@
+srcs/gtest-all.cc
+srcs/gtest-death-test.cc
+srcs/gtest-filepath.cc
+srcs/gtest-port.cc
+srcs/gtest-printers.cc
+srcs/gtest-test-part.cc
+srcs/gtest-typed-test.cc
+srcs/gtest.cc
+srcs/gtest_main.cc
