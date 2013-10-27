@@ -14,7 +14,11 @@ using namespace std;
 typedef cimg_library::CImg<unsigned char> TCImg;
 class TImageImpl {
 public:
-    TImageImpl();
+    TImageImpl() {
+    }
+    TImageImpl(size_t width, size_t height) {
+        Image = TCImg(width, height, 1, 4);
+    }
     void LoadPng(const TBuffer& data) {
         vector<unsigned char> image;
         unsigned int width, height;
@@ -111,12 +115,43 @@ public:
         SaveFile(fileName, data);
     }
 
+    void SetPixel(size_t x, size_t y, ui16 r, ui16 g, ui16 b) {
+        unsigned char* rp = Image.data(0, 0, 0, 0);
+        unsigned char* gp = Image.data(0, 0, 0, 1);
+        unsigned char* bp = Image.data(0, 0, 0, 2);
+        unsigned char* ap = Image.data(0, 0, 0, 3);
+        size_t ofset = y * Image.width() + x;
+        rp += ofset;
+        gp += ofset;
+        bp += ofset;
+        ap += ofset;
+        *rp = r;
+        *gp = g;
+        *bp = b;
+        *ap = 255;
+    }
+
+    void Fill(ui16 r, ui16 g, ui16 b) {
+        unsigned char* rp = Image.data(0, 0, 0, 0);
+        unsigned char* gp = Image.data(0, 0, 0, 1);
+        unsigned char* bp = Image.data(0, 0, 0, 2);
+        unsigned char* ap = Image.data(0, 0, 0, 3);
+        memset(rp, r, Image.width() * Image.height());
+        memset(gp, g, Image.width() * Image.height());
+        memset(bp, b, Image.width() * Image.height());
+        memset(ap, 255, Image.width() * Image.height());
+    }
+
 private:
      TCImg Image;
 };
 
 TImage::TImage() {
     Impl.reset(new TImageImpl());
+}
+
+TImage::TImage(size_t width, size_t height) {
+    Impl.reset(new TImageImpl(width, height));
 }
 
 TImage::~TImage() {
@@ -144,4 +179,12 @@ std::string TImage::SavePng() {
 
 void TImage::SavePng(const std::string& fileName) {
     Impl->SavePng(fileName);
+}
+
+void TImage::SetPixel(size_t x, size_t y, ui16 r, ui16 g, ui16 b) {
+    Impl->SetPixel(x, y, r, g, b);
+}
+
+void TImage::Fill(ui16 r, ui16 g, ui16 b) {
+    Impl->Fill(r, g, b);
 }

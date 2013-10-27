@@ -1,10 +1,11 @@
 #pragma once
 
 #include <string>
+#include <ctime>
 
 struct TCaptcha {
     std::string Text;
     std::string PngImage;
 };
 
-TCaptcha GenerateCaptcha(size_t width, size_t height); // returns captcha in png format
+TCaptcha GenerateCaptcha(); // returns captcha in png format, 200x70

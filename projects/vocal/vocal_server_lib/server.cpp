@@ -63,7 +63,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
         ERequestType requestType = (ERequestType)data[0];
         switch (requestType) {
         case RT_Register: {
-            TCaptcha captcha = GenerateCaptcha(CAPTCHA_WIDTH, CAPTCHA_HEIGHT);
+            TCaptcha captcha = GenerateCaptcha();
             client->CaptchaText = captcha.Text;
             client->Status = CS_Registering;
             TServerRegisterPacket packet;
@@ -72,7 +72,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             response = Serialize(Compress(packet.SerializeAsString()));
         } break;
         case RT_Login: {
-            TCaptcha captcha = GenerateCaptcha(CAPTCHA_WIDTH, CAPTCHA_HEIGHT);
+            TCaptcha captcha = GenerateCaptcha();
             client->CaptchaText = captcha.Text;
             client->Status = CS_Logining;
             TServerLoginPacket packet;
