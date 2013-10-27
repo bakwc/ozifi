@@ -1,0 +1,6 @@
+snappy-c.cc
+snappy-sinksource.cc
+snappy-stubs-internal.cc
+snappy-test.cc
+snappy.cc
+snappy_unittest.cc
