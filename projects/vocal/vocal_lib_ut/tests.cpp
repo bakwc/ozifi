@@ -17,7 +17,7 @@ TEST(vocal_lib, Compression) {
     ASSERT_EQ(data, decompressed);
 }
 
-TEST(vocal_lib, AssymetricalEncription) {
+TEST(vocal_lib, AsymmetricalEncription) {
     string data = "Hello, crypto!";
 
     pair<string, string> keys = GenerateKeys();
@@ -35,6 +35,24 @@ TEST(vocal_lib, Signature) {
 
     ASSERT_TRUE(CheckSignature(keys.second, data, signature));
     ASSERT_FALSE(CheckSignature(keys.second, badData, signature));
+}
+
+TEST(vocal_lib, SymmetricalEncryption) {
+    string password = "absdef";
+    string data = "Some text message!";
+
+    string encrypted = EncryptSymmetrical(GenerateKey(password), data);
+    string decrypted = DecryptSymmetrical(GenerateKey(password), encrypted);
+    ASSERT_NE(data, encrypted);
+    ASSERT_EQ(data, decrypted);
+}
+
+TEST(vocal_lib, LittleHashTest) {
+    string message1 = "abc oO";
+    string message2 = "abc Oo";
+    string message3 = "abc oO";
+    ASSERT_NE(LittleHash(message1), LittleHash(message2));
+    ASSERT_EQ(LittleHash(message1), LittleHash(message3));
 }
 
 int main(int argc, char **argv) {
