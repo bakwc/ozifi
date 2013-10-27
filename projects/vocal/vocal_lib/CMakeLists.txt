@@ -5,5 +5,7 @@ add_custom_command(
 
 add_library (vocal_lib resolver.cpp crypto.cpp defines.h serializer.cpp compress.cpp vocal.pb.cc vocal.proto utils.cpp)
 target_link_libraries(vocal_lib utils
+                             snappy
+                             cryptopp
                              resolver
                              ${Boost_LIBRARIES})
