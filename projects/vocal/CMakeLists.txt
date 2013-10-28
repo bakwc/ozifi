@@ -1,5 +1,7 @@
 add_subdirectory(vocal_client_lib)
+add_subdirectory(vocal_client_console)
 add_subdirectory(vocal_server_lib)
+add_subdirectory(vocal_server)
 add_subdirectory(vocal_lib)
 add_subdirectory(vocal_lib_ut)
 add_subdirectory(vocal_lib_captcha)

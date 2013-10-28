@@ -9,4 +9,6 @@ target_link_libraries(vocal_server_lib utils
                              udtlib
                              http_server
                              captcha
+                             kwstorage
+                             protobuf
                              ${Boost_LIBRARIES})

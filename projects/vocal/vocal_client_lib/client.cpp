@@ -2,10 +2,8 @@
 #include <utils/exception.h>
 #include <utils/cast.h>
 #include <projects/vocal/vocal_lib/resolver.h>
-#include <projects/vocal/vocal_lib/defines.h>
 #include <projects/vocal/vocal_lib/utils.h>
 #include <projects/vocal/vocal_lib/serializer.h>
-#include <projects/vocal/vocal_lib/vocal.pb.h>
 #include <projects/vocal/vocal_lib/crypto.h>
 #include <projects/vocal/vocal_lib/compress.h>
 

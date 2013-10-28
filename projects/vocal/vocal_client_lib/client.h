@@ -10,6 +10,8 @@
 #include <utils/buffer.h>
 #include <library/udt/client.h>
 #include <projects/vocal/vocal_client_lib/state.pb.h>
+#include <projects/vocal/vocal_lib/vocal.pb.h>
+#include <projects/vocal/vocal_lib/defines.h>
 
 #include "callback.h"
 #include "message.h"

@@ -92,6 +92,8 @@ written by
 #else
    #define UDT_API __attribute__ ((visibility("default")))
 #endif
+#undef UDT_API
+#define UDT_API
 
 #define NO_BUSY_WAITING
 
