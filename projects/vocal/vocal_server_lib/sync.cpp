@@ -2,7 +2,7 @@
 
 namespace NVocal {
 
-TSynchronizer::TSynchronizer(const TSynchronizerConfig &config)
+TSynchronizer::TSynchronizer(const TSynchronizerConfig& config)
     : Config(config)
 {
 }

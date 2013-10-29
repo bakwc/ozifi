@@ -20,7 +20,7 @@ struct TSynchronizerConfig {
 
 class TSynchronizer {
 public:
-    TSynchronizer(const TSynchronizerConfig config);
+    TSynchronizer(const TSynchronizerConfig& config);
     bool CheckHost();                                        // checks if srv record is correct
     void SyncMessage(const std::string& login,               // sends given message to partner hosts
                      const std::string& message);
