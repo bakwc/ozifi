@@ -247,7 +247,7 @@ void TClient::Login(const std::string& login,
     packet.set_login(login);
     packet.set_loginpasswordhash(Hash(login + password));
     packet.set_captchatext(captcha);
-    assert(State.has_serverpublickkey() && "no server public key found");
+    assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
     CurrentState = CS_LoginingConfirmWait;
     Client->Send(Serialize(data));
@@ -288,7 +288,7 @@ void TClient::Register(const std::string& preferedLogin,
     packet.set_loginpasswordhash(Hash(preferedLogin + preferedPassword));
     packet.set_captchatext(captcha);
     packet.set_email(email);
-    assert(State.has_serverpublickkey() && "no server public key found");
+    assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
     CurrentState = CS_RegisteringConfirmWait;
     Client->Send(Serialize(data));
