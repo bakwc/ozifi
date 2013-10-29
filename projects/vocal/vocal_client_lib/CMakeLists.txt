@@ -8,4 +8,5 @@ add_library (vocal_client_lib client.cpp message.h friend.cpp conference.cpp cal
 target_link_libraries(vocal_client_lib utils
                              udtlib
                              vocal_lib
+                             protobuf
                              ${Boost_LIBRARIES})

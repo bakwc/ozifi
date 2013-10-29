@@ -47,7 +47,7 @@ written by
 #include "packet.h"
 
 
-class UDT_API CCC
+class CCC
 {
 friend class CUDT;
 

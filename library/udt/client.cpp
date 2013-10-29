@@ -1,11 +1,12 @@
+#include "client.h"
+
 #include <thread>
 #include <mutex>
 #include <boost/optional.hpp>
+#include <contrib/udt4/udt.h>
 #include <utils/exception.h>
 
-#include "client.h"
 
-#include <contrib/udt4/udt.h>
 
 using namespace std;
 
@@ -70,7 +71,7 @@ private:
     void WorkerThread() {
         boost::asio::detail::array<char, 1024> buff;
         while (!Done) {
-            set<UDTSOCKET> eventedSockets;
+            std::set<UDTSOCKET> eventedSockets;
             UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 int result = UDT::recv(*it, buff.data(), 1024, 0);
