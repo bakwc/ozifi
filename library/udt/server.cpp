@@ -73,17 +73,17 @@ public:
         addr.sin_addr.s_addr = INADDR_ANY;
         memset(&(addr.sin_zero), '\0', 8);
         if (UDT::ERROR == UDT::bind(Socket, (sockaddr*)&addr, sizeof(addr))) {
-            throw UException(string("failed to start server: ") + UDT::getlasterror().getErrorMessage());
+            throw UException(string("udt: failed to bind socket: ") + UDT::getlasterror().getErrorMessage());
         }
         bool block = false;
         if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_SNDSYN, &block, sizeof(bool))) {
-            throw UException(string("failed to star server: ") + UDT::getlasterror().getErrorMessage());
+            throw UException(string("udt: failed to disable SNDSYN: ") + UDT::getlasterror().getErrorMessage());
         }
         if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_RCVSYN, &block, sizeof(bool))) {
-            throw UException(string("failed to star server: ") + UDT::getlasterror().getErrorMessage());
+            throw UException(string("udt: failed to disable SCVSYN: ") + UDT::getlasterror().getErrorMessage());
         }
         if (UDT::ERROR == UDT::listen(Socket, config.MaxConnections)) {
-            throw UException(string("failed to star server: ") + UDT::getlasterror().getErrorMessage());
+            throw UException(string("udt: failed to listen: ") + UDT::getlasterror().getErrorMessage());
         }
         MainEid = UDT::epoll_create();
         WorkerThreadHolder.reset(new thread(std::bind(&TServerImpl::WorkerThread, this)));
