@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <boost/asio/ip/address.hpp>
+#include <utils/cast.h>
 
 #include "types.h"
 
@@ -22,18 +23,21 @@ struct TNetworkAddress {
         Address = boost::asio::ip::address(addr);
         Port = port;
         Addr.sin_family = AF_INET;
-        Addr.sin_port = port;
+        Addr.sin_port = htons(port);
         Addr.sin_addr.s_addr = host;
         memset(&(Addr.sin_zero), '\0', 8);
     }
-    bool operator==(const TNetworkAddress& other) const {
+    inline bool operator==(const TNetworkAddress& other) const {
         return Address == other.Address && Port == other.Port;
     }
-    const sockaddr* Sockaddr() const {
+    inline const sockaddr* Sockaddr() const {
         return (sockaddr*)(&Addr);
     }
-    size_t SockaddrLength() const {
+    inline size_t SockaddrLength() const {
         return sizeof(Addr);
+    }
+    inline std::string ToString() const {
+        return Address.to_string() + ":" + ::ToString(Port);
     }
     boost::asio::ip::address Address;
     ui16 Port;
