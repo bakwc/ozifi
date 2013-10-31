@@ -44,6 +44,7 @@ public:
             }
             UDT::bind(Socket, CurrentLocalAddress->Sockaddr(), CurrentLocalAddress->SockaddrLength());
         }
+        CurrentConnection = address;
 
         // todo: set timeout from config
         MainEid = UDT::epoll_create();
@@ -73,7 +74,7 @@ public:
     }
 
     inline void Send(const TBuffer& data) {
-        if (!CurrentConnection) {
+        if (Status != CS_Connected) {
             throw UException("not connected");
         }
         UDT::send(Socket, data.Data(), data.Size(), 0);
@@ -96,6 +97,7 @@ private:
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 if (*it == Socket && Status == CS_Connecting) {
                     Status = CS_Connected;
+                    // todo: get and store local address
                     Config.ConnectionCallback(true);
                 } else {
                     int result = UDT::recv(*it, buff.data(), 1024, 0);
