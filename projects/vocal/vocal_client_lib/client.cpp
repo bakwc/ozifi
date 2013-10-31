@@ -291,6 +291,8 @@ void TClient::Register(const std::string& preferedLogin,
     packet.set_loginpasswordhash(Hash(preferedLogin + preferedPassword));
     packet.set_captchatext(captcha);
     packet.set_email(email);
+    packet.set_publickey(State.publickey());
+    packet.set_encryptedprivatekey(EncryptSymmetrical(GenerateKey(preferedPassword), State.privatekey()));
     assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
     CurrentState = CS_RegisteringConfirmWait;
