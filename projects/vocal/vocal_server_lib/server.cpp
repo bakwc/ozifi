@@ -28,6 +28,9 @@ TServer::TServer(const TServerConfig& config)
     ClientInfoStorage.reset(new TClientInfoStorage(config.DataDirectory + "/clients"));
     MessageStorage.reset(new TMessageStorage(config.DataDirectory + "/messages"));
     SelfStorage.reset(new TSelfStorage(config.DataDirectory + "/self"));
+    if (!SelfStorage->HasKeys()) {
+        SelfStorage->GenerateKeys();
+    }
     NUdt::TServerConfig udtConfig;
     udtConfig.NewConnectionCallback = bind(&TServer::OnClientConnected, this, _1);
     udtConfig.DataReceivedCallback = bind(&TServer::OnDataReceived, this, _1, _2);

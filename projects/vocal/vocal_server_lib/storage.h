@@ -41,6 +41,7 @@ public:
     TSelfStorage(const std::string& storageDir);
     ~TSelfStorage();
     void GenerateKeys();
+    bool HasKeys();
     std::string GetPublicKey();
     std::string GetPrivateKey();
 private:

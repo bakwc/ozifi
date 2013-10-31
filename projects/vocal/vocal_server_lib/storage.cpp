@@ -132,6 +132,12 @@ void TSelfStorage::GenerateKeys() {
     Storage->Put("public_key", keys.second);
 }
 
+bool TSelfStorage::HasKeys() {
+    boost::optional<string> pubKey = Storage->Get("public_key");
+    boost::optional<string> privKey = Storage->Get("private_key");
+    return (pubKey.is_initialized() && privKey.is_initialized());
+}
+
 string TSelfStorage::GetPublicKey() {
     boost::optional<string> pubKey = Storage->Get("public_key");
     if (!pubKey.is_initialized()) {
@@ -141,11 +147,11 @@ string TSelfStorage::GetPublicKey() {
 }
 
 string TSelfStorage::GetPrivateKey() {
-    boost::optional<string> pubKey = Storage->Get("private_key");
-    if (!pubKey.is_initialized()) {
+    boost::optional<string> privKey = Storage->Get("private_key");
+    if (!privKey.is_initialized()) {
         throw UException("no keys found");
     }
-    return *pubKey;
+    return *privKey;
 }
 
 } // NVocal
