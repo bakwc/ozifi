@@ -27,6 +27,9 @@ public:
     }
     ~TClientImpl() {
         Disconnect();
+        if (WorkerThreadHolder) {
+            WorkerThreadHolder->join();
+        }
     }
 
     inline void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
@@ -64,10 +67,7 @@ public:
         }
         Status = CS_Disconnected;
         Done = true;
-        if (waitWorkerThread) {
-            WorkerThreadHolder->join();
-        }
-        SetAsyncMode(false);
+        //SetAsyncMode(false);
         //UDT::close(Socket);  todo: close socket if required
         UDT::epoll_release(MainEid);
         Config.ConnectionLostCallback();
