@@ -1,9 +1,20 @@
+#include <vector>
+#include <boost/algorithm/string.hpp>
+#include <utils/exception.h>
+
 #include "utils.h"
+
+using namespace std;
 
 namespace NVocal {
 
 std::pair<std::string, std::string> GetLoginHost(const std::string& login) {
-    // todo: implement
+    vector<string> result;
+    boost::algorithm::split(result, login, boost::algorithm::is_any_of("@"));
+    if (result.size() != 2) {
+        throw UException("wrong login");
+    }
+    return pair<string, string>(result[0], result[1]);
 }
 
 } // NVocal

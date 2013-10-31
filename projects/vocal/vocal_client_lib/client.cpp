@@ -73,6 +73,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
         Buffer += data.ToString();
         string packetStr;
         if (Deserialize(Buffer, packetStr)) {
+            packetStr = Decompress(packetStr);
             TServerRegisterPacket packet;
             if (!packet.ParseFromString(packetStr)) {
                 ForceDisconnect();
@@ -181,7 +182,9 @@ void TClient::OnDataReceived(const TBuffer& data) {
 }
 
 void TClient::OnDisconnected() {
-    CurrentState = CS_Disconnected;
+    if (CurrentState == CS_Connected) {
+        CurrentState = CS_Disconnected; // todo: connection lost callback
+    }
 }
 
 void TClient::ForceDisconnect() {
