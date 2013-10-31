@@ -7,22 +7,26 @@
 #include <utils/exception.h>
 
 
-
 using namespace std;
 
 namespace NUdt {
+
+enum EClientStatus {
+    CS_Disconnected,
+    CS_Connecting,
+    CS_Connected
+};
 
 class TClientImpl { // todo: implement this
 public:
     TClientImpl(const TClientConfig& config)
         : Config(config)
+        , Status(CS_Disconnected)
     {
         Socket = UDT::socket(AF_INET, SOCK_STREAM, 0);
     }
     ~TClientImpl() {
-        Done = true;
-        WorkerThreadHolder->join();
-        UDT::epoll_release(MainEid);
+        Disconnect();
     }
 
     inline void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
@@ -40,16 +44,32 @@ public:
             }
             UDT::bind(Socket, CurrentLocalAddress->Sockaddr(), CurrentLocalAddress->SockaddrLength());
         }
-        SetAsyncMode(true);
-        UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength());
+
+        // todo: set timeout from config
         MainEid = UDT::epoll_create();
+        SetAsyncMode(true);
         UDT::epoll_add_usock(MainEid, Socket);
+        Status = CS_Connecting;
+        auto duration = chrono::system_clock::now().time_since_epoch();
+        LastActive = chrono::duration_cast<chrono::milliseconds>(duration);
+        UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength());
         Done = false;
         WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
     }
-    inline void Disconnect() {
+    inline void Disconnect(bool waitWorkerThread = true) {
         // todo: ensure that ondisconnected callback will be called
-        UDT::close(Socket);
+        if (Status == CS_Disconnected) {
+            return;
+        }
+        Status = CS_Disconnected;
+        Done = true;
+        if (waitWorkerThread) {
+            WorkerThreadHolder->join();
+        }
+        SetAsyncMode(false);
+        //UDT::close(Socket);  todo: close socket if required
+        UDT::epoll_release(MainEid);
+        Config.ConnectionLostCallback();
     }
 
     inline void Send(const TBuffer& data) {
@@ -72,13 +92,27 @@ private:
         boost::asio::detail::array<char, 1024> buff;
         while (!Done) {
             std::set<UDTSOCKET> eventedSockets;
-            UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 200);
+            UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 5000);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
-                int result = UDT::recv(*it, buff.data(), 1024, 0);
-                if (UDT::ERROR != result) {
-                    Config.DataReceivedCallback(TBuffer(buff.data(), result));
+                if (*it == Socket && Status == CS_Connecting) {
+                    Status = CS_Connected;
+                    Config.ConnectionCallback(true);
                 } else {
-                    // todo: process connection lost and other
+                    int result = UDT::recv(*it, buff.data(), 1024, 0);
+                    if (UDT::ERROR != result) {
+                        Config.DataReceivedCallback(TBuffer(buff.data(), result));
+                    } else {
+                        // todo: process connection lost and other
+                    }
+                }
+            }
+            if (Status == CS_Connecting) {
+                auto duration = chrono::system_clock::now().time_since_epoch();
+                chrono::milliseconds currentTime = chrono::duration_cast<chrono::milliseconds>(duration);
+                if (currentTime - LastActive > Config.Timeout) {
+                    Disconnect(false);
+                    Config.ConnectionCallback(false);
+                    return;
                 }
             }
         }
@@ -92,6 +126,8 @@ private:
     unique_ptr<thread> WorkerThreadHolder;
     mutex Lock;
     bool Done;
+    EClientStatus Status;
+    chrono::milliseconds LastActive;
     int MainEid;
 };
 
