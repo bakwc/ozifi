@@ -147,7 +147,7 @@ public:
                 int clientAddrLen;
                 UDTSOCKET clientSocket = UDT::accept(Socket, (sockaddr*)&clientAddr, &clientAddrLen);
                 if (clientSocket != UDT::INVALID_SOCK) {
-                    TNetworkAddress addr(*(ui32*)clientAddr.sin_addr.s_addr, clientAddr.sin_port);
+                    TNetworkAddress addr(*(ui32*)(&clientAddr.sin_addr.s_addr), clientAddr.sin_port);
                     if (Config.NewConnectionCallback(addr)) {
                         {
                             lock_guard<mutex> guard(Lock);
