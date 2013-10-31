@@ -241,7 +241,11 @@ std::string EncryptSymmetrical(const std::string& key, const std::string& data) 
     result.resize(data.size());
     CFB_Mode<AES>::Encryption cfbEncryption((byte*)key.data(), AES::MAX_KEYLENGTH,
                                             (byte*)key.data() + AES::MAX_KEYLENGTH);
-    cfbEncryption.ProcessData((byte*)result.data(), (byte*)data.data(), data.size());
+    for (size_t i = 0; i <= data.size() / 470; ++i) {
+        cfbEncryption.ProcessData((byte*)result.data() + i * 470,
+                                  (byte*)data.data() + i * 470,
+                                  min(data.size() -  i * 470, (size_t)470));
+    }
     return result;
 }
 
@@ -251,7 +255,11 @@ std::string DecryptSymmetrical(const std::string& key, const std::string& data) 
     result.resize(data.size());
     CFB_Mode<AES>::Decryption cfbDecryption((byte*)key.data(), AES::MAX_KEYLENGTH,
                                             (byte*)key.data() + AES::MAX_KEYLENGTH);
-    cfbDecryption.ProcessData((byte*)result.data(), (byte*)data.data(), data.size());
+    for (size_t i = 0; i <= data.size() / 470; ++i) {
+        cfbDecryption.ProcessData((byte*)result.data() + i * 470,
+                                  (byte*)data.data() + i * 470,
+                                  min(data.size() -  i * 470, (size_t)470));
+    }
     return result;
 }
 

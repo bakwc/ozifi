@@ -47,6 +47,17 @@ TEST(vocal_lib, SymmetricalEncryption) {
     ASSERT_EQ(data, decrypted);
 }
 
+TEST(vocal_lib, SymmetricalEncryptionBig) {
+    string password = "qwerty";
+    string data = GenerateRandomSequence(4096);
+    ASSERT_EQ(data.size(), 4096);
+
+    string encrypted = EncryptSymmetrical(GenerateKey(password), data);
+    string decrypted = DecryptSymmetrical(GenerateKey(password), encrypted);
+    ASSERT_NE(data, encrypted);
+    ASSERT_EQ(data, decrypted);
+}
+
 TEST(vocal_lib, LittleHashTest) {
     string message1 = "abc oO";
     string message2 = "abc Oo";
