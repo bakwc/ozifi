@@ -1,27 +1,27 @@
 package NVocal;
 
 message TServerRegisterPacket {
-    required string Captcha = 1;
-    required string PublicKey = 2;
+    required bytes Captcha = 1;
+    required bytes PublicKey = 2;
 }
 
 message TClientRegisterPacket {
     required string CaptchaText = 1;
     required string Login = 2;
-    required string PublicKey = 3;
-    required string EncryptedPrivateKey = 4;
-    required string LoginPasswordHash = 5;
+    required bytes PublicKey = 3;
+    required bytes EncryptedPrivateKey = 4;
+    required bytes LoginPasswordHash = 5;
     required string EMail = 6;
 }
 
 message TServerLoginPacket {
-    required string Captcha = 1;
-    required string PublicKey = 2;
+    required bytes Captcha = 1;
+    required bytes PublicKey = 2;
 }
 
 message TClientLoginPacket {
     required string Login = 1;
-    required string LoginPasswordHash = 2;
+    required bytes LoginPasswordHash = 2;
     required string CaptchaText = 3;
 }
 
@@ -34,16 +34,16 @@ enum ELoginResult {
 
 message TServerLoginConfirm {
     required ELoginResult Result = 1;
-    optional string EncryptedPrivateKey = 2;
-    optional string PublicKey = 3;
+    optional bytes EncryptedPrivateKey = 2;
+    optional bytes PublicKey = 3;
 }
 
 message TServerAuthorizeRequest {
-    required string RandomSequence = 1;
-    required string Signature = 2;
+    required bytes RandomSequence = 1;
+    required bytes Signature = 2;
 }
 
 message TClientAuthorizeRequest {
     required string Login = 1;
-    required string RandomSequenceHash = 2;
+    required bytes RandomSequenceHash = 2;
 }

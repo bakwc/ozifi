@@ -7,20 +7,20 @@ enum EFriendType {
 
 message TFriendInfoData {
     required string Login = 1;
-    required string EncryptedKey = 2;
+    required bytes EncryptedKey = 2;
     required EFriendType Type = 3;
 }
 
 message TClientInfoData {
     required string Login = 1;
     repeated TFriendInfoData Friends = 2;
-    required string PublickKey = 3;
-    required string EncryptedPrivateKey = 4;
-    required string LoginPasswordHash = 5;
+    required bytes PublickKey = 3;
+    required bytes EncryptedPrivateKey = 4;
+    required bytes LoginPasswordHash = 5;
 }
 
 message TMessageData {
     required string Login = 1;
     required uint64 Date = 2;
-    required string EncryptedMessage = 3;
+    required bytes EncryptedMessage = 3;
 }
