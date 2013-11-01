@@ -20,7 +20,7 @@ TCaptcha GenerateCaptcha() {
     unsigned char im[70*200];
     captcha(im, (unsigned char*)l);
     TCaptcha result;
-    result.Text = string(l, 6);
+    result.Text = string(l, 5);
     for (size_t i = 0; i < 200; ++i) {
         for (size_t j = 0; j < 70; ++j) {
             unsigned char c = im[j * 200 + i];
