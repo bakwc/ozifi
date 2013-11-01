@@ -1,3 +1,4 @@
+#include <iostream>
 #include <contrib/cryptopp/cryptlib.h>
 #include <contrib/cryptopp/osrng.h>
 #include <contrib/cryptopp/rsa.h>
@@ -204,6 +205,8 @@ pair<string /*privKey*/, string /*pubKey*/> GenerateKeys() {
     return pair<string, string>(privKey, pubKey);
 }
 
+const size_t MAX_DATA_SIZE = 256;
+
 std::string EncryptAsymmetrical(const std::string& pubKey, const std::string& data) {
     assert(!data.empty());
     string result;
@@ -212,9 +215,19 @@ std::string EncryptAsymmetrical(const std::string& pubKey, const std::string& da
     RSA::PublicKey publicKey;
     publicKey.Load(StringSource(pubKey, true).Ref());
     RSAES_OAEP_SHA_Encryptor e(publicKey);
-    StringSource ss(data, true,
-                    new PK_EncryptorFilter(rng, e,
-                    new StringSink(result)));
+    result.resize(2);
+    *(ui16*)result.data() = 0;
+    for (size_t i = 0; i <= (data.size() - 1) / MAX_DATA_SIZE; ++i) {
+        string currData = data.substr(i * MAX_DATA_SIZE, MAX_DATA_SIZE);
+        string currResult;
+        StringSource ss(currData, true,
+                        new PK_EncryptorFilter(rng, e,
+                        new StringSink(currResult)));
+        result.resize(result.size() + 2);
+        (*(ui16*)(result.data() + result.size() - 2)) = currResult.size();
+        (*(ui16*)(result.data()))++;
+        result += currResult;
+    }
     assert(!result.empty());
     return result;
 }
@@ -227,9 +240,19 @@ std::string DecryptAsymmetrical(const std::string& privKey, const std::string& d
     RSA::PrivateKey privateKey;
     privateKey.Load(StringSource(privKey, true).Ref());
     RSAES_OAEP_SHA_Decryptor d(privateKey);
-    StringSource ss(data, true,
-                    new PK_DecryptorFilter(rng, d,
-                    new StringSink(result)));
+    ui32 blocksCount = *(ui16*)data.data();
+    const char* ptr = data.data() + 2;
+    for (size_t i = 0; i < blocksCount; ++i) {
+        ui16 blockSize = *(ui16*)ptr;
+        ptr += 2;
+        string currData = string(ptr, blockSize);
+        ptr += blockSize;
+        string currResult;
+        StringSource ss(currData, true,
+                        new PK_DecryptorFilter(rng, d,
+                        new StringSink(currResult)));
+        result += currResult;
+    }
 
     assert(!result.empty());
     return result;
