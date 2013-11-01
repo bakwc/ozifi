@@ -104,10 +104,11 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 if (!packet.ParseFromString(packetStr)) {
                     throw UException("failed to parse string");
                 }
+                string resp(1, 0);
                 if (packet.captchatext() != client->CaptchaText) {
-                    response = Serialize(ToString((ui8)RR_WrongCaptcha));
+                    resp[0] = (ui8)RR_WrongCaptcha;
                 } else if (!ClientInfoStorage->Exists(packet.login())) {
-                    response = Serialize(ToString((ui8)RR_WrongLogin));
+                    resp[0] = (ui8)RR_WrongLogin;
                 } else {
                     TClientInfo clientInfo;
                     clientInfo.Login = packet.login();
@@ -115,9 +116,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     clientInfo.LoginPasswordHash = packet.loginpasswordhash();
                     clientInfo.PublicKey = packet.publickey();
                     ClientInfoStorage->Put(clientInfo);
-                    response = Serialize(ToString((ui8)RR_Success));
+                    resp[0] = (ui8)RR_Success;
                 }
-                response = Serialize(EncryptAsymmetrical(packet.publickey(), Compress(*response)));
+                response = Serialize(EncryptAsymmetrical(packet.publickey(), Compress(resp)));
                 disconnectClient = true;
             }
         } catch (const std::exception&) {
