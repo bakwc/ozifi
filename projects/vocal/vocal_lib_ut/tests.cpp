@@ -27,6 +27,17 @@ TEST(vocal_lib, AsymmetricalEncription) {
     ASSERT_EQ(data, decrypted);
 }
 
+TEST(vocal_lib, AsymmetricalEncriptionBig) {
+    string data = GenerateRandomSequence(2199);
+
+    pair<string, string> keys = GenerateKeys();
+    string encrypted = EncryptAsymmetrical(keys.second, data);
+    string decrypted = DecryptAsymmetrical(keys.first, encrypted);
+
+    ASSERT_EQ(data, decrypted);
+}
+
+
 TEST(vocal_lib, Signature) {
     string data = "Hello, crypto!";
     string badData = "Corrupted, crypto!";
