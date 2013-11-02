@@ -1,6 +1,7 @@
 #include <functional>
 #include <utils/exception.h>
 #include <utils/cast.h>
+#include <utils/string.h>
 #include <projects/vocal/vocal_lib/resolver.h>
 #include <projects/vocal/vocal_lib/utils.h>
 #include <projects/vocal/vocal_lib/serializer.h>
@@ -18,18 +19,44 @@ TClient::TClient(const TClientConfig& config)
     : Config(config)
     , CurrentState(CS_Disconnected)
 {
+    if (config.StateDir.empty()) {
+        throw UException("no state dir found in config");
+    }
     NUdt::TClientConfig udtConfig;
     udtConfig.ConnectionCallback = std::bind(&TClient::OnConnected, this, _1);
     udtConfig.DataReceivedCallback = std::bind(&TClient::OnDataReceived, this, _1);
     udtConfig.ConnectionLostCallback = std::bind(&TClient::OnDisconnected, this);
     Client.reset(new NUdt::TClient(udtConfig));
-    if (!config.SerializedState.empty()) {
-        if (!State.ParseFromString(config.SerializedState)) {
-            throw UException("failed to deserialize state");
-        }
-    } else {
-        // todo: fill state correctly
+    try {
+        LoadState();
+    } catch (const UException&) {
     }
+}
+
+void TClient::LoadState() {
+    string login = LoadFile(Config.StateDir + "/" + "account.txt");
+    if (login.empty()) {
+        throw UException("failed to load login");
+    }
+    StateDir = Config.StateDir + "/" + login + "/";
+    string state = LoadFile(StateDir + "state");
+    if (state.empty()) {
+        throw UException("faile to load state");
+    }
+    if (!State.ParseFromString(state)) {
+        throw UException("failed to deserialize state");
+    }
+}
+
+void TClient::SaveState() {
+    if (!State.has_login()) {
+        throw UException("state not initialized");
+    }
+    string login = State.login();
+    SaveFile(Config.StateDir + "/" + "account.txt", login);
+    StateDir = Config.StateDir + "/" + login + "/";
+    string state = State.SerializeAsString();
+    SaveFile(StateDir + "state", state);
 }
 
 void TClient::OnConnected(bool success) {
@@ -97,6 +124,9 @@ void TClient::OnDataReceived(const TBuffer& data) {
             }
             ERegisterResult registerResult;
             registerResult = (ERegisterResult)packetStr[0];
+            if (registerResult == RR_Success) {
+                SaveState();
+            }
             Config.RegisterResultCallback(registerResult);
             ForceDisconnect();
             return;
@@ -122,6 +152,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
         Buffer += data.ToString();
         string packetStr;
         if (Deserialize(Buffer, packetStr)) {
+            packetStr = Decompress(packetStr);
             TServerLoginConfirm packet;
             if (!packet.ParseFromString(packetStr)) {
                 ForceDisconnect();
@@ -129,12 +160,14 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 return;
             }
             if (packet.result() != LR_Success) {
+                cout << "unsuccess\n";
                 Config.LoginResultCallback(packet.result());
             } else {
                 assert(packet.has_publickey() && "no public key in packet");
                 assert(packet.has_encryptedprivatekey() && "no private key in packet");
                 State.set_publickey(packet.publickey());
                 State.set_privatekey(DecryptSymmetrical(Password, packet.encryptedprivatekey()));
+                SaveState();
                 Config.LoginResultCallback(packet.result());
             }
             ForceDisconnect();
@@ -238,8 +271,7 @@ void TClient::Login(const std::string& login) { // login@service.com
     Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
 }
 
-void TClient::Login(const std::string& login,
-                    const std::string& password,
+void TClient::Login(const std::string& password,
                     const std::string& captcha)
 {
     lock_guard<mutex> guard(Lock);
@@ -247,8 +279,8 @@ void TClient::Login(const std::string& login,
         throw UException("not logining");
     }
     TClientLoginPacket packet;
-    packet.set_login(login);
-    packet.set_loginpasswordhash(Hash(login + password));
+    packet.set_login(State.login());
+    packet.set_loginpasswordhash(Hash(State.login() + password));
     packet.set_captchatext(captcha);
     assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
@@ -277,8 +309,7 @@ void TClient::Register(const std::string& preferedLogin) {
     Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
 }
 
-void TClient::Register(const std::string& preferedLogin,
-                       const std::string& preferedPassword,
+void TClient::Register(const std::string& preferedPassword,
                        const std::string& email,
                        const std::string& captcha)
 {
@@ -287,8 +318,8 @@ void TClient::Register(const std::string& preferedLogin,
         throw UException("not logining");
     }
     TClientRegisterPacket packet;
-    packet.set_login(preferedLogin);
-    packet.set_loginpasswordhash(Hash(preferedLogin + preferedPassword));
+    packet.set_login(State.login());
+    packet.set_loginpasswordhash(Hash(State.login() + preferedPassword));
     packet.set_captchatext(captcha);
     packet.set_email(email);
     packet.set_publickey(State.publickey());

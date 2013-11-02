@@ -38,8 +38,7 @@ typedef std::function<void(ELoginResult)> TLoginCallback;
 typedef std::function<void(ERegisterResult)> TRegisterCallback;
 
 struct TClientConfig {
-    std::string SerializedState;                // internal state data, could be empty on first start
-    TDataCallback StateChangeCallback;          // should be saved somewhere when changes
+    std::string StateDir;                       // directory with internal state data
     TDataCallback CaptchaAvailableCallback;     // on captcha available (for login, reigster, etc.)
     TLoginCallback LoginResultCallback;         // on login failed / success
     TRegisterCallback RegisterResultCallback;   // on register success / fail
@@ -62,12 +61,10 @@ public:
     void Connect();                                     // initialize connection
     void Disconnect();                                  // initialize disconnection
     void Login(const std::string& login);               // initialize login
-    void Login(const std::string& login,                // continue login
-               const std::string& password,
+    void Login(const std::string& password,             // continue login
                const std::string& captcha);
     void Register(const std::string& preferedLogin);    // initialize registration
-    void Register(const std::string& preferedLogin,     // continue registration
-                  const std::string& preferedPassword,
+    void Register(const std::string& preferedPassword,  // continue registration
                   const std::string& email,
                   const std::string& captcha);
 
@@ -92,8 +89,11 @@ private:
     void OnDataReceived(const TBuffer& data);
     void OnDisconnected();
     void ForceDisconnect();
+    void LoadState();
+    void SaveState();
 private:
     EClientState CurrentState;
+    std::string StateDir;
     TClientConfig Config;
     TFriends Friends;
     TConferences Conferences;

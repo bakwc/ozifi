@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <assert.h>
 #include <utils/types.h>
 
 namespace NVocal {
