@@ -121,7 +121,8 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 response = Serialize(EncryptAsymmetrical(packet.publickey(), Compress(resp)));
                 disconnectClient = true;
             }
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
+            cout << "notice:\tclient registration error: " << e.what() << "\n";
             response = boost::optional<string>();
             disconnectClient = true;
         }
@@ -157,7 +158,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 response = Serialize(Compress(confirm.SerializeAsString()));
                 disconnectClient = true;
             }
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
+            // todo: make log system
+            cout << "notice:\tclient login error: " << e.what() << "\n";
             response = boost::optional<string>();
             disconnectClient = true;
         }
@@ -185,7 +188,8 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 client->SessionKey = key;
                 response = Serialize(Compress(EncryptAsymmetrical(clientInfo->PublicKey, key)));
             }
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
+            cout << "notice:\tclient authorization error: " << e.what() << "\n";
             response = boost::optional<string>();
             disconnectClient = true;
         }
