@@ -107,7 +107,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 string resp(1, 0);
                 if (packet.captchatext() != client->CaptchaText) {
                     resp[0] = (ui8)RR_WrongCaptcha;
-                } else if (!ClientInfoStorage->Exists(packet.login())) {
+                } else if (ClientInfoStorage->Exists(packet.login())) {
                     resp[0] = (ui8)RR_WrongLogin;
                 } else {
                     TClientInfo clientInfo;
