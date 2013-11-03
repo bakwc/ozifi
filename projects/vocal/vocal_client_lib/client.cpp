@@ -165,8 +165,10 @@ void TClient::OnDataReceived(const TBuffer& data) {
             } else {
                 assert(packet.has_publickey() && "no public key in packet");
                 assert(packet.has_encryptedprivatekey() && "no private key in packet");
+                assert(!Password.empty() && "no password");
                 State.set_publickey(packet.publickey());
-                State.set_privatekey(DecryptSymmetrical(Password, packet.encryptedprivatekey()));
+                State.set_privatekey(DecryptSymmetrical(GenerateKey(Password), packet.encryptedprivatekey()));
+                Password.clear();
                 SaveState();
                 Config.LoginResultCallback(packet.result());
             }
@@ -193,7 +195,8 @@ void TClient::OnDataReceived(const TBuffer& data) {
             assert(State.has_login() && "no login in state");
             request.set_login(State.login());
             request.set_randomsequencehash(Hash(packet.randomsequence()));
-            string response = EncryptAsymmetrical(State.serverpublickey(), Compress(request.SerializeAsString()));
+            string response = Compress(request.SerializeAsString());
+            response = Serialize(EncryptAsymmetrical(State.serverpublickey(), response));
             CurrentState = CS_ConnectingConfirmWait;
             Client->Send(response);
         }
@@ -283,6 +286,7 @@ void TClient::Login(const std::string& password,
     packet.set_login(State.login());
     packet.set_loginpasswordhash(Hash(State.login() + password));
     packet.set_captchatext(captcha);
+    Password = password;
     assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
     CurrentState = CS_LoginingConfirmWait;
