@@ -84,6 +84,9 @@ public:
     TConference& GetConference(const std::string& id);  // conference by id
     TConferenceIterator ConferencesBegin();             // use it to iterate over conferences
     TConferenceIterator ConferencesEnd();
+
+    bool HasConnectData();                              // check if has keys, host address and other
+                                                        // data, required for connection
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);

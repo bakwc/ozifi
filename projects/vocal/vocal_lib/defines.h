@@ -21,6 +21,8 @@ enum ERegisterResult {
 
 const size_t DEFAULT_RANDOM_SEQUNCE_BITS = 4096;
 const size_t DEFAULT_ASSYMETRICAL_KEY_LENGTH = 4096;
+const size_t CAPTCHA_WIDTH = 200; // do not modify - hardcoded
+const size_t CAPTCHA_HEIGHT = 70;
 const std::string CRYPTO_SALT_1 = "NVocal";
 const std::string CRYPTO_SALT_2 = "distributed messenger";
 const std::string CRYPTO_SALT_3 = "!!WIN";

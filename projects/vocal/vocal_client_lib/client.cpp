@@ -232,6 +232,13 @@ void TClient::ForceDisconnect() {
 EClientState TClient::GetState() {
 }
 
+bool TClient::HasConnectData() {
+    return (State.has_host() &&
+            State.has_login() &&
+            State.has_privatekey() &&
+            State.has_publickey());
+}
+
 // connection
 void TClient::Connect() {
     lock_guard<mutex> guard(Lock);
