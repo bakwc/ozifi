@@ -44,7 +44,7 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         return boost::optional<TClientInfo>();
     }
     TClientInfoData data;
-    if (!data.ParseFromString(*strData)) {
+    if (!data.ParseFromString(Decompress(*strData))) {
         throw UException("failed to parse storage data");
     }
     TClientInfo result;
