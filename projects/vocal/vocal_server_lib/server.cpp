@@ -89,7 +89,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             request.set_randomsequence(randomSequence);
             request.set_signature(Sign(SelfStorage->GetPrivateKey(), randomSequence));
             response = Serialize(Compress(request.SerializeAsString()));
-            client->Login = CS_Authorizing;
+            client->Status = CS_Authorizing;
             client->RandomSequence = randomSequence;
         }
         }
@@ -184,6 +184,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     throw UException("wrong hash");
                 }
                 string key = GenerateKey();
+                client->Login = packet.login();
                 client->Status = CS_Authorized;
                 client->SessionKey = key;
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
