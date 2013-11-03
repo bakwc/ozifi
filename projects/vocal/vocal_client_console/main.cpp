@@ -25,6 +25,7 @@ public:
         config.CaptchaAvailableCallback = std::bind(&TVocaConsa::OnCaptcha, this, _1);
         config.RegisterResultCallback = std::bind(&TVocaConsa::OnRegistered, this, _1);
         config.LoginResultCallback = std::bind(&TVocaConsa::OnLogined, this, _1);
+        config.ConnectedCallback = std::bind(&TVocaConsa::OnConnected, this, _1);
         config.StateDir = "data";
         Client.reset(new TClient(config));
         AuthorizationMenu();
@@ -96,7 +97,14 @@ public:
         cout << "Login result: " << LoginResultToString(res) << "\n";
         _exit(42);
     }
-
+    void OnConnected(bool success) {
+        if (!success) {
+            cout << "failed to authorize\n";
+            _exit(42);
+        }
+        cout << "authorized\n";
+        _exit(42);
+    }
 
 private:
     unique_ptr<TClient> Client;

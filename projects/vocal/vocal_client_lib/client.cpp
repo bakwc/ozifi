@@ -53,8 +53,9 @@ void TClient::SaveState() {
         throw UException("state not initialized");
     }
     string login = State.login();
-    SaveFile(Config.StateDir + "/" + "account.txt", login);
-    StateDir = Config.StateDir + "/" + login + "/";
+    // todo: create dirs if they not exists
+    SaveFile(Config.StateDir + "/" + "account.txt", login + "@" + State.host());
+    StateDir = Config.StateDir + "/" + login + "@" + State.host() + "/";
     string state = State.SerializeAsString();
     SaveFile(StateDir + "state", state);
 }
@@ -160,7 +161,6 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 return;
             }
             if (packet.result() != LR_Success) {
-                cout << "unsuccess\n";
                 Config.LoginResultCallback(packet.result());
             } else {
                 assert(packet.has_publickey() && "no public key in packet");
@@ -177,6 +177,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
         Buffer += data.ToString();
         string packetStr;
         if (Deserialize(Buffer, packetStr)) {
+            packetStr = Decompress(packetStr);
             TServerAuthorizeRequest packet;
             if (!packet.ParseFromString(packetStr)) {
                 ForceDisconnect();

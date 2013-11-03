@@ -183,7 +183,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 string key = GenerateKey();
                 client->Status = CS_Authorized;
                 client->SessionKey = key;
-                response = Serialize(Compress(EncryptAsymmetrical(clientInfo->PublicKey, key)));
+                response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
             }
         } catch (const std::exception&) {
             response = boost::optional<string>();
