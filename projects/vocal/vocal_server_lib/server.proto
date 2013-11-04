@@ -1,0 +1,7 @@
+package NVocal;
+
+message TAddFriendRequest {
+    required string Login = 1;
+    required bytes PublicKey = 2;
+    required string FriendLogin = 3;
+}

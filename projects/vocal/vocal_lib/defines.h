@@ -9,7 +9,8 @@ namespace NVocal {
 enum ERequestType {
     RT_Register,
     RT_Login,
-    RT_Authorize
+    RT_Authorize,
+    RT_AddFriend
 };
 
 enum ERegisterResult {
@@ -17,6 +18,12 @@ enum ERegisterResult {
     RR_Success,
     RR_WrongCaptcha,
     RR_WrongLogin
+};
+
+enum EServerPacket {
+    SP_FriendAlreadyExists,
+    SP_FriendRequestSended,
+    SP_FriendAdded
 };
 
 const size_t DEFAULT_RANDOM_SEQUNCE_BITS = 4096;

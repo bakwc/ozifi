@@ -19,6 +19,7 @@ enum EFriendStatus {
 
 class TFriend {
 public:
+    TFriend(const std::string& login, EFriendStatus status);
     const std::string& GetLogin();
     const std::string& GetName();
     EFriendStatus GetStatus();
@@ -37,6 +38,10 @@ public:
     void EnableVideo();
     void DisableVideo();
     void FinishCall();
+private:
+    std::string Login;
+    std::string Name;
+    EFriendStatus Status;
 };
 
 typedef std::unordered_map<std::string, TFriend> TFriends;

@@ -4,8 +4,10 @@
 #include <memory>
 #include <iostream>
 #include <unordered_map>
+#include <queue>
 #include <utils/types.h>
 #include <library/udt/server.h>
+#include <library/udt/client.h>
 #include <library/http_server/server.h>
 
 #include "storage.h"
@@ -31,14 +33,37 @@ struct TClient {
     TClient(const TNetworkAddress& address);
     TNetworkAddress Address;
     EClientStatus Status;
+    TClientInfo Info;
     std::string Login;
     std::string CaptchaText;
     std::string Buffer;
     std::string RandomSequence;
     std::string SessionKey;
 };
-
 typedef std::shared_ptr<TClient> TClientRef;
+
+typedef std::function<void(const TBuffer& /*data*/, const std::string& /*host*/)> TPartnerDataCallback;
+class TPartnerServer {
+public:
+    const size_t MAX_QUEUE_SIZE = 100;
+    enum EStatus {
+        ST_Disconnected,
+        ST_Connecting,
+        ST_Connected
+    };
+    TPartnerServer(const std::string& host, TPartnerDataCallback& onDataReceived);
+    ~TPartnerServer();
+    void Send(const std::string& message);
+private:
+    void OnConnected(bool success);
+private:
+    std::queue<std::string> Messages;
+    TPartnerDataCallback OnDataReceived;
+    std::unique_ptr<NUdt::TClient> Client;
+    EStatus Status;
+    // todo: mutex here
+};
+typedef std::shared_ptr<TPartnerServer> TPartnerServerRef;
 
 class TServer {
 public:
@@ -48,6 +73,11 @@ public:
 private:
     bool OnClientConnected(const TNetworkAddress& addr);
     void OnDataReceived(const TBuffer& data, const TNetworkAddress& addr);
+    void OnServerDataReceived(const TBuffer& data, const std::string& host);
+    void SendAddFriendRequest(const std::string& login,
+                              const std::string& pubKey,
+                              const std::string& frndLogin);
+    void SendToServer(const std::string& host, const std::string& message);
 private:
      TServerConfig Config;
      unique_ptr<NUdt::TServer> Server;
@@ -56,6 +86,7 @@ private:
      unique_ptr<TSelfStorage> SelfStorage;
      unique_ptr<TMessageStorage> MessageStorage;
      unordered_map<TNetworkAddress, TClientRef> Clients;
+     unordered_map<std::string, TPartnerServerRef> Servers;
      unordered_map<std::string, TClientRef> ClientsByLogin;
 };
 

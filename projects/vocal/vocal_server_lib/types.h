@@ -9,13 +9,17 @@ namespace NVocal {
 
 struct TFriendInfo {
     std::string Login;
+    std::string PublicKey;
     std::string EncryptedKey;
     EFriendType Type;
+    bool Authorized;
 };
+
+typedef std::unordered_map<std::string, TFriendInfo> TFriendList;
 
 struct TClientInfo {
     std::string Login;
-    std::unordered_map<std::string, TFriendInfo> Friends; // and conferences
+    TFriendList Friends; // and conferences
     std::string PublicKey;
     std::string EncryptedPrivateKey;
     std::string LoginPasswordHash;

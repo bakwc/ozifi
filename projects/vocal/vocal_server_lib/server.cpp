@@ -2,6 +2,7 @@
 #include <utils/cast.h>
 #include <library/captcha/captcha.h>
 #include <projects/vocal/vocal_lib/resolver.h>
+#include <projects/vocal/vocal_lib/utils.h>
 #include <projects/vocal/vocal_lib/defines.h>
 #include <projects/vocal/vocal_lib/serializer.h>
 #include <projects/vocal/vocal_lib/compress.h>
@@ -187,6 +188,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 client->Login = packet.login();
                 client->Status = CS_Authorized;
                 client->SessionKey = key;
+                client->Info = *clientInfo;
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
             }
         } catch (const std::exception& e) {
@@ -195,6 +197,45 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             disconnectClient = true;
         }
     } break;
+    case CS_Authorized: {
+        client->Buffer += data.ToString();
+        string packetStr;
+        string responseStr;
+        try {
+            if (Deserialize(client->Buffer, packetStr)) {
+                assert(!client->SessionKey.empty() && "Client don't have session key");
+                packetStr = Decompress(DecryptSymmetrical(client->SessionKey, packetStr));
+                ERequestType requestType = (ERequestType)packetStr[0];
+                packetStr = packetStr.substr(1);
+                switch (requestType) {
+                case RT_AddFriend: {
+                    TFriendInfo frnd;
+                    // todo: fill (or remove) other TFriendInfo fields
+                    frnd.Login = packetStr;
+                    frnd.Authorized = false;
+                    if (client->Info.Friends.find(frnd.Login) != client->Info.Friends.end()) {
+                        responseStr.resize(1);
+                        responseStr[0] = (ui8)SP_FriendAlreadyExists;
+                    } else {
+                        client->Info.Friends[frnd.Login] = frnd;
+                        ClientInfoStorage->Put(client->Info);
+                        responseStr.resize(1);
+                        responseStr[0] = (ui8)SP_FriendRequestSended;
+                        SendAddFriendRequest(client->Login, client->Info.PublicKey, frnd.Login);
+                    }
+                    responseStr += frnd.Login;
+                } break;
+                default:
+                    throw UException("unknown request type");
+                }
+                response = Serialize(EncryptSymmetrical(client->SessionKey, Compress(responseStr)));
+            }
+        } catch (const std::exception& e) {
+            cout << "notice:\tclient communication error: " << e.what() << "\n";
+            response = boost::optional<string>();
+            disconnectClient = true;
+        }
+    }
     }
 
     if (response.is_initialized()) {
@@ -202,6 +243,65 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
     }
     if (disconnectClient) { // check if it waits for data to be send
         Server->DisconnectClient(addr);
+    }
+}
+
+void TServer::OnServerDataReceived(const TBuffer& data, const string& host) {
+}
+
+void TServer::SendAddFriendRequest(const string& login,
+                                   const string& pubKey,
+                                   const string& frndLogin)
+{
+    // todo: do this in async mode
+    string request;
+    pair<string, string> loginHost = GetLoginHost(frndLogin);
+    SendToServer(loginHost.second, request);
+}
+
+void TServer::SendToServer(const string& host, const string& message) {
+    unordered_map<std::string, TPartnerServerRef>::iterator it = Servers.find(host);
+    if (it == Servers.end()) {
+        TPartnerDataCallback clb = std::bind(&TServer::OnServerDataReceived, this, _1, _2);
+        TPartnerServerRef serverRef = make_shared<TPartnerServer>(host, clb);
+        it = Servers.insert(it, pair<string, TPartnerServerRef>(host, serverRef));
+    }
+    TPartnerServer& server = *it->second;
+    server.Send(message);
+}
+
+TPartnerServer::TPartnerServer(const string& host, TPartnerDataCallback &onDataReceived)
+    : OnDataReceived(onDataReceived)
+{
+    std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(host);
+    NUdt::TClientConfig clientConfig;
+    //clientConfig.DataReceivedCallback =
+    Client.reset(new NUdt::TClient(clientConfig));
+    Client->Connect(*addresses[0], false,                // todo: try different addresses
+            std::bind(&TPartnerServer::OnConnected, this, _1));
+}
+
+TPartnerServer::~TPartnerServer() {
+}
+
+void TPartnerServer::Send(const string& message) {
+    if (Status == ST_Connected) {
+        Client->Send(message);
+    } else if (Messages.size() < TPartnerServer::MAX_QUEUE_SIZE) {
+        Messages.push(message);
+    } else {
+        throw UException("can not send message");
+    }
+}
+
+void TPartnerServer::OnConnected(bool success) {
+    if (!success) {
+        // todo: reconnect
+        return;
+    }
+    while (!Messages.empty()) {
+        Client->Send(Messages.front());
+        Messages.pop();
     }
 }
 

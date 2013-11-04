@@ -211,7 +211,25 @@ void TClient::OnDataReceived(const TBuffer& data) {
             CurrentState = CS_Connected;
             Config.ConnectedCallback(true);
         }
-    }
+    } break;
+    case CS_Connected: {
+        Buffer += data.ToString();
+        string packetStr;
+        if (Deserialize(Buffer, packetStr)) {
+            packetStr = Decompress(DecryptSymmetrical(State.sessionkey(), packetStr));
+            EServerPacket packetType = (EServerPacket)packetStr[0];
+            packetStr = packetStr.substr(1);
+            switch (packetType) {
+            case SP_FriendAlreadyExists: {
+                // todo: just sync friendList if required
+                // send repeated authorization request
+            } break;
+            case SP_FriendAdded: {
+                // todo: send authorization request
+            }
+            }
+        }
+    } break;
     default:
         assert(false && "unknown state");
         break;
@@ -343,6 +361,13 @@ void TClient::Register(const std::string& preferedPassword,
 }
 
 void TClient::AddFriend(const std::string& friendLogin) {
+    if (CurrentState != CS_Connected) {
+        throw UException("not connected");
+    }
+    string message(1, (ui8)RT_AddFriend);
+    message += friendLogin;
+    Client->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
+    Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized)));
 }
 
 void TClient::AddFriend(const std::string& friendLogin,
