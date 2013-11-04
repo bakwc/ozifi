@@ -24,7 +24,7 @@ public:
     EFriendStatus GetStatus();
     const std::string& GetStatusMessage();
     std::vector<TMessage> GetHistory(); // old messages
-    void SendMessage(const std::string& message);
+    void SendMssg(const std::string& message);
     void SendFile(const std::string& name,
                   size_t size,
                   TDataRequireCallback fileDataCallback);

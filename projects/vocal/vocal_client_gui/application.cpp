@@ -86,7 +86,7 @@ void TVocaGuiApp::OnRegistered(ERegisterResult res) {
 }
 
 void TVocaGuiApp::OnLogined(ELoginResult res) {
-    if (res == RR_Success) {
+    if (res == LR_Success) {
         OnSuccesfullyRegistered();
     } else {
         QString msg = QString::fromStdString(LoginResultToString(res));

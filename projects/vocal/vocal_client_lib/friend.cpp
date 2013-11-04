@@ -17,7 +17,7 @@ const std::string& TFriend::GetStatusMessage() {
 std::vector<TMessage> TFriend::GetHistory() {
 }
 
-void TFriend::SendMessage(const std::string& message) {
+void TFriend::SendMssg(const std::string& message) {
 }
 
 void TFriend::SendFile(const std::string& name,

@@ -5,6 +5,8 @@
 #include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
 
+#define forever while(true)
+
 using namespace std;
 using namespace std::placeholders;
 using namespace NVocal;
@@ -15,6 +17,16 @@ enum EStatus {
     ST_Logining,
     ST_Authorizing
 };
+
+inline char FriendStatusToChar(EFriendStatus status) {
+    switch (status) {
+    case FS_Offline: return '-';
+    case FS_Available: return '+';
+    case FS_Unauthorized: return '?';
+    case FS_Away: return '+';
+    case FS_Busy: return '+';
+    }
+}
 
 class TVocaConsa {
 public:
@@ -103,17 +115,72 @@ public:
             _exit(42);
         }
         cout << "authorized\n";
-        _exit(42);
+        MainThreadPtr.reset(new thread(std::bind(&TVocaConsa::MainThread, this)));
+    }
+    void MainThread() {
+        while (true) {
+            MainMenu();
+        }
+    }
+    void MainMenu() {
+        cout << "1 - add friend\n";
+        cout << "2 - show friends\n";
+        cout << "3 - start chat with friend\n";
+        string choice;
+        cin >> choice;
+        if (choice == "1") {
+            AddFriend();
+        } else if (choice == "2") {
+            ShowFriends();
+        } else if (choice == "3") {
+            StartChat();
+        } else {
+            cout << "wrong selectiong\n";
+        }
+    }
+    void AddFriend() {
+        string friendLogin;
+        cout << "friend login: ";
+        cin >> friendLogin;
+        Client->AddFriend(friendLogin);
+    }
+    void ShowFriends() {
+        TFriendIterator it;
+        for (it = Client->FriendsBegin(); it != Client->FriendsEnd(); ++it) {
+            TFriend& frnd = it->second;
+            cout << FriendStatusToChar(frnd.GetStatus()) << " ";
+            if (!frnd.GetName().empty()) {
+                cout << frnd.GetName() << " (" << frnd.GetLogin() << ")";
+            } else {
+                cout << frnd.GetLogin();
+            }
+            cout << "\n";
+        }
+    }
+    void StartChat() {
+        string friendLogin;
+        string message;
+        cout << "friend login: ";
+        cin >> friendLogin;
+        TFriend& frnd = Client->GetFriend(friendLogin);
+        forever {
+            cin >> message;
+            if (message.empty()) {
+                break;
+            }
+            frnd.SendMssg(message);
+        }
     }
 
 private:
     unique_ptr<TClient> Client;
+    unique_ptr<thread> MainThreadPtr;
     EStatus Status;
 };
 
 int main(int argc, char** argv) {
     TVocaConsa consa;
-    while (true) {
+    forever {
         std::this_thread::sleep_for(std::chrono::minutes(1));
     }
     return 0;
