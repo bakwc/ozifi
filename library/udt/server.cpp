@@ -120,7 +120,7 @@ public:
         boost::asio::detail::array<char, 1024> buff;
         while (!Done) {
             set<UDTSOCKET> eventedSockets;
-            UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 200);
+            UDT::epoll_wait(MainEid, &eventedSockets, NULL, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 int result = UDT::recv(*it, buff.data(), 1024, 0);
                 if (UDT::ERROR != result) {
@@ -141,7 +141,7 @@ public:
         UDT::epoll_add_usock(eid, Socket);
         while (!Done) {
             set<UDTSOCKET> eventedSockets;
-            UDT::epoll_wait(eid, &eventedSockets, &eventedSockets, 1000);
+            int res = UDT::epoll_wait(eid, &eventedSockets, NULL, 1000);
             if (eventedSockets.size() > 0) {
                 sockaddr_in clientAddr;
                 int clientAddrLen;
