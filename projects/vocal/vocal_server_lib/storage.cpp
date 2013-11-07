@@ -86,14 +86,28 @@ void TMessageStorage::Put(const string& login,
     Storage->Put(key, Compress(message.SerializeAsString()));
 }
 
-std::vector<std::string> TMessageStorage::GetMessages(const string& login,
-                                     chrono::microseconds from,
-                                     chrono::microseconds to)
+void TMessageStorage::PutFriendRequest(const string& login,
+                                       const string& friendLogin,
+                                       TDuration date)
+{
+    TMessageData message;
+    message.set_login(login);
+    message.set_date(date.MicroSeconds());
+    message.set_friendrequestlogin(friendLogin);
+
+    string key = login + ToString(date.MicroSeconds()) + ToString(LittleHash(friendLogin));
+    Storage->Put(key, Compress(message.SerializeAsString()));
+}
+
+pair<TStringVector, TStringVector> TMessageStorage::GetMessages(const string& login,
+                                                                TDuration from,
+                                                                TDuration to)
 {
     NKwStorage::TKwIterator it = Storage->Iterator();
-    string fromStr = login + ToString(from.count());
-    string toStr = login + ToString(to.count());
+    string fromStr = login + ToString(from.MicroSeconds());
+    string toStr = login + ToString(to.MicroSeconds());
     vector<string> messages;
+    vector<string> addFriendRequests;
     it->Seek(fromStr);
     while (true) {
         pair<string, string> value = it->Get();
@@ -105,15 +119,20 @@ std::vector<std::string> TMessageStorage::GetMessages(const string& login,
         if (!data.ParseFromString(Decompress(value.second))) {
             throw UException("failed to parse message");
         }
-        messages.push_back(data.encryptedmessage());
+        if (data.has_encryptedmessage()) {
+            messages.push_back(data.encryptedmessage());
+        } else if (data.has_friendrequestlogin()) {
+            addFriendRequests.push_back(data.friendrequestlogin());
+        } else {
+            assert(!"missing data");
+        }
         it->Next();
         if (it->End()) {
             break;
         }
     }
-    return messages;
+    return pair<TStringVector, TStringVector>(messages, addFriendRequests);
 }
-
 
 // TSelfStorage
 

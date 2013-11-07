@@ -39,6 +39,7 @@ struct TClient {
     std::string Buffer;
     std::string RandomSequence;
     std::string SessionKey;
+    TDuration SessionLastSync;
 };
 typedef std::shared_ptr<TClient> TClientRef;
 
@@ -77,7 +78,10 @@ private:
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,
                               const std::string& frndLogin);
+    void OnAddFriendRequest(const std::string& login, const string& frndLogin);
     void SendToServer(const std::string& host, const std::string& message);
+    void SyncMessages(const std::string& login, TDuration from, TDuration to);
+    void SyncNewMessages(const std::string& login);
 private:
      TServerConfig Config;
      unique_ptr<NUdt::TServer> Server;

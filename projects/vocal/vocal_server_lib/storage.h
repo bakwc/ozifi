@@ -5,6 +5,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <boost/optional.hpp>
+#include <utils/date_time.h>
 #include <library/kwstorage/leveldb.h>
 
 #include "types.h"
@@ -29,9 +30,13 @@ public:
     void Put(const std::string& login,
              const std::string& encryptedMessage,
              std::chrono::microseconds date);
-    std::vector<std::string> GetMessages(const std::string& login,
-                                         std::chrono::microseconds from,
-                                         std::chrono::microseconds to);
+    void PutFriendRequest(const std::string& login,
+                          const std::string& friendLogin,
+                          TDuration date);
+    // messages, addFriendRequests
+    std::pair<TStringVector, TStringVector> GetMessages(const std::string& login,
+                                            TDuration from,
+                                            TDuration to);
 private:
     std::unique_ptr<NKwStorage::TKwStorage> Storage;
 };

@@ -10,6 +10,7 @@ add_library (utils
                 locale_setter.cpp
                 types.h
                 network_address.h
+                date_time.cpp
 		buffer.h)
 
 IF (WIN32)

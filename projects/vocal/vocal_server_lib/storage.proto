@@ -22,5 +22,6 @@ message TClientInfoData {
 message TMessageData {
     required string Login = 1;
     required uint64 Date = 2;
-    required bytes EncryptedMessage = 3;
+    optional bytes EncryptedMessage = 3;
+    optional string FriendRequestLogin = 4;
 }

@@ -16,6 +16,7 @@ struct TFriendInfo {
 };
 
 typedef std::unordered_map<std::string, TFriendInfo> TFriendList;
+typedef std::vector<std::string> TStringVector;
 
 struct TClientInfo {
     std::string Login;

@@ -188,6 +188,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 client->Login = packet.login();
                 client->Status = CS_Authorized;
                 client->SessionKey = key;
+                client->SessionLastSync = ToString(client->Login + ToString(Now().MicroSeconds()));
                 client->Info = *clientInfo;
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
             }
@@ -253,10 +254,18 @@ void TServer::SendAddFriendRequest(const string& login,
                                    const string& pubKey,
                                    const string& frndLogin)
 {
-    // todo: do this in async mode
-    string request;
     pair<string, string> loginHost = GetLoginHost(frndLogin);
-    SendToServer(loginHost.second, request);
+    if (loginHost.second == Config.Hostname) {
+        OnAddFriendRequest(login, frndLogin);
+    } else {
+        string request;
+        SendToServer(loginHost.second, request);
+    }
+}
+
+void TServer::OnAddFriendRequest(const string& login, const string& frndLogin) {
+    MessageStorage->PutFriendRequest(login, frndLogin, Now());
+    SyncMessages(login);
 }
 
 void TServer::SendToServer(const string& host, const string& message) {
@@ -270,9 +279,30 @@ void TServer::SendToServer(const string& host, const string& message) {
     server.Send(message);
 }
 
+void TServer::SyncMessages(const string &login, TDuration from, TDuration to) {
+    auto clientIt = ClientsByLogin.find(login);
+    if (clientIt == ClientsByLogin.end()) {
+        return;
+    }
+    MessageStorage->GetMessages(login, from, to);
+    TClientRef client = clientIt->second;
+    // todo: serialize messages and send them to client
+}
+
+// sends all new messages and friend requests to given client, if it is connected
+void TServer::SyncNewMessages(const string& login) {
+    auto clientIt = ClientsByLogin.find(login);
+    if (clientIt == ClientsByLogin.end()) {
+        return;
+    }
+    TClientRef client = clientIt->second;
+    SyncMessages(login, client->SessionLastSync, Now());
+}
+
 TPartnerServer::TPartnerServer(const string& host, TPartnerDataCallback &onDataReceived)
     : OnDataReceived(onDataReceived)
 {
+    // todo: do this in async mode
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(host);
     NUdt::TClientConfig clientConfig;
     //clientConfig.DataReceivedCallback =
