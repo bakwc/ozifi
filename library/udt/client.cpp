@@ -93,7 +93,7 @@ private:
         boost::asio::detail::array<char, 1024> buff;
         while (!Done) {
             std::set<UDTSOCKET> eventedSockets;
-            UDT::epoll_wait(MainEid, &eventedSockets, &eventedSockets, 5000);
+            UDT::epoll_wait(MainEid, &eventedSockets, NULL, 5000);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 if (*it == Socket && Status == CS_Connecting) {
                     Status = CS_Connected;
