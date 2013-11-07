@@ -1,6 +1,12 @@
+#include <limits>
 #include <chrono>
 
 #include "date_time.h"
+
+TDuration::TDuration()
+    : Value(0)
+{
+}
 
 TDuration::TDuration(ui64 value)
     : Value(value)
@@ -62,6 +68,14 @@ TDuration TDuration::Days(ui64 days) {
 TDuration TDuration::Now() {
     auto now = std::chrono::system_clock::now().time_since_epoch();
     return TDuration(std::chrono::duration_cast<std::chrono::microseconds>(now).count());
+}
+
+TDuration TDuration::Min() {
+    return TDuration(0);
+}
+
+TDuration TDuration::Max() {
+    return TDuration(std::numeric_limits<ui64>::max());
 }
 
 TDuration Now() {

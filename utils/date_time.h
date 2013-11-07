@@ -4,6 +4,7 @@
 
 class TDuration {
 public:
+    TDuration();
     TDuration(ui64 value);
     ui64 GetValue();
     ui64 MicroSeconds();
@@ -19,6 +20,8 @@ public:
     static TDuration Hours(ui64 hours);
     static TDuration Days(ui64 days);
     static TDuration Now();
+    static TDuration Min();
+    static TDuration Max();
 private:
     ui64 Value;
 };

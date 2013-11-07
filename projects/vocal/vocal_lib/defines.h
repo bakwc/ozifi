@@ -10,7 +10,8 @@ enum ERequestType {
     RT_Register,
     RT_Login,
     RT_Authorize,
-    RT_AddFriend
+    RT_AddFriend,
+    RT_SyncMessages
 };
 
 enum ERegisterResult {

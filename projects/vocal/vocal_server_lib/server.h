@@ -5,6 +5,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <queue>
+#include <mutex>
 #include <utils/types.h>
 #include <library/udt/server.h>
 #include <library/udt/client.h>
@@ -29,8 +30,13 @@ enum EClientStatus {
     CS_Authorized
 };
 
-struct TClient {
+class TClient {
+public:
     TClient(const TNetworkAddress& address);
+    bool AcquireSyncLock(); // false if already syncing
+    bool ReleaseSyncLock(); // false if required to sync again
+                            // (there were sync request while we were syncing
+public:
     TNetworkAddress Address;
     EClientStatus Status;
     TClientInfo Info;
@@ -40,6 +46,10 @@ struct TClient {
     std::string RandomSequence;
     std::string SessionKey;
     TDuration SessionLastSync;
+private:
+    std::mutex Lock;
+    bool Syncing;
+    bool NeedToResync;
 };
 typedef std::shared_ptr<TClient> TClientRef;
 
@@ -80,8 +90,8 @@ private:
                               const std::string& frndLogin);
     void OnAddFriendRequest(const std::string& login, const string& frndLogin);
     void SendToServer(const std::string& host, const std::string& message);
-    void SyncMessages(const std::string& login, TDuration from, TDuration to);
-    void SyncNewMessages(const std::string& login);
+    void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
+    void SyncNewMessages(const std::string& login); // thread-safe
 private:
      TServerConfig Config;
      unique_ptr<NUdt::TServer> Server;

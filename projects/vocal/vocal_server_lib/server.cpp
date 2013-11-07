@@ -19,7 +19,28 @@ namespace NVocal {
 TClient::TClient(const TNetworkAddress& address)
     : Address(address)
     , Status(CS_Unknown)
+    , Syncing(false)
+    , NeedToResync(false)
 {
+}
+
+bool TClient::AcquireSyncLock() {
+    lock_guard<mutex> guard(Lock);
+    if (Syncing) {
+        NeedToResync = true;
+        return false;
+    }
+    NeedToResync = false;
+    Syncing = true;
+    return true;
+}
+
+bool TClient::ReleaseSyncLock() {
+    lock_guard<mutex> guard(Lock);
+    Syncing = false;
+    bool result = !NeedToResync;
+    NeedToResync = false;
+    return result;
 }
 
 
@@ -188,7 +209,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 client->Login = packet.login();
                 client->Status = CS_Authorized;
                 client->SessionKey = key;
-                client->SessionLastSync = ToString(client->Login + ToString(Now().MicroSeconds()));
+                client->SessionLastSync = Now();
                 client->Info = *clientInfo;
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
             }
@@ -265,7 +286,7 @@ void TServer::SendAddFriendRequest(const string& login,
 
 void TServer::OnAddFriendRequest(const string& login, const string& frndLogin) {
     MessageStorage->PutFriendRequest(login, frndLogin, Now());
-    SyncMessages(login);
+    SyncNewMessages(login);
 }
 
 void TServer::SendToServer(const string& host, const string& message) {
@@ -284,8 +305,36 @@ void TServer::SyncMessages(const string &login, TDuration from, TDuration to) {
     if (clientIt == ClientsByLogin.end()) {
         return;
     }
-    MessageStorage->GetMessages(login, from, to);
     TClientRef client = clientIt->second;
+    bool done = false;
+    while (!done) { // syncing while need to sync
+        if (!client->AcquireSyncLock()) {
+            return; // already syncing
+        }
+        pair<TStringVector, TStringVector> messages = MessageStorage->GetMessages(login, from, to);
+        if (messages.first.size() == 0 && messages.second.size() == 0) {
+            return; // no sync required
+        }
+        TClientSyncPacket packet;
+        for (size_t i = 0; i < messages.first.size(); ++i) {
+            packet.add_messages()->set_encryptedmessage(messages.first[i]);
+        }
+        for (size_t i = 0; i < messages.second.size(); ++i) {
+            packet.add_messages()->set_friendrequestlogin(messages.second[i]);
+        }
+        packet.set_from(from.MicroSeconds());
+        packet.set_to(to.MicroSeconds());
+        client->SessionLastSync = to;
+
+        string data(1, (ui8)RT_SyncMessages);
+        data += packet.SerializeAsString();
+        data = Serialize(EncryptSymmetrical(client->SessionKey, Compress(data)));
+
+        Server->Send(data, client->Address);
+
+        done = client->ReleaseSyncLock();
+    }
+
     // todo: serialize messages and send them to client
 }
 
