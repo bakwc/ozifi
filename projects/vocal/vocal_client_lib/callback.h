@@ -7,6 +7,7 @@
 namespace NVocal {
 
 typedef std::function<void(const TBuffer& /*data*/)> TDataCallback;
+typedef std::function<void(const std::string& /*string*/)> TStringCallback;
 typedef TDataCallback TNamedCallback;
 typedef std::function<void(const std::string& /*name*/, const TBuffer& /*data*/)> TNamedDataCallback;
 typedef std::function<std::string(size_t)> TDataRequireCallback;

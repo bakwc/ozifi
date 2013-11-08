@@ -234,7 +234,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     TFriendInfo frnd;
                     // todo: fill (or remove) other TFriendInfo fields
                     frnd.Login = packetStr;
-                    frnd.Authorized = false;
+                    frnd.AuthStatus = AS_WaitingAuthorization;
                     if (client->Info.Friends.find(frnd.Login) != client->Info.Friends.end()) {
                         responseStr.resize(1);
                         responseStr[0] = (ui8)SP_FriendAlreadyExists;
@@ -286,6 +286,22 @@ void TServer::SendAddFriendRequest(const string& login,
 
 void TServer::OnAddFriendRequest(const string& login, const string& frndLogin) {
     MessageStorage->PutFriendRequest(login, frndLogin, Now());
+    // todo: thread-safe storage access
+    boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
+    if (!info.is_initialized()) {
+        cerr << "fatal error: client not exists\n";
+        return;
+    }
+    TFriendList& friends = info->Friends;
+    auto frndIt = friends.find(frndLogin);
+    if (frndIt == friends.end()) {
+        TFriendInfo& frnd = friends[frndLogin];
+        frnd.Type = FT_Friend;
+        frnd.AuthStatus = AS_WaitingAuthorization;
+    } else {
+        TFriendInfo& frnd = frndIt->second;
+        frnd.AuthStatus = AS_Authorized;
+    }
     SyncNewMessages(login);
 }
 
@@ -326,7 +342,7 @@ void TServer::SyncMessages(const string &login, TDuration from, TDuration to) {
         packet.set_to(to.MicroSeconds());
         client->SessionLastSync = to;
 
-        string data(1, (ui8)RT_SyncMessages);
+        string data(1, (ui8)SP_SyncMessages);
         data += packet.SerializeAsString();
         data = Serialize(EncryptSymmetrical(client->SessionKey, Compress(data)));
 

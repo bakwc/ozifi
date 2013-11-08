@@ -49,7 +49,7 @@ struct TClientConfig {
     TNamedCallback ConferenceLeftCallback;      // on conference left
     TMessageCallback MessageCallback;           // on message received
     TMessageCallback ConferenceMessageCallback; // on conference message received
-    TMessageCallback FriendRequestCallback;     // on friend request received
+    TStringCallback FriendRequestCallback;      // on friend request received (friend login)
 };
 
 class TClient {
@@ -90,6 +90,7 @@ public:
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
+    void OnEncryptedMessageReceived(const std::string& message);
     void OnDisconnected();
     void ForceDisconnect();
     void LoadState();

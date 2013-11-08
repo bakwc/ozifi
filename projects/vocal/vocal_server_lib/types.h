@@ -7,12 +7,19 @@
 
 namespace NVocal {
 
+enum EAuthStatus {
+    AS_None,
+    AS_UnAuthorized,
+    AS_WaitingAuthorization,
+    AS_Authorized
+};
+
 struct TFriendInfo {
     std::string Login;
     std::string PublicKey;
     std::string EncryptedKey;
     EFriendType Type;
-    bool Authorized;
+    EAuthStatus AuthStatus;
 };
 
 typedef std::unordered_map<std::string, TFriendInfo> TFriendList;

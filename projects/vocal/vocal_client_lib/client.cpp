@@ -226,6 +226,21 @@ void TClient::OnDataReceived(const TBuffer& data) {
             } break;
             case SP_FriendAdded: {
                 // todo: send authorization request
+            } break;
+               case SP_SyncMessages: {
+                TClientSyncPacket packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse client sync packet");
+                }
+                for (size_t i = 0; i < packet.messages_size(); ++i) {
+                    const TMessage& message = packet.messages(i);
+                    if (message.has_friendrequestlogin()) {
+                        string login = message.friendrequestlogin();
+                        Config.FriendRequestCallback(login);
+                    } else if (message.has_encryptedmessage()) {
+                        OnEncryptedMessageReceived(message.encryptedmessage());
+                    }
+                }
             }
             }
         }
@@ -234,6 +249,10 @@ void TClient::OnDataReceived(const TBuffer& data) {
         assert(false && "unknown state");
         break;
     }
+}
+
+void TClient::OnEncryptedMessageReceived(const string& message) {
+    // todo: implement this
 }
 
 void TClient::OnDisconnected() {

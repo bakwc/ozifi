@@ -10,8 +10,7 @@ enum ERequestType {
     RT_Register,
     RT_Login,
     RT_Authorize,
-    RT_AddFriend,
-    RT_SyncMessages
+    RT_AddFriend
 };
 
 enum ERegisterResult {
@@ -24,7 +23,8 @@ enum ERegisterResult {
 enum EServerPacket {
     SP_FriendAlreadyExists,
     SP_FriendRequestSended,
-    SP_FriendAdded
+    SP_FriendAdded,
+    SP_SyncMessages
 };
 
 const size_t DEFAULT_RANDOM_SEQUNCE_BITS = 4096;
