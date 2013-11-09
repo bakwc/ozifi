@@ -23,6 +23,7 @@ inline char FriendStatusToChar(EFriendStatus status) {
     case FS_Offline: return '-';
     case FS_Available: return '+';
     case FS_Unauthorized: return '?';
+    case FS_AddRequest: return '.';
     case FS_Away: return '+';
     case FS_Busy: return '+';
     }
@@ -39,6 +40,7 @@ public:
         config.LoginResultCallback = std::bind(&TVocaConsa::OnLogined, this, _1);
         config.ConnectedCallback = std::bind(&TVocaConsa::OnConnected, this, _1);
         config.FriendRequestCallback = std::bind(&TVocaConsa::OnFriendRequest, this, _1);
+        config.FriendlistChangedCallback = std::bind(&TVocaConsa::ShowFriends, this);
         config.StateDir = "data";
         Client.reset(new TClient(config));
         AuthorizationMenu();
@@ -147,8 +149,10 @@ public:
     }
     void OnFriendRequest(const string& login) {
         cout << "Friend request received: " << login << "\n";
+        cout << flush;
     }
     void ShowFriends() {
+        cerr << "ShowFriend()\n";
         TFriendIterator it;
         for (it = Client->FriendsBegin(); it != Client->FriendsEnd(); ++it) {
             TFriend& frnd = it->second;
@@ -160,6 +164,7 @@ public:
             }
             cout << "\n";
         }
+        cout << flush;
     }
     void StartChat() {
         string friendLogin;

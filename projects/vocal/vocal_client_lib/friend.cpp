@@ -2,9 +2,13 @@
 
 namespace NVocal {
 
+TFriend::TFriend() {
+}
+
 TFriend::TFriend(const std::string& login, EFriendStatus status)
     : Login(login)
     , Status(status)
+    , ToDelete(false)
 {
 }
 

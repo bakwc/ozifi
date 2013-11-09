@@ -11,6 +11,7 @@ namespace NVocal {
 
 enum EFriendStatus {
     FS_Offline,
+    FS_AddRequest,
     FS_Unauthorized,
     FS_Busy,
     FS_Away,
@@ -18,7 +19,9 @@ enum EFriendStatus {
 };
 
 class TFriend {
+    friend class TClient;
 public:
+    TFriend();
     TFriend(const std::string& login, EFriendStatus status);
     const std::string& GetLogin();
     const std::string& GetName();
@@ -38,7 +41,8 @@ public:
     void EnableVideo();
     void DisableVideo();
     void FinishCall();
-private:
+protected:
+    bool ToDelete;
     std::string Login;
     std::string Name;
     EFriendStatus Status;

@@ -36,6 +36,7 @@ enum EClientState {
 
 typedef std::function<void(ELoginResult)> TLoginCallback;
 typedef std::function<void(ERegisterResult)> TRegisterCallback;
+typedef std::function<void()> TCallBack;
 
 struct TClientConfig {
     std::string StateDir;                       // directory with internal state data
@@ -50,6 +51,7 @@ struct TClientConfig {
     TMessageCallback MessageCallback;           // on message received
     TMessageCallback ConferenceMessageCallback; // on conference message received
     TStringCallback FriendRequestCallback;      // on friend request received (friend login)
+    TCallBack FriendlistChangedCallback;        // on friendlist changed
 };
 
 class TClient {

@@ -237,19 +237,67 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 }
             } break;
             case SP_SyncInfo: {
+                cerr << "sync info received\n";
+                cerr << flush;
                 TClientSyncInfoPacket packet;
                 if (!packet.ParseFromString(packetStr)) {
                     throw UException("failed to parse client sync info packet");
                 }
+                for (TFriendIterator it = Friends.begin(); it != Friends.end(); ++it) {
+                    TFriend& frnd = it->second;
+                    frnd.ToDelete = true;
+                }
+                bool friendListUpdated = false;
+                cerr << "frnds size: " << packet.friends_size() << "\n";
                 for (size_t i = 0; i < packet.friends_size(); ++i) {
                     const TSyncFriend& frnd = packet.friends(i);
-                    cerr << frnd.login() << " ";
-                    if (frnd.status() == AS_WaitingAuthorization) {
-                        cerr << "add request\n";
-                    } else if (frnd.status() == AS_UnAuthorized) {
-                        cerr << "unauthorized\n";
+                    auto frndIt = Friends.find(frnd.login());
+                    if (frndIt == Friends.end()) {
+                        cerr << "frnd not found\n";
+                        friendListUpdated = true;
+                        TFriend& currentFrnd = Friends[frnd.login()];
+                        currentFrnd.Login = frnd.login();
+                        if (frnd.status() == AS_WaitingAuthorization) {
+                            currentFrnd.Status = FS_AddRequest;
+                            Config.FriendRequestCallback(frnd.login());
+                        } else if (frnd.status() == AS_UnAuthorized) {
+                            currentFrnd.Status = FS_Unauthorized;
+                        } else if (frnd.status() == AS_Authorized) {
+                            currentFrnd.Status = FS_Offline;
+                            // todo: start trying to connect
+                        } else {
+                            assert(!"unknown status");
+                        }
+                        currentFrnd.ToDelete = false;
+                    } else {
+                        TFriend& currentFrnd = frndIt->second;
+                        if ((currentFrnd.Status == FS_Unauthorized ||
+                             currentFrnd.Status == FS_AddRequest) &&
+                                frnd.status() == AS_Authorized)
+                        {
+                            friendListUpdated = true;
+                            currentFrnd.Status = FS_Offline;
+                            // todo: start trying to connect
+                        } else if (frnd.status() == AS_WaitingAuthorization) {
+                            currentFrnd.Status = FS_AddRequest;
+                        } else if (frnd.status() == AS_UnAuthorized) {
+                            currentFrnd.Status = FS_Unauthorized;
+                        }
+                        currentFrnd.ToDelete = false;
                     }
-                    cerr << "\n";
+                }
+
+                for (TFriendIterator it = Friends.begin(); it != Friends.end();) {
+                    TFriend& frnd = it->second;;
+                    if (frnd.ToDelete) {
+                        cerr << "removing frnd: " << frnd.Login;
+                        it = Friends.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+                if (friendListUpdated) {
+                    Config.FriendlistChangedCallback();
                 }
             }
             }
@@ -401,6 +449,7 @@ void TClient::AddFriend(const std::string& friendLogin) {
     message += request.SerializeAsString();
     Client->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
     Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized)));
+    Config.FriendlistChangedCallback();
 }
 
 void TClient::RemoveFriend(const std::string& friendLogin) {
@@ -410,9 +459,11 @@ TFriend& TClient::GetFriend(const std::string& login) {
 }
 
 TFriendIterator TClient::FriendsBegin() {
+    return Friends.begin();
 }
 
 TFriendIterator TClient::FriendsEnd() {
+    return Friends.end();
 }
 
 // conference
