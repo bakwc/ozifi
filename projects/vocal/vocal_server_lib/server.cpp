@@ -211,7 +211,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 switch (requestType) {
                 case RT_AddFriend: {
                     TAddFriendRequest request;
-                    if (request.ParseFromString(packetStr)) {
+                    if (!request.ParseFromString(packetStr)) {
                         throw UException("failed to parse addfriendrequest");
                     }
                     auto frndIt = client->Info.Friends.find(request.login());
@@ -361,7 +361,7 @@ void TServer::SyncClientInfo(const TClientInfo& info) {
         }
 
         assert(!client->SessionKey.empty() && "client must have session key");
-        string data(1, (ui8)SP_SyncMessages);
+        string data(1, (ui8)SP_SyncInfo);
         data += packet.SerializeAsString();
         data = Serialize(EncryptSymmetrical(client->SessionKey, Compress(data)));
 
