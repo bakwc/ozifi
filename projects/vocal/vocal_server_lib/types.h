@@ -7,13 +7,6 @@
 
 namespace NVocal {
 
-enum EAuthStatus {
-    AS_None,
-    AS_UnAuthorized,
-    AS_WaitingAuthorization,
-    AS_Authorized
-};
-
 struct TFriendInfo {
     std::string Login;
     std::string PublicKey;

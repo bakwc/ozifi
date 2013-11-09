@@ -92,6 +92,7 @@ private:
     void SendToServer(const std::string& host, const std::string& message);
     void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
     void SyncNewMessages(const std::string& login); // thread-safe
+    void UpdateClientInfo(const TClientInfo& info);
 private:
      TServerConfig Config;
      unique_ptr<NUdt::TServer> Server;

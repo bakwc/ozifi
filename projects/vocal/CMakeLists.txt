@@ -1,5 +1,7 @@
 add_subdirectory(vocal_client_lib)
+if (Qt_FOUND)
 add_subdirectory(vocal_client_gui)
+endif()
 add_subdirectory(vocal_client_console)
 add_subdirectory(vocal_server_lib)
 add_subdirectory(vocal_server)

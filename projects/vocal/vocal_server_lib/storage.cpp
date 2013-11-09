@@ -30,6 +30,7 @@ void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
         friendData->set_login(frnd.second.Login);
         friendData->set_encryptedkey(frnd.second.EncryptedKey);
         friendData->set_type(frnd.second.Type);
+        friendData->set_authstatus(frnd.second.AuthStatus);
     }
     Storage->Put(clientInfo.Login, Compress(data.SerializeAsString()));
 }
@@ -58,6 +59,7 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         friendInfo.Login = frnd.login();
         friendInfo.EncryptedKey = frnd.encryptedkey();
         friendInfo.Type = frnd.type();
+        friendInfo.AuthStatus = frnd.authstatus();
     }
     return result;
 }
@@ -109,7 +111,7 @@ pair<TStringVector, TStringVector> TMessageStorage::GetMessages(const string& lo
     vector<string> messages;
     vector<string> addFriendRequests;
     it->Seek(fromStr);
-    while (true) {
+    while (!it->End()) {
         pair<string, string> value = it->Get();
         if (value.first > toStr) {
             break;

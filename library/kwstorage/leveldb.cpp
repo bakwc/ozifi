@@ -2,6 +2,8 @@
 #include <leveldb/db.h>
 #include <utils/exception.h>
 
+#include <iostream>
+
 #include "leveldb.h"
 
 using namespace std;
@@ -20,7 +22,7 @@ public:
     }
 
     virtual bool End() {
-        Iterator->Valid();
+        return !Iterator->Valid();
     }
 
     virtual bool Reset() {

@@ -164,7 +164,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     confirm.set_result(LR_WrongCaptcha);
                 } else {
                     boost::optional<TClientInfo> clientInfo;
-                    clientInfo = ClientInfoStorage->Get(packet.login());
+                    clientInfo = ClientInfoStorage->Get(packet.login()); // todo: validate login
                     if (!clientInfo.is_initialized()) {
                         confirm.set_result(LR_WrongUserOrPassword);
                     } else {
@@ -198,7 +198,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     throw UException("failed to parse string");
                 }
                 boost::optional<TClientInfo> clientInfo;
-                clientInfo = ClientInfoStorage->Get(packet.login());
+                clientInfo = ClientInfoStorage->Get(packet.login()); // todo: validate login
                 if (!clientInfo.is_initialized()) {
                     throw UException("no such client");
                 }
@@ -212,6 +212,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 client->SessionLastSync = Now();
                 client->Info = *clientInfo;
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
+                ClientsByLogin[client->Login] = client;
             }
         } catch (const std::exception& e) {
             cout << "notice:\tclient authorization error: " << e.what() << "\n";
@@ -231,21 +232,24 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 packetStr = packetStr.substr(1);
                 switch (requestType) {
                 case RT_AddFriend: {
-                    TFriendInfo frnd;
-                    // todo: fill (or remove) other TFriendInfo fields
-                    frnd.Login = packetStr;
-                    frnd.AuthStatus = AS_WaitingAuthorization;
-                    if (client->Info.Friends.find(frnd.Login) != client->Info.Friends.end()) {
-                        responseStr.resize(1);
-                        responseStr[0] = (ui8)SP_FriendAlreadyExists;
+                    auto frndIt = client->Info.Friends.find(packetStr);
+                    if (frndIt == client->Info.Friends.end()) {
+                        TFriendInfo& frnd = client->Info.Friends[packetStr];
+                        frnd.Login = packetStr;
+                        frnd.Type = FT_Friend;
+                        frnd.AuthStatus = AS_UnAuthorized;
                     } else {
-                        client->Info.Friends[frnd.Login] = frnd;
-                        ClientInfoStorage->Put(client->Info);
-                        responseStr.resize(1);
-                        responseStr[0] = (ui8)SP_FriendRequestSended;
-                        SendAddFriendRequest(client->Login, client->Info.PublicKey, frnd.Login);
+                        TFriendInfo& frnd = frndIt->second;
+                        if (frnd.AuthStatus == AS_WaitingAuthorization) {
+                            frnd.AuthStatus = AS_Authorized;
+                        }
                     }
-                    responseStr += frnd.Login;
+                    UpdateClientInfo(client->Info);
+                    responseStr.resize(1);
+                    responseStr[0] = (ui8)SP_FriendRequestSended;
+                    SendAddFriendRequest(client->Login, client->Info.PublicKey, packetStr);
+
+                    responseStr += packetStr;
                 } break;
                 default:
                     throw UException("unknown request type");
@@ -277,7 +281,7 @@ void TServer::SendAddFriendRequest(const string& login,
 {
     pair<string, string> loginHost = GetLoginHost(frndLogin);
     if (loginHost.second == Config.Hostname) {
-        OnAddFriendRequest(login, frndLogin);
+        OnAddFriendRequest(loginHost.first, login + "@" + Config.Hostname);
     } else {
         string request;
         SendToServer(loginHost.second, request);
@@ -296,13 +300,27 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin) {
     auto frndIt = friends.find(frndLogin);
     if (frndIt == friends.end()) {
         TFriendInfo& frnd = friends[frndLogin];
+        frnd.Login = frndLogin;
         frnd.Type = FT_Friend;
         frnd.AuthStatus = AS_WaitingAuthorization;
     } else {
         TFriendInfo& frnd = frndIt->second;
-        frnd.AuthStatus = AS_Authorized;
+        if (frnd.AuthStatus == AS_UnAuthorized) {
+            frnd.AuthStatus = AS_Authorized;
+        }
     }
+    UpdateClientInfo(*info);
+    
     SyncNewMessages(login);
+}
+
+void TServer::UpdateClientInfo(const TClientInfo& info) {
+    ClientInfoStorage->Put(info);
+    auto cliIt = ClientsByLogin.find(info.Login);
+    if (cliIt != ClientsByLogin.end()) {
+        TClientRef& client = cliIt->second;
+        client->Info = info;
+    }
 }
 
 void TServer::SendToServer(const string& host, const string& message) {

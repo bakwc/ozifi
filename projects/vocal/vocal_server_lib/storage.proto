@@ -5,10 +5,17 @@ enum EFriendType {
     FT_Conference = 2;
 }
 
+enum EAuthStatus {
+    AS_UnAuthorized = 1;
+    AS_WaitingAuthorization = 2;
+    AS_Authorized = 3;
+};
+
 message TFriendInfoData {
     required string Login = 1;
     required bytes EncryptedKey = 2;
     required EFriendType Type = 3;
+    required EAuthStatus AuthStatus = 4;
 }
 
 message TClientInfoData {
