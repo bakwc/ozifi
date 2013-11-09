@@ -48,13 +48,23 @@ message TClientAuthorizeRequest {
     required bytes RandomSequenceHash = 2;
 }
 
-message TMessage {
-    optional bytes EncryptedMessage = 1;
-    optional string FriendRequestLogin = 2;
+message TAddFriendRequest {
+    required string Login = 1;
+    required bytes EncryptedKey = 2;
 }
 
 message TClientSyncPacket {
-    repeated TMessage Messages = 1;
+    repeated bytes EncryptedMessages = 1;
     required uint64 From = 2;
     required uint64 To = 3;
+}
+
+message TSyncFriend {
+    required string Login = 1;
+    required uint32 Status = 2;
+    required bytes EncryptedKey = 3;
+}
+
+message TClientSyncInfoPacket {
+    repeated TSyncFriend Friends = 1;
 }

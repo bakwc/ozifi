@@ -19,30 +19,8 @@ namespace NVocal {
 TClient::TClient(const TNetworkAddress& address)
     : Address(address)
     , Status(CS_Unknown)
-    , Syncing(false)
-    , NeedToResync(false)
 {
 }
-
-bool TClient::AcquireSyncLock() {
-    lock_guard<mutex> guard(Lock);
-    if (Syncing) {
-        NeedToResync = true;
-        return false;
-    }
-    NeedToResync = false;
-    Syncing = true;
-    return true;
-}
-
-bool TClient::ReleaseSyncLock() {
-    lock_guard<mutex> guard(Lock);
-    Syncing = false;
-    bool result = !NeedToResync;
-    NeedToResync = false;
-    return result;
-}
-
 
 TServer::TServer(const TServerConfig& config)
     : Config(config)
@@ -232,22 +210,28 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 packetStr = packetStr.substr(1);
                 switch (requestType) {
                 case RT_AddFriend: {
-                    auto frndIt = client->Info.Friends.find(packetStr);
+                    TAddFriendRequest request;
+                    if (request.ParseFromString(packetStr)) {
+                        throw UException("failed to parse addfriendrequest");
+                    }
+                    auto frndIt = client->Info.Friends.find(request.login());
                     if (frndIt == client->Info.Friends.end()) {
-                        TFriendInfo& frnd = client->Info.Friends[packetStr];
-                        frnd.Login = packetStr;
+                        TFriendInfo& frnd = client->Info.Friends[request.login()];
+                        frnd.Login = request.login();
                         frnd.Type = FT_Friend;
                         frnd.AuthStatus = AS_UnAuthorized;
+                        frnd.EncryptedKey = request.encryptedkey();
                     } else {
                         TFriendInfo& frnd = frndIt->second;
                         if (frnd.AuthStatus == AS_WaitingAuthorization) {
                             frnd.AuthStatus = AS_Authorized;
+                            frnd.EncryptedKey = request.encryptedkey();
                         }
                     }
-                    UpdateClientInfo(client->Info);
+                    SyncClientInfo(client->Info);
                     responseStr.resize(1);
                     responseStr[0] = (ui8)SP_FriendRequestSended;
-                    SendAddFriendRequest(client->Login, client->Info.PublicKey, packetStr);
+                    SendAddFriendRequest(client->Login, client->Info.PublicKey, request.login());
 
                     responseStr += packetStr;
                 } break;
@@ -281,15 +265,14 @@ void TServer::SendAddFriendRequest(const string& login,
 {
     pair<string, string> loginHost = GetLoginHost(frndLogin);
     if (loginHost.second == Config.Hostname) {
-        OnAddFriendRequest(loginHost.first, login + "@" + Config.Hostname);
+        OnAddFriendRequest(loginHost.first, login + "@" + Config.Hostname, pubKey);
     } else {
         string request;
         SendToServer(loginHost.second, request);
     }
 }
 
-void TServer::OnAddFriendRequest(const string& login, const string& frndLogin) {
-    MessageStorage->PutFriendRequest(login, frndLogin, Now());
+void TServer::OnAddFriendRequest(const string& login, const string& frndLogin, const string& pubKey) {
     // todo: thread-safe storage access
     boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
     if (!info.is_initialized()) {
@@ -303,24 +286,15 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin) {
         frnd.Login = frndLogin;
         frnd.Type = FT_Friend;
         frnd.AuthStatus = AS_WaitingAuthorization;
+        frnd.PublicKey = pubKey;
     } else {
         TFriendInfo& frnd = frndIt->second;
         if (frnd.AuthStatus == AS_UnAuthorized) {
             frnd.AuthStatus = AS_Authorized;
+            frnd.PublicKey = pubKey;
         }
     }
-    UpdateClientInfo(*info);
-    
-    SyncNewMessages(login);
-}
-
-void TServer::UpdateClientInfo(const TClientInfo& info) {
-    ClientInfoStorage->Put(info);
-    auto cliIt = ClientsByLogin.find(info.Login);
-    if (cliIt != ClientsByLogin.end()) {
-        TClientRef& client = cliIt->second;
-        client->Info = info;
-    }
+    SyncClientInfo(*info);
 }
 
 void TServer::SendToServer(const string& host, const string& message) {
@@ -340,36 +314,24 @@ void TServer::SyncMessages(const string &login, TDuration from, TDuration to) {
         return;
     }
     TClientRef client = clientIt->second;
-    bool done = false;
-    while (!done) { // syncing while need to sync
-        if (!client->AcquireSyncLock()) {
-            return; // already syncing
-        }
-        pair<TStringVector, TStringVector> messages = MessageStorage->GetMessages(login, from, to);
-        if (messages.first.size() == 0 && messages.second.size() == 0) {
-            return; // no sync required
-        }
-        TClientSyncPacket packet;
-        for (size_t i = 0; i < messages.first.size(); ++i) {
-            packet.add_messages()->set_encryptedmessage(messages.first[i]);
-        }
-        for (size_t i = 0; i < messages.second.size(); ++i) {
-            packet.add_messages()->set_friendrequestlogin(messages.second[i]);
-        }
-        packet.set_from(from.MicroSeconds());
-        packet.set_to(to.MicroSeconds());
-        client->SessionLastSync = to;
 
-        string data(1, (ui8)SP_SyncMessages);
-        data += packet.SerializeAsString();
-        data = Serialize(EncryptSymmetrical(client->SessionKey, Compress(data)));
-
-        Server->Send(data, client->Address);
-
-        done = client->ReleaseSyncLock();
+    TStringVector messages = MessageStorage->GetMessages(login, from, to);
+    if (messages.size() == 0) {
+        return; // no sync required
     }
+    TClientSyncPacket packet;
+    for (size_t i = 0; i < messages.size(); ++i) {
+        *packet.add_encryptedmessages() = messages[i];
+    }
+    packet.set_from(from.MicroSeconds());
+    packet.set_to(to.MicroSeconds());
+    client->SessionLastSync = to;
 
-    // todo: serialize messages and send them to client
+    string data(1, (ui8)SP_SyncMessages);
+    data += packet.SerializeAsString();
+    data = Serialize(EncryptSymmetrical(client->SessionKey, Compress(data)));
+
+    Server->Send(data, client->Address);
 }
 
 // sends all new messages and friend requests to given client, if it is connected
@@ -380,6 +342,31 @@ void TServer::SyncNewMessages(const string& login) {
     }
     TClientRef client = clientIt->second;
     SyncMessages(login, client->SessionLastSync, Now());
+}
+
+void TServer::SyncClientInfo(const TClientInfo& info) {
+    ClientInfoStorage->Put(info);
+    auto cliIt = ClientsByLogin.find(info.Login);
+    if (cliIt != ClientsByLogin.end()) {
+        // todo: sync only diff between previous and current
+        TClientRef& client = cliIt->second;
+        client->Info = info;
+        TClientSyncInfoPacket packet;
+        for (auto it = info.Friends.begin(); it != info.Friends.end(); ++it) {
+            const TFriendInfo& frndInfo = it->second;
+            TSyncFriend* frnd = packet.add_friends();
+            frnd->set_login(frndInfo.Login);
+            frnd->set_status(frndInfo.AuthStatus);
+            frnd->set_encryptedkey(frndInfo.EncryptedKey);
+        }
+
+        assert(!client->SessionKey.empty() && "client must have session key");
+        string data(1, (ui8)SP_SyncMessages);
+        data += packet.SerializeAsString();
+        data = Serialize(EncryptSymmetrical(client->SessionKey, Compress(data)));
+
+        Server->Send(data, client->Address);
+    }
 }
 
 TPartnerServer::TPartnerServer(const string& host, TPartnerDataCallback &onDataReceived)

@@ -30,13 +30,9 @@ public:
     void Put(const std::string& login,
              const std::string& encryptedMessage,
              std::chrono::microseconds date);
-    void PutFriendRequest(const std::string& login,
-                          const std::string& friendLogin,
-                          TDuration date);
-    // messages, addFriendRequests
-    std::pair<TStringVector, TStringVector> GetMessages(const std::string& login,
-                                            TDuration from,
-                                            TDuration to);
+    TStringVector GetMessages(const std::string& login,
+                              TDuration from,
+                              TDuration to);
 private:
     std::unique_ptr<NKwStorage::TKwStorage> Storage;
 };

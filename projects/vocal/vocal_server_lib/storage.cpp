@@ -59,7 +59,7 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         friendInfo.Login = frnd.login();
         friendInfo.EncryptedKey = frnd.encryptedkey();
         friendInfo.Type = frnd.type();
-        friendInfo.AuthStatus = frnd.authstatus();
+        friendInfo.AuthStatus = (EAuthStatus)frnd.authstatus();
     }
     return result;
 }
@@ -88,28 +88,14 @@ void TMessageStorage::Put(const string& login,
     Storage->Put(key, Compress(message.SerializeAsString()));
 }
 
-void TMessageStorage::PutFriendRequest(const string& login,
-                                       const string& friendLogin,
-                                       TDuration date)
-{
-    TMessageData message;
-    message.set_login(login);
-    message.set_date(date.MicroSeconds());
-    message.set_friendrequestlogin(friendLogin);
-
-    string key = login + ToString(date.MicroSeconds()) + ToString(LittleHash(friendLogin));
-    Storage->Put(key, Compress(message.SerializeAsString()));
-}
-
-pair<TStringVector, TStringVector> TMessageStorage::GetMessages(const string& login,
-                                                                TDuration from,
-                                                                TDuration to)
+TStringVector TMessageStorage::GetMessages(const string& login,
+                                           TDuration from,
+                                           TDuration to)
 {
     NKwStorage::TKwIterator it = Storage->Iterator();
     string fromStr = login + ToString(from.MicroSeconds());
     string toStr = login + ToString(to.MicroSeconds());
     vector<string> messages;
-    vector<string> addFriendRequests;
     it->Seek(fromStr);
     while (!it->End()) {
         pair<string, string> value = it->Get();
@@ -121,19 +107,13 @@ pair<TStringVector, TStringVector> TMessageStorage::GetMessages(const string& lo
         if (!data.ParseFromString(Decompress(value.second))) {
             throw UException("failed to parse message");
         }
-        if (data.has_encryptedmessage()) {
-            messages.push_back(data.encryptedmessage());
-        } else if (data.has_friendrequestlogin()) {
-            addFriendRequests.push_back(data.friendrequestlogin());
-        } else {
-            assert(!"missing data");
-        }
+        messages.push_back(data.encryptedmessage());
         it->Next();
         if (it->End()) {
             break;
         }
     }
-    return pair<TStringVector, TStringVector>(messages, addFriendRequests);
+    return messages;
 }
 
 // TSelfStorage

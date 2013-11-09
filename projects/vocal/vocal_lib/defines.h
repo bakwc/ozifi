@@ -20,11 +20,18 @@ enum ERegisterResult {
     RR_WrongLogin
 };
 
+enum EAuthStatus {
+  AS_UnAuthorized = 1,
+  AS_WaitingAuthorization = 2,
+  AS_Authorized = 3
+};
+
 enum EServerPacket {
     SP_FriendAlreadyExists,
     SP_FriendRequestSended,
     SP_FriendAdded,
-    SP_SyncMessages
+    SP_SyncMessages,
+    SP_SyncInfo
 };
 
 const size_t DEFAULT_RANDOM_SEQUNCE_BITS = 4096;

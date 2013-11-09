@@ -38,6 +38,7 @@ public:
         config.RegisterResultCallback = std::bind(&TVocaConsa::OnRegistered, this, _1);
         config.LoginResultCallback = std::bind(&TVocaConsa::OnLogined, this, _1);
         config.ConnectedCallback = std::bind(&TVocaConsa::OnConnected, this, _1);
+        config.FriendRequestCallback = std::bind(&TVocaConsa::OnFriendRequest, this, _1);
         config.StateDir = "data";
         Client.reset(new TClient(config));
         AuthorizationMenu();
@@ -143,6 +144,9 @@ public:
         cout << "friend login: ";
         cin >> friendLogin;
         Client->AddFriend(friendLogin);
+    }
+    void OnFriendRequest(const string& login) {
+        cout << "Friend request received: " << login << "\n";
     }
     void ShowFriends() {
         TFriendIterator it;

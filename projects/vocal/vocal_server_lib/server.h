@@ -33,10 +33,6 @@ enum EClientStatus {
 class TClient {
 public:
     TClient(const TNetworkAddress& address);
-    bool AcquireSyncLock(); // false if already syncing
-    bool ReleaseSyncLock(); // false if required to sync again
-                            // (there were sync request while we were syncing
-public:
     TNetworkAddress Address;
     EClientStatus Status;
     TClientInfo Info;
@@ -46,10 +42,6 @@ public:
     std::string RandomSequence;
     std::string SessionKey;
     TDuration SessionLastSync;
-private:
-    std::mutex Lock;
-    bool Syncing;
-    bool NeedToResync;
 };
 typedef std::shared_ptr<TClient> TClientRef;
 
@@ -88,11 +80,11 @@ private:
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,
                               const std::string& frndLogin);
-    void OnAddFriendRequest(const std::string& login, const string& frndLogin);
+    void OnAddFriendRequest(const std::string& login, const string& frndLogin, const string& pubKey);
     void SendToServer(const std::string& host, const std::string& message);
     void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
     void SyncNewMessages(const std::string& login); // thread-safe
-    void UpdateClientInfo(const TClientInfo& info);
+    void SyncClientInfo(const TClientInfo& info);
 private:
      TServerConfig Config;
      unique_ptr<NUdt::TServer> Server;

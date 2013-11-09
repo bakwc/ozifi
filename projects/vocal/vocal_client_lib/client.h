@@ -69,10 +69,7 @@ public:
                   const std::string& captcha);
 
     // friends
-    void AddFriend(const std::string& friendLogin);     // initialize adding friend
-    void AddFriend(const std::string& friendLogin,      // continue adding friend
-                   const std::string& requestMessage,
-                   const std::string& captcha);
+    void AddFriend(const std::string& friendLogin);
     void RemoveFriend(const std::string& friendLogin);  // remove friend from friendlist
     TFriend& GetFriend(const std::string& login);       // friend by login
     TFriendIterator FriendsBegin();                     // use it to iterate over friends

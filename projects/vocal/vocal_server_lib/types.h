@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <projects/vocal/vocal_lib/defines.h>
 #include <projects/vocal/vocal_server_lib/storage.pb.h>
 
 namespace NVocal {

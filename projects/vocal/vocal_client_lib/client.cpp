@@ -230,16 +230,26 @@ void TClient::OnDataReceived(const TBuffer& data) {
                case SP_SyncMessages: {
                 TClientSyncPacket packet;
                 if (!packet.ParseFromString(packetStr)) {
-                    throw UException("failed to parse client sync packet");
+                    throw UException("failed to parse client sync message packet");
                 }
-                for (size_t i = 0; i < packet.messages_size(); ++i) {
-                    const TMessage& message = packet.messages(i);
-                    if (message.has_friendrequestlogin()) {
-                        string login = message.friendrequestlogin();
-                        Config.FriendRequestCallback(login);
-                    } else if (message.has_encryptedmessage()) {
-                        OnEncryptedMessageReceived(message.encryptedmessage());
+                for (size_t i = 0; i < packet.encryptedmessages_size(); ++i) {
+                    OnEncryptedMessageReceived(packet.encryptedmessages(i));
+                }
+            } break;
+            case SP_SyncInfo: {
+                TClientSyncInfoPacket packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse client sync info packet");
+                }
+                for (size_t i = 0; i < packet.friends_size(); ++i) {
+                    const TSyncFriend& frnd = packet.friends(i);
+                    cerr << frnd.login() << " ";
+                    if (frnd.status() == AS_WaitingAuthorization) {
+                        cerr << "add request\n";
+                    } else if (frnd.status() == AS_UnAuthorized) {
+                        cerr << "unauthorized\n";
                     }
+                    cerr << "\n";
                 }
             }
             }
@@ -384,15 +394,13 @@ void TClient::AddFriend(const std::string& friendLogin) {
         throw UException("not connected");
     }
     string message(1, (ui8)RT_AddFriend);
-    message += friendLogin;
+    string friendKey = GenerateRandomSequence(16);
+    TAddFriendRequest request;
+    request.set_login(friendLogin);
+    request.set_encryptedkey(EncryptSymmetrical(State.privatekey(), friendKey));
+    message += request.SerializeAsString();
     Client->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
     Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized)));
-}
-
-void TClient::AddFriend(const std::string& friendLogin,
-                        const std::string& requestMessage,
-                        const std::string& captcha)
-{
 }
 
 void TClient::RemoveFriend(const std::string& friendLogin) {
