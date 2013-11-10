@@ -32,7 +32,7 @@ public:
         }
     }
 
-    inline void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
+    inline void Connect(const TNetworkAddress& address, bool overNat) {
         if (CurrentConnection.is_initialized()) {
             SetAsyncMode(false);
             UDT::close(Socket); // todo: process connection close error
@@ -143,8 +143,8 @@ TClient::TClient(const TClientConfig& config)
 TClient::~TClient() {
 }
 
-void TClient::Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
-    Impl->Connect(address, overNat, callback);
+void TClient::Connect(const TNetworkAddress& address, bool overNat) {
+    Impl->Connect(address, overNat);
 }
 
 void TClient::Disconnect() {

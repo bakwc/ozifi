@@ -92,6 +92,15 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
             response = Serialize(Compress(request.SerializeAsString()));
             client->Status = CS_Authorizing;
             client->RandomSequence = randomSequence;
+        } break;
+        case RT_HelpConnect: {
+            TServerAuthorizeRequest request;
+            string randomSequence = GenerateRandomSequence();
+            request.set_randomsequence(randomSequence);
+            request.set_signature(Sign(SelfStorage->GetPrivateKey(), randomSequence));
+            response = Serialize(Compress(request.SerializeAsString()));
+            client->Status = CS_AuthorizingHelpConnect;
+            client->RandomSequence = randomSequence;
         }
         }
     } break;
@@ -184,6 +193,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 if (Hash(client->RandomSequence) != packet.randomsequencehash()) {
                     throw UException("wrong hash");
                 }
+                if (!CheckSignature(clientInfo->PublicKey, packet.randomsequencehash(), packet.randomsequencehashsignature())) {
+                    throw UException("wrong signature");
+                }
                 string key = GenerateKey();
                 client->Login = packet.login();
                 client->Status = CS_Authorized;
@@ -193,6 +205,62 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
                 ClientsByLogin[client->Login] = client;
                 next.push_back(std::bind(&TServer::SyncClientInfo, this, client->Info));
+            }
+        } catch (const std::exception& e) {
+            cout << "notice:\tclient authorization error: " << e.what() << "\n";
+            response = boost::optional<string>();
+            disconnectClient = true;
+        }
+    } break;
+    case CS_AuthorizingHelpConnect: {
+        client->Buffer += data.ToString();
+        string packetStr;
+        try {
+            if (Deserialize(client->Buffer, packetStr)) {
+                packetStr = Decompress(DecryptAsymmetrical(SelfStorage->GetPrivateKey(), packetStr));
+                TClientConnectHelpAuthorizeRequest packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse string");
+                }
+                boost::optional<TClientInfo> clientInfo;
+                clientInfo = ClientInfoStorage->Get(packet.friendlogin()); // todo: validate login and friendLogin
+                if (!clientInfo.is_initialized()) {
+                    throw UException("no such client");
+                }
+                if (Hash(client->RandomSequence) != packet.randomsequencehash()) {
+                    throw UException("wrong hash");
+                }
+                auto friendIt = clientInfo->Friends.find(packet.login());
+                if (friendIt == clientInfo->Friends.end()) {
+                    throw UException("no friend in friend-list");
+                }
+                TFriendInfo& frnd = friendIt->second;
+                if (frnd.AuthStatus != AS_Authorized) {
+                    throw UException("client not authorized");
+                }
+                assert(frnd.PublicKey.size() != 0 && "friend has no public key");
+                if (!CheckSignature(frnd.PublicKey, packet.randomsequencehash(), packet.randomsequencehashsignature())) {
+                    throw UException("wrong signature");
+                }
+                string frndAddress;
+                auto cliIt = ClientsByLogin.find(packet.friendlogin());
+                if (cliIt != ClientsByLogin.end()) {
+                    TClientRef& cli = cliIt->second;
+                    frndAddress = cli->Address.ToString();
+                    TConnectFriendRequest connectRequest;
+                    connectRequest.set_login(packet.login());
+                    connectRequest.set_address(client->Address.ToString());
+                    string connectRequestData;
+                    connectRequestData.resize(1);
+                    connectRequestData[0] = (ui8)SP_ConnectToFriend;
+                    connectRequestData += connectRequest.SerializeAsString();
+                    connectRequestData = Serialize(EncryptSymmetrical(cli->SessionKey, Compress(connectRequestData)));
+                    Server->Send(connectRequestData, cli->Address);
+                } else {
+                    frndAddress = "offline";
+                }
+                response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress(frndAddress)));
+                disconnectClient = true;
             }
         } catch (const std::exception& e) {
             cout << "notice:\tclient authorization error: " << e.what() << "\n";
@@ -381,10 +449,10 @@ TPartnerServer::TPartnerServer(const string& host, TPartnerDataCallback& onDataR
     // todo: do this in async mode
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(host);
     NUdt::TClientConfig clientConfig;
+    clientConfig.ConnectionCallback = std::bind(&TPartnerServer::OnConnected, this, _1);
     //clientConfig.DataReceivedCallback =
     Client.reset(new NUdt::TClient(clientConfig));
-    Client->Connect(*addresses[0], false,                // todo: try different addresses
-            std::bind(&TPartnerServer::OnConnected, this, _1));
+    Client->Connect(*addresses[0], false);                // todo: try different addresses
 }
 
 TPartnerServer::~TPartnerServer() {

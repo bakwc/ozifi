@@ -68,6 +68,13 @@ void TClient::SaveState() {
     SaveFile(StateDir + "state", state);
 }
 
+void TClient::ConnectWithFriends() {
+    for (auto it = Friends.begin(); it != Friends.end(); ++it) {
+        TFriend& frnd = it->second;
+        frnd.Connect();
+    }
+}
+
 void TClient::OnConnected(bool success) {
     switch (CurrentState) {
     case CS_Logining: {
@@ -203,7 +210,9 @@ void TClient::OnDataReceived(const TBuffer& data) {
             TClientAuthorizeRequest request;
             assert(State.has_login() && "no login in state");
             request.set_login(State.login());
-            request.set_randomsequencehash(Hash(packet.randomsequence()));
+            string hash = Hash(packet.randomsequence());
+            request.set_randomsequencehash(hash);
+            request.set_randomsequencehashsignature(Sign(State.privatekey(), hash));
             string response = Compress(request.SerializeAsString());
             response = Serialize(EncryptAsymmetrical(State.serverpublickey(), response));
             CurrentState = CS_ConnectingConfirmWait;
@@ -357,7 +366,7 @@ void TClient::Connect() {
     }
     // todo: random address selection
     CurrentState = CS_Connecting;
-    Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
+    Client->Connect(*addresses[0], false);
 }
 
 void TClient::Disconnect() {
@@ -378,7 +387,7 @@ void TClient::Login(const std::string& login) { // login@service.com
     }
     // todo: random address selection
     CurrentState = CS_Logining;
-    Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
+    Client->Connect(*addresses[0], false);
 }
 
 void TClient::Login(const std::string& password,
@@ -417,7 +426,7 @@ void TClient::Register(const std::string& preferedLogin) {
     pair<string, string> keys = GenerateKeys();
     State.set_publickey(keys.second);
     State.set_privatekey(keys.first);
-    Client->Connect(*addresses[0], false, std::bind(&TClient::OnConnected, this, _1));
+    Client->Connect(*addresses[0], false);
 }
 
 void TClient::Register(const std::string& preferedPassword,

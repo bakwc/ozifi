@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <library/udt/client.h>
+
 #include "message.h"
 #include "callback.h"
 
@@ -16,6 +18,14 @@ enum EFriendStatus {
     FS_Busy,
     FS_Away,
     FS_Available
+};
+
+enum EConnectionStatus {
+    COS_Offline,
+    COS_ConnectingToServer,
+    COS_WaitingFriendAddress,
+    COS_ConnectingToFriend,
+    COS_Connected
 };
 
 class TFriend {
@@ -42,10 +52,17 @@ public:
     void DisableVideo();
     void FinishCall();
 protected:
+    void Connect();
+    void OnConnected(bool success);
+    void OnDataReceived(const TBuffer& data);
+    void OnDisconnected();
+protected:
     bool ToDelete;
     std::string Login;
     std::string Name;
     EFriendStatus Status;
+    EConnectionStatus ConnectionStatus;
+    std::unique_ptr<NUdt::TClient> Client;
 };
 
 typedef std::unordered_map<std::string, TFriend> TFriends;

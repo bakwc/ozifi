@@ -46,6 +46,19 @@ message TServerAuthorizeRequest {
 message TClientAuthorizeRequest {
     required string Login = 1;
     required bytes RandomSequenceHash = 2;
+    required bytes RandomSequenceHashSignature = 3;
+}
+
+message TClientConnectHelpAuthorizeRequest {
+    required string Login = 1;
+    required string FriendLogin = 2;
+    required bytes RandomSequenceHash = 3;
+    required bytes RandomSequenceHashSignature = 4;
+}
+
+message TConnectFriendRequest {
+    required string Login = 1;
+    required string Address = 2;
 }
 
 message TAddFriendRequest {

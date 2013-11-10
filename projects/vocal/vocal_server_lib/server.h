@@ -27,6 +27,7 @@ enum EClientStatus {
     CS_Registering,
     CS_Logining,
     CS_Authorizing,
+    CS_AuthorizingHelpConnect,
     CS_Authorized
 };
 

@@ -29,7 +29,7 @@ class TClient {
 public:
     TClient(const TClientConfig& config);
     ~TClient();
-    void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback);
+    void Connect(const TNetworkAddress& address, bool overNat);
     void Disconnect();
     void Send(const TBuffer& data);
 private:

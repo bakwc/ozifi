@@ -94,6 +94,7 @@ private:
     void ForceDisconnect();
     void LoadState();
     void SaveState();
+    void ConnectWithFriends();
 private:
     EClientState CurrentState;
     std::string StateDir;
