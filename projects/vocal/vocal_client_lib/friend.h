@@ -28,6 +28,7 @@ enum EConnectionStatus {
     COS_Connected
 };
 
+class TClient;
 class TFriend {
     friend class TClient;
 public:
@@ -56,13 +57,19 @@ protected:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
     void OnDisconnected();
+    void ForceDisconnect();
+    void ConnectThrowNat(const TNetworkAddress& address);
 protected:
     bool ToDelete;
-    std::string Login;
+    TClient* Client;
+    std::string Login;      // friend login
     std::string Name;
+    std::string PublicKey;
+    std::string ServerPublicKey;
     EFriendStatus Status;
     EConnectionStatus ConnectionStatus;
-    std::unique_ptr<NUdt::TClient> Client;
+    std::string Buffer;
+    std::unique_ptr<NUdt::TClient> UdtClient;
 };
 
 typedef std::unordered_map<std::string, TFriend> TFriends;

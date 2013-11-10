@@ -55,6 +55,7 @@ struct TClientConfig {
 };
 
 class TClient {
+    friend class TFriend;
 public:
     TClient(const TClientConfig& config);
     EClientState GetState();
@@ -86,6 +87,10 @@ public:
 
     bool HasConnectData();                              // check if has keys, host address and other
                                                         // data, required for connection
+protected:
+    std::string GetLogin();
+    std::string GetPublicKey();
+    std::string GetPrivateKey();
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
@@ -101,7 +106,7 @@ private:
     TClientConfig Config;
     TFriends Friends;
     TConferences Conferences;
-    std::unique_ptr<NUdt::TClient> Client;
+    std::unique_ptr<NUdt::TClient> UdtClient;
     TClientState State;
     std::string Buffer;
     std::mutex Lock;

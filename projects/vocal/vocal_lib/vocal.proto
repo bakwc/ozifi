@@ -76,6 +76,8 @@ message TSyncFriend {
     required string Login = 1;
     required uint32 Status = 2;
     required bytes EncryptedKey = 3;
+    required bytes PublicKey = 4;
+    required bytes ServerPublicKey = 5;
 }
 
 message TClientSyncInfoPacket {

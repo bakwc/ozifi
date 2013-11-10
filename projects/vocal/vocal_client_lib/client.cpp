@@ -27,7 +27,7 @@ TClient::TClient(const TClientConfig& config)
     udtConfig.ConnectionCallback = std::bind(&TClient::OnConnected, this, _1);
     udtConfig.DataReceivedCallback = std::bind(&TClient::OnDataReceived, this, _1);
     udtConfig.ConnectionLostCallback = std::bind(&TClient::OnDisconnected, this);
-    Client.reset(new NUdt::TClient(udtConfig));
+    UdtClient.reset(new NUdt::TClient(udtConfig));
     try {
         LoadState();
     } catch (const UException&) {
@@ -84,7 +84,7 @@ void TClient::OnConnected(bool success) {
         }
         string data;
         data.push_back((char)RT_Login);
-        Client->Send(data);
+        UdtClient->Send(data);
     } break;
     case CS_Registering: {
         if (!success) {
@@ -93,7 +93,7 @@ void TClient::OnConnected(bool success) {
         }
         string data;
         data.push_back((char)RT_Register);
-        Client->Send(data);
+        UdtClient->Send(data);
     } break;
     case CS_Connecting: {
         if (!success) {
@@ -102,7 +102,7 @@ void TClient::OnConnected(bool success) {
         }
         string data;
         data.push_back((char)RT_Authorize);
-        Client->Send(data);
+        UdtClient->Send(data);
         break;
     }
     default:
@@ -216,7 +216,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
             string response = Compress(request.SerializeAsString());
             response = Serialize(EncryptAsymmetrical(State.serverpublickey(), response));
             CurrentState = CS_ConnectingConfirmWait;
-            Client->Send(response);
+            UdtClient->Send(response);
         }
     } break;
     case CS_ConnectingConfirmWait: {
@@ -268,9 +268,12 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     const TSyncFriend& frnd = packet.friends(i);
                     auto frndIt = Friends.find(frnd.login());
                     if (frndIt == Friends.end()) {
+                        // todo: refactor syncing
                         friendListUpdated = true;
                         TFriend& currentFrnd = Friends[frnd.login()];
                         currentFrnd.Login = frnd.login();
+                        currentFrnd.PublicKey = frnd.publickey();
+                        currentFrnd.ServerPublicKey = frnd.serverpublickey();
                         if (frnd.status() == AS_WaitingAuthorization) {
                             currentFrnd.Status = FS_AddRequest;
                             Config.FriendRequestCallback(frnd.login());
@@ -312,6 +315,18 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 if (friendListUpdated) {
                     Config.FriendlistChangedCallback();
                 }
+            } break;
+            case SP_ConnectToFriend: {
+                TConnectFriendRequest packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    throw UException("failed to parse connect friend request");
+                }
+                auto frndIt = Friends.find(packet.login());
+                if (frndIt == Friends.end()) {
+                    throw UException("no friend to connect to");
+                }
+                TFriend& frnd = frndIt->second;
+                frnd.ConnectThrowNat(packet.address());
             }
             }
         }
@@ -334,7 +349,7 @@ void TClient::OnDisconnected() {
 
 void TClient::ForceDisconnect() {
     CurrentState = CS_Disconnecting;
-    Client->Disconnect();
+    UdtClient->Disconnect();
 }
 
 EClientState TClient::GetState() {
@@ -345,6 +360,27 @@ bool TClient::HasConnectData() {
             State.has_login() &&
             State.has_privatekey() &&
             State.has_publickey());
+}
+
+string TClient::GetLogin() {
+    if (!State.has_login()) {
+        throw UException("login not found");
+    }
+    return State.login();
+}
+
+string TClient::GetPublicKey() {
+    if (!State.has_publickey()) {
+        throw UException("login not found");
+    }
+    return State.publickey();
+}
+
+string TClient::GetPrivateKey() {
+    if (!State.has_privatekey()) {
+        throw UException("login not found");
+    }
+    return State.privatekey();
 }
 
 // connection
@@ -366,7 +402,7 @@ void TClient::Connect() {
     }
     // todo: random address selection
     CurrentState = CS_Connecting;
-    Client->Connect(*addresses[0], false);
+    UdtClient->Connect(*addresses[0], false);
 }
 
 void TClient::Disconnect() {
@@ -387,7 +423,7 @@ void TClient::Login(const std::string& login) { // login@service.com
     }
     // todo: random address selection
     CurrentState = CS_Logining;
-    Client->Connect(*addresses[0], false);
+    UdtClient->Connect(*addresses[0], false);
 }
 
 void TClient::Login(const std::string& password,
@@ -405,7 +441,7 @@ void TClient::Login(const std::string& password,
     assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
     CurrentState = CS_LoginingConfirmWait;
-    Client->Send(Serialize(data));
+    UdtClient->Send(Serialize(data));
 }
 
 void TClient::Register(const std::string& preferedLogin) {
@@ -426,7 +462,7 @@ void TClient::Register(const std::string& preferedLogin) {
     pair<string, string> keys = GenerateKeys();
     State.set_publickey(keys.second);
     State.set_privatekey(keys.first);
-    Client->Connect(*addresses[0], false);
+    UdtClient->Connect(*addresses[0], false);
 }
 
 void TClient::Register(const std::string& preferedPassword,
@@ -447,7 +483,7 @@ void TClient::Register(const std::string& preferedPassword,
     assert(State.has_serverpublickey() && "no server public key found");
     string data =  EncryptAsymmetrical(State.serverpublickey(), Compress(packet.SerializeAsString()));
     CurrentState = CS_RegisteringConfirmWait;
-    Client->Send(Serialize(data));
+    UdtClient->Send(Serialize(data));
 }
 
 void TClient::AddFriend(const std::string& friendLogin) {
@@ -460,7 +496,7 @@ void TClient::AddFriend(const std::string& friendLogin) {
     request.set_login(friendLogin);
     request.set_encryptedkey(EncryptSymmetrical(GenerateKey(State.privatekey()), friendKey));
     message += request.SerializeAsString();
-    Client->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
+    UdtClient->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
     Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized)));
     Config.FriendlistChangedCallback();
 }

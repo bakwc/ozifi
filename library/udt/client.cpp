@@ -38,7 +38,6 @@ public:
             UDT::close(Socket); // todo: process connection close error
             CurrentConnection = boost::optional<TNetworkAddress>();
             Done = true;
-            WorkerThreadHolder->join();
             UDT::epoll_release(MainEid);
         }
         if (overNat) {
@@ -58,7 +57,9 @@ public:
         LastActive = chrono::duration_cast<chrono::milliseconds>(duration);
         UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength());
         Done = false;
-        WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        if (!WorkerThreadHolder) {
+            WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        }
     }
     inline void Disconnect(bool waitWorkerThread = true) {
         // todo: ensure that ondisconnected callback will be called
