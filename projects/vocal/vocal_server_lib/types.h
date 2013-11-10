@@ -11,6 +11,7 @@ namespace NVocal {
 struct TFriendInfo {
     std::string Login;
     std::string PublicKey;
+    std::string ServerPublicKey;
     std::string EncryptedKey;
     EFriendType Type;
     EAuthStatus AuthStatus;

@@ -22,7 +22,6 @@ TClientInfoStorage::~TClientInfoStorage() {
 void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
     TClientInfoData data;
     data.set_login(clientInfo.Login);
-    data.set_publickkey(clientInfo.PublicKey);
     data.set_encryptedprivatekey(clientInfo.EncryptedPrivateKey);
     data.set_loginpasswordhash(clientInfo.LoginPasswordHash);
     for (auto& frnd: clientInfo.Friends) {
@@ -31,6 +30,8 @@ void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
         friendData->set_encryptedkey(frnd.second.EncryptedKey);
         friendData->set_type(frnd.second.Type);
         friendData->set_authstatus(frnd.second.AuthStatus);
+        friendData->set_publickey(frnd.second.PublicKey);
+        friendData->set_serverpublickey(frnd.second.ServerPublicKey);
     }
     Storage->Put(clientInfo.Login, Compress(data.SerializeAsString()));
 }
@@ -52,7 +53,6 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
     result.Login = data.login();
     result.EncryptedPrivateKey = data.encryptedprivatekey();
     result.LoginPasswordHash = data.loginpasswordhash();
-    result.PublicKey = data.publickkey();
     for (size_t i = 0; i < data.friends_size(); ++i) {
         const TFriendInfoData& frnd = data.friends(i);
         TFriendInfo& friendInfo = result.Friends[frnd.login()];
@@ -60,6 +60,8 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         friendInfo.EncryptedKey = frnd.encryptedkey();
         friendInfo.Type = frnd.type();
         friendInfo.AuthStatus = (EAuthStatus)frnd.authstatus();
+        friendInfo.PublicKey = frnd.publickey();
+        friendInfo.ServerPublicKey = frnd.serverpublickey();
     }
     return result;
 }

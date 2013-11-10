@@ -339,14 +339,17 @@ void TServer::SendAddFriendRequest(const string& login,
 {
     pair<string, string> loginHost = GetLoginHost(frndLogin);
     if (loginHost.second == Config.Hostname) {
-        OnAddFriendRequest(loginHost.first, login + "@" + Config.Hostname, pubKey);
+        OnAddFriendRequest(loginHost.first, login + "@" + Config.Hostname,
+                           pubKey, SelfStorage->GetPublicKey());
     } else {
         string request;
         SendToServer(loginHost.second, request);
     }
 }
 
-void TServer::OnAddFriendRequest(const string& login, const string& frndLogin, const string& pubKey) {
+void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
+                                 const string& pubKey, const string& serverPubKey)
+{
     // todo: thread-safe storage access
     boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
     if (!info.is_initialized()) {
@@ -361,11 +364,13 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin, c
         frnd.Type = FT_Friend;
         frnd.AuthStatus = AS_WaitingAuthorization;
         frnd.PublicKey = pubKey;
+        frnd.ServerPublicKey = serverPubKey;
     } else {
         TFriendInfo& frnd = frndIt->second;
         if (frnd.AuthStatus == AS_UnAuthorized) {
             frnd.AuthStatus = AS_Authorized;
             frnd.PublicKey = pubKey;
+            frnd.ServerPublicKey = serverPubKey;
         }
     }
     SyncClientInfo(*info);
@@ -432,6 +437,8 @@ void TServer::SyncClientInfo(const TClientInfo& info) {
             frnd->set_login(frndInfo.Login);
             frnd->set_status(frndInfo.AuthStatus);
             frnd->set_encryptedkey(frndInfo.EncryptedKey);
+            frnd->set_publickey(frndInfo.PublicKey);
+            frnd->set_serverpublickey(frndInfo.ServerPublicKey);
         }
 
         assert(!client->SessionKey.empty() && "client must have session key");

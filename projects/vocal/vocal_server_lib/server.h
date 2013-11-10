@@ -82,7 +82,8 @@ private:
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,
                               const std::string& frndLogin);
-    void OnAddFriendRequest(const std::string& login, const string& frndLogin, const string& pubKey);
+    void OnAddFriendRequest(const std::string& login, const string& frndLogin,
+                            const string& pubKey, const string& serverPubKey);
     void SendToServer(const std::string& host, const std::string& message);
     void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
     void SyncNewMessages(const std::string& login); // thread-safe
