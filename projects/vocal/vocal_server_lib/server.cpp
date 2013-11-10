@@ -58,6 +58,7 @@ bool TServer::OnClientConnected(const TNetworkAddress& addr) {
 void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
     assert(Clients.find(addr) != Clients.end());
     assert(data.Size() >= 1);
+    vector<TCallBack> next;
     TClientRef client = Clients[addr];
     boost::optional<string> response;
     bool disconnectClient = false;
@@ -191,6 +192,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 client->Info = *clientInfo;
                 response = Serialize(EncryptAsymmetrical(clientInfo->PublicKey, Compress(key)));
                 ClientsByLogin[client->Login] = client;
+                next.push_back(std::bind(&TServer::SyncClientInfo, this, client->Info));
             }
         } catch (const std::exception& e) {
             cout << "notice:\tclient authorization error: " << e.what() << "\n";
@@ -253,6 +255,10 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
     }
     if (disconnectClient) { // check if it waits for data to be send
         Server->DisconnectClient(addr);
+    }
+
+    for (size_t i = 0; i < next.size(); ++i) {
+        next[i]();
     }
 }
 

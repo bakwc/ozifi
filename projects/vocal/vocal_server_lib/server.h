@@ -45,6 +45,7 @@ public:
 };
 typedef std::shared_ptr<TClient> TClientRef;
 
+typedef std::function<void()> TCallBack;
 typedef std::function<void(const TBuffer& /*data*/, const std::string& /*host*/)> TPartnerDataCallback;
 class TPartnerServer {
 public:
