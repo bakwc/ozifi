@@ -2,6 +2,7 @@
 #include <utils/exception.h>
 #include <utils/cast.h>
 #include <utils/string.h>
+#include <boost/filesystem.hpp>
 #include <projects/vocal/vocal_lib/resolver.h>
 #include <projects/vocal/vocal_lib/utils.h>
 #include <projects/vocal/vocal_lib/serializer.h>
@@ -54,8 +55,15 @@ void TClient::SaveState() {
     }
     string login = State.login();
     // todo: create dirs if they not exists
-    SaveFile(Config.StateDir + "/" + "account.txt", login + "@" + State.host());
-    StateDir = Config.StateDir + "/" + login + "@" + State.host() + "/";
+    if (!boost::filesystem::exists(Config.StateDir)) {
+        boost::filesystem::create_directory(Config.StateDir);
+    }
+    string fullLogin = login + "@" + State.host();
+    SaveFile(Config.StateDir + "/" + "account.txt", fullLogin);
+    StateDir = Config.StateDir + "/" + fullLogin + "/";
+    if (!boost::filesystem::exists(StateDir)) {
+        boost::filesystem::create_directory(StateDir);
+    }
     string state = State.SerializeAsString();
     SaveFile(StateDir + "state", state);
 }
@@ -88,6 +96,7 @@ void TClient::OnConnected(bool success) {
         string data;
         data.push_back((char)RT_Authorize);
         Client->Send(data);
+        break;
     }
     default:
         assert(false && "unknown state");
@@ -445,7 +454,7 @@ void TClient::AddFriend(const std::string& friendLogin) {
     string friendKey = GenerateRandomSequence(16);
     TAddFriendRequest request;
     request.set_login(friendLogin);
-    request.set_encryptedkey(EncryptSymmetrical(State.privatekey(), friendKey));
+    request.set_encryptedkey(EncryptSymmetrical(GenerateKey(State.privatekey()), friendKey));
     message += request.SerializeAsString();
     Client->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
     Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized)));
