@@ -246,8 +246,6 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 }
             } break;
             case SP_SyncInfo: {
-                cerr << "sync info received\n";
-                cerr << flush;
                 TClientSyncInfoPacket packet;
                 if (!packet.ParseFromString(packetStr)) {
                     throw UException("failed to parse client sync info packet");
@@ -257,12 +255,10 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     frnd.ToDelete = true;
                 }
                 bool friendListUpdated = false;
-                cerr << "frnds size: " << packet.friends_size() << "\n";
                 for (size_t i = 0; i < packet.friends_size(); ++i) {
                     const TSyncFriend& frnd = packet.friends(i);
                     auto frndIt = Friends.find(frnd.login());
                     if (frndIt == Friends.end()) {
-                        cerr << "frnd not found\n";
                         friendListUpdated = true;
                         TFriend& currentFrnd = Friends[frnd.login()];
                         currentFrnd.Login = frnd.login();
@@ -299,7 +295,6 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 for (TFriendIterator it = Friends.begin(); it != Friends.end();) {
                     TFriend& frnd = it->second;;
                     if (frnd.ToDelete) {
-                        cerr << "removing frnd: " << frnd.Login;
                         it = Friends.erase(it);
                     } else {
                         ++it;
