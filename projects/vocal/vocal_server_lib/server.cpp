@@ -369,7 +369,7 @@ void TServer::SyncClientInfo(const TClientInfo& info) {
     }
 }
 
-TPartnerServer::TPartnerServer(const string& host, TPartnerDataCallback &onDataReceived)
+TPartnerServer::TPartnerServer(const string& host, TPartnerDataCallback& onDataReceived)
     : OnDataReceived(onDataReceived)
 {
     // todo: do this in async mode

@@ -48,7 +48,7 @@ typedef std::shared_ptr<TClient> TClientRef;
 typedef std::function<void(const TBuffer& /*data*/, const std::string& /*host*/)> TPartnerDataCallback;
 class TPartnerServer {
 public:
-    const size_t MAX_QUEUE_SIZE = 100;
+    static const size_t MAX_QUEUE_SIZE = 100;
     enum EStatus {
         ST_Disconnected,
         ST_Connecting,
