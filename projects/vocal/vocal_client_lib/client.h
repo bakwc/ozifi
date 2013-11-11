@@ -89,8 +89,10 @@ public:
                                                         // data, required for connection
 protected:
     std::string GetLogin();
+    std::string GetFullLogin();
     std::string GetPublicKey();
     std::string GetPrivateKey();
+    std::string GetHost();
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);

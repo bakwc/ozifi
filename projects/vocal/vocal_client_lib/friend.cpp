@@ -14,19 +14,21 @@ namespace NVocal {
 
 TFriend::TFriend()
     : ConnectionStatus(COS_Offline)
+    , Client(nullptr)
 {
 }
 
 TFriend::TFriend(const string& login, EFriendStatus status)
-    : Login(login)
+    : FullLogin(login)
     , Status(status)
     , ToDelete(false)
     , ConnectionStatus(COS_Offline)
+    , Client(nullptr)
 {
 }
 
 const string& TFriend::GetLogin() {
-    return Login;
+    return FullLogin;
 }
 
 const string& TFriend::GetName() {
@@ -91,7 +93,7 @@ void TFriend::Connect() {
     config.ConnectionLostCallback = std::bind(&TFriend::OnDisconnected, this);
     UdtClient.reset(new NUdt::TClient(config));
 
-    pair<string, string> loginHost = GetLoginHost(Login);
+    pair<string, string> loginHost = GetLoginHost(FullLogin);
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(loginHost.first, loginHost.second);
     if (addresses.size() == 0) {
         throw UException("no address found for host");
@@ -137,9 +139,11 @@ void TFriend::OnDataReceived(const TBuffer& data) {
             return;
         }
         TClientConnectHelpAuthorizeRequest request;
-        assert(!Login.empty() && "friend has no login");
-        request.set_login(Client->GetLogin());
-        request.set_friendlogin(Login);
+        assert(!FullLogin.empty() && "friend has no login");
+        assert(Client != nullptr && "Client is NULL");
+        pair<string, string> loginHost = GetLoginHost(FullLogin);
+        request.set_login(Client->GetFullLogin());
+        request.set_friendlogin(loginHost.first);
         string hash = Hash(packet.randomsequence());
         request.set_randomsequencehash(hash);
         request.set_randomsequencehashsignature(Sign(Client->GetPrivateKey(), hash));
@@ -149,7 +153,7 @@ void TFriend::OnDataReceived(const TBuffer& data) {
         UdtClient->Send(response);
     } break;
     case COS_WaitingFriendAddress: {
-        TConnectFriendRequest packet;
+        assert(Client != nullptr && "Client is NULL");
         string friendAddress = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
         if (friendAddress == "offline") {
             ForceDisconnect();

@@ -62,7 +62,7 @@ protected:
 protected:
     bool ToDelete;
     TClient* Client;
-    std::string Login;      // friend login
+    std::string FullLogin;      // friend login
     std::string Name;
     std::string PublicKey;
     std::string ServerPublicKey;

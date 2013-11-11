@@ -58,7 +58,7 @@ void TClient::SaveState() {
     if (!boost::filesystem::exists(Config.StateDir)) {
         boost::filesystem::create_directory(Config.StateDir);
     }
-    string fullLogin = login + "@" + State.host();
+    string fullLogin = GetFullLogin();
     SaveFile(Config.StateDir + "/" + "account.txt", fullLogin);
     StateDir = Config.StateDir + "/" + fullLogin + "/";
     if (!boost::filesystem::exists(StateDir)) {
@@ -271,9 +271,10 @@ void TClient::OnDataReceived(const TBuffer& data) {
                         // todo: refactor syncing
                         friendListUpdated = true;
                         TFriend& currentFrnd = Friends[frnd.login()];
-                        currentFrnd.Login = frnd.login();
+                        currentFrnd.FullLogin = frnd.login();
                         currentFrnd.PublicKey = frnd.publickey();
                         currentFrnd.ServerPublicKey = frnd.serverpublickey();
+                        currentFrnd.Client = this;
                         if (frnd.status() == AS_WaitingAuthorization) {
                             currentFrnd.Status = FS_AddRequest;
                             Config.FriendRequestCallback(frnd.login());
@@ -309,6 +310,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     if (frnd.ToDelete) {
                         it = Friends.erase(it);
                     } else {
+                        frnd.Connect();
                         ++it;
                     }
                 }
@@ -369,6 +371,10 @@ string TClient::GetLogin() {
     return State.login();
 }
 
+string TClient::GetFullLogin() {
+    return GetLogin() + "@" + GetHost();
+}
+
 string TClient::GetPublicKey() {
     if (!State.has_publickey()) {
         throw UException("login not found");
@@ -381,6 +387,13 @@ string TClient::GetPrivateKey() {
         throw UException("login not found");
     }
     return State.privatekey();
+}
+
+string TClient::GetHost() {
+    if (!State.has_host()) {
+        throw UException("host not found");
+    }
+    return State.host();
 }
 
 // connection
