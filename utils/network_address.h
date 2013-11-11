@@ -32,6 +32,12 @@ struct TNetworkAddress {
         ui16 port = ::FromString(params[1]);
         Construct(params[0], port);
     }
+    TNetworkAddress(struct sockaddr_in& addr) {
+        ui16 port = ntohs(addr.sin_port);
+        ui32 host = addr.sin_addr.s_addr;
+        Construct(host, port);
+    }
+
     inline bool operator==(const TNetworkAddress& other) const {
         return Address == other.Address && Port == other.Port;
     }
