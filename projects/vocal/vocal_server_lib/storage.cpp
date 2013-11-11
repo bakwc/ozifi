@@ -24,6 +24,7 @@ void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
     data.set_login(clientInfo.Login);
     data.set_encryptedprivatekey(clientInfo.EncryptedPrivateKey);
     data.set_loginpasswordhash(clientInfo.LoginPasswordHash);
+    data.set_publickey(clientInfo.PublicKey);
     for (auto& frnd: clientInfo.Friends) {
         TFriendInfoData* friendData = data.add_friends();
         friendData->set_login(frnd.second.Login);
@@ -53,6 +54,7 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
     result.Login = data.login();
     result.EncryptedPrivateKey = data.encryptedprivatekey();
     result.LoginPasswordHash = data.loginpasswordhash();
+    result.PublicKey = data.publickey();
     for (size_t i = 0; i < data.friends_size(); ++i) {
         const TFriendInfoData& frnd = data.friends(i);
         TFriendInfo& friendInfo = result.Friends[frnd.login()];
