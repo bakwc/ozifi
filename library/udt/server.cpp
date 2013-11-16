@@ -131,6 +131,7 @@ public:
                     }
                     Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
                 } else {
+                    cerr << "error: " << UDT::getlasterror().getErrorMessage() << "\n";
                     // todo: process connection lost and other
                 }
             }
@@ -147,9 +148,9 @@ public:
                 int clientAddrLen;
                 UDTSOCKET clientSocket = UDT::accept(Socket, (sockaddr*)&clientAddr, &clientAddrLen);
                 if (clientSocket != UDT::INVALID_SOCK) {
-                    TNetworkAddress addr(*(ui32*)(&clientAddr.sin_addr.s_addr), clientAddr.sin_port);
+                    TNetworkAddress addr(clientAddr);
                     if (Config.NewConnectionCallback(addr)) {
-                        {
+                        { 
                             lock_guard<mutex> guard(Lock);
                             Clients.Insert(make_shared<TClient>(clientSocket, addr));
                         }
