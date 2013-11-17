@@ -55,6 +55,7 @@ message TClientConnectHelpAuthorizeRequest {
     required bytes RandomSequenceHash = 3;
     required bytes RandomSequenceHashSignature = 4;
     required bool AcceptingConnection = 5;
+    optional string PublicAddress = 6;  // nat-pmp detected address
 }
 
 message TAddFriendRequest {

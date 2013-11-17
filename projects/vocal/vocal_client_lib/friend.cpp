@@ -5,6 +5,7 @@
 #include <projects/vocal/vocal_lib/compress.h>
 #include <projects/vocal/vocal_lib/crypto.h>
 #include <projects/vocal/vocal_lib/serializer.h>
+#include <projects/vocal/vocal_lib/nat_pmp.h>
 
 #include "friend.h"
 #include "client.h"
@@ -98,6 +99,18 @@ void TFriend::Connect() {
     assert(!PublicKey.empty() && "no public key for friend");
     assert(!ServerPublicKey.empty() && "no server key for friend");
 
+    if (Client->HasNatPmp()) {
+        TNatPmp& natPmp = Client->GetNatPmp();
+        PublicAddress = natPmp.GetPublicAddress();
+        try {
+            natPmp.ForwardRandomPort(LocalPort, PublicPort);
+        } catch (const UException&) {
+            LocalPort = 0;
+            PublicPort = 0;
+            cerr << "warning: failed to forward ports with natPmp\n";
+        }
+    }
+
     InitUdtClient();
 
     pair<string, string> loginHost = GetLoginHost(FullLogin);
@@ -176,6 +189,11 @@ void TFriend::OnDataReceived(const TBuffer& data) {
         request.set_randomsequencehash(hash);
         request.set_randomsequencehashsignature(Sign(Client->GetPrivateKey(), hash));
         request.set_acceptingconnection(AcceptingConnection);
+        if (LocalPort != 0) {
+            TNetworkAddress address = PublicAddress;
+            address.Port = PublicPort;
+            request.set_publicaddress(address.ToString());
+        }
         string response = Compress(request.SerializeAsString());
         response = Serialize(EncryptAsymmetrical(ServerPublicKey, response));
         ConnectionStatus = COS_WaitingFriendAddress;
@@ -188,7 +206,7 @@ void TFriend::OnDataReceived(const TBuffer& data) {
             ForceDisconnect();
             return;
         }
-        ConnectThrowNat(friendAddress);
+        ConnectThrowNat(friendAddress, LocalPort);
     } break;
     }
 }

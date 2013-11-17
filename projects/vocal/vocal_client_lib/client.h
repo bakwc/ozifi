@@ -54,10 +54,12 @@ struct TClientConfig {
     TCallBack FriendlistChangedCallback;        // on friendlist changed
 };
 
+class TNatPmp;
 class TClient {
     friend class TFriend;
 public:
     TClient(const TClientConfig& config);
+    ~TClient();
     EClientState GetState();
 
     // connection
@@ -93,6 +95,8 @@ protected:
     std::string GetPublicKey();
     std::string GetPrivateKey();
     std::string GetHost();
+    bool HasNatPmp();
+    TNatPmp& GetNatPmp();
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
@@ -109,6 +113,7 @@ private:
     TFriends Friends;
     TConferences Conferences;
     std::unique_ptr<NUdt::TClient> UdtClient;
+    std::unique_ptr<TNatPmp> NatPmp;
     TClientState State;
     std::string Buffer;
     std::mutex Lock;

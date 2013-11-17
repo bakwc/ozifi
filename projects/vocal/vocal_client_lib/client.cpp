@@ -8,6 +8,7 @@
 #include <projects/vocal/vocal_lib/serializer.h>
 #include <projects/vocal/vocal_lib/crypto.h>
 #include <projects/vocal/vocal_lib/compress.h>
+#include <projects/vocal/vocal_lib/nat_pmp.h>
 
 #include "client.h"
 
@@ -32,6 +33,14 @@ TClient::TClient(const TClientConfig& config)
         LoadState();
     } catch (const UException&) {
     }
+    try {
+        NatPmp.reset(new TNatPmp());
+    } catch (const UException&) {
+        cerr << "warning: launching without nat-pmp\n";
+    }
+}
+
+TClient::~TClient() {
 }
 
 void TClient::LoadState() {
@@ -390,6 +399,15 @@ string TClient::GetHost() {
         throw UException("host not found");
     }
     return State.host();
+}
+
+bool TClient::HasNatPmp() {
+    return (bool)NatPmp;
+}
+
+TNatPmp &TClient::GetNatPmp() {
+    assert(NatPmp && "nat-pmp not initialized");
+    return *NatPmp;
 }
 
 // connection

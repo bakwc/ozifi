@@ -38,6 +38,7 @@ public:
     TClient(const TNetworkAddress& address);
     ~TClient();
     TNetworkAddress Address;
+    boost::optional<TNetworkAddress> PublicAddress;
     EClientStatus Status;
     TClientInfo Info;
     std::string Login;

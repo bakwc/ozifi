@@ -239,8 +239,16 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                             /** frndConn -> c2 connection;
                              *  client   -> c12 connection  (current)
                              *  cli      -> c1 connection */
-                            response = Serialize(EncryptAsymmetrical(cli->Info.PublicKey, Compress(frndConn->Address.ToString())));
-                            Server->Send(Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey, Compress(client->Address.ToString()))),
+                            string clientAddress = client->Address.ToString();
+                            if (packet.has_publicaddress()) {
+                                clientAddress = packet.publicaddress();
+                            }
+                            string frndAddress = frndConn->Address.ToString();
+                            if (frndConn->PublicAddress.is_initialized()) {
+                                frndAddress = frndConn->PublicAddress->ToString();
+                            }
+                            response = Serialize(EncryptAsymmetrical(cli->Info.PublicKey, Compress(frndAddress)));
+                            Server->Send(Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey, Compress(clientAddress))),
                                          frndConn->Address);
                         }
                     }
@@ -287,6 +295,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                         connectRequestData = Serialize(EncryptSymmetrical(cli->SessionKey, Compress(connectRequestData)));
                         Server->Send(connectRequestData, cli->Address);
                         client->Info.PublicKey = frnd.PublicKey;
+                        if (packet.has_publicaddress()) {
+                            client->PublicAddress = TNetworkAddress(packet.publicaddress());
+                        }
                         cli->FriendConnections[packet.login()] = client;
                     } else {
                         response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress("offline")));

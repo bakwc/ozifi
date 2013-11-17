@@ -79,6 +79,9 @@ protected:
     bool AcceptingConnection;
     std::string Buffer;
     std::unique_ptr<NUdt::TClient> UdtClient;
+    ui16 LocalPort;
+    ui16 PublicPort;
+    TNetworkAddress PublicAddress;
 };
 
 typedef std::unordered_map<std::string, TFriend> TFriends;
