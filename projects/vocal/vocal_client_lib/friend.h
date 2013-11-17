@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <boost/optional.hpp>
 #include <library/udt/client.h>
 
 #include "message.h"
@@ -53,12 +54,19 @@ public:
     void DisableVideo();
     void FinishCall();
 protected:
+    /** connect to friend server and ask him to help to establish connection
+     * and then connect to friend */
     void Connect();
+    /** connect to local server when required and then connect to friend */
+    void ConnectAccept();
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
     void OnDisconnected();
     void ForceDisconnect();
-    void ConnectThrowNat(const TNetworkAddress& address);
+    /** connect to friend and bind known local port to traverse nat */
+    void ConnectThrowNat(const TNetworkAddress& address, ui16 localPort = 0);
+private:
+    void InitUdtClient();
 protected:
     bool ToDelete;
     TClient* Client;
@@ -68,6 +76,7 @@ protected:
     std::string ServerPublicKey;
     EFriendStatus Status;
     EConnectionStatus ConnectionStatus;
+    bool AcceptingConnection;
     std::string Buffer;
     std::unique_ptr<NUdt::TClient> UdtClient;
 };

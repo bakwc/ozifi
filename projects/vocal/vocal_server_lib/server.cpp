@@ -22,6 +22,9 @@ TClient::TClient(const TNetworkAddress& address)
 {
 }
 
+TClient::~TClient() {
+}
+
 TServer::TServer(const TServerConfig& config)
     : Config(config)
 {
@@ -222,45 +225,67 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 if (!packet.ParseFromString(packetStr)) {
                     throw UException("failed to parse string");
                 }
-                boost::optional<TClientInfo> clientInfo;
-                clientInfo = ClientInfoStorage->Get(packet.friendlogin()); // todo: validate login and friendLogin
-                if (!clientInfo.is_initialized()) {
-                    throw UException("no such client");
-                }
-                if (Hash(client->RandomSequence) != packet.randomsequencehash()) {
-                    throw UException("wrong hash");
-                }
-                auto friendIt = clientInfo->Friends.find(packet.login());
-                if (friendIt == clientInfo->Friends.end()) {
-                    throw UException("no friend in friend-list");
-                }
-                TFriendInfo& frnd = friendIt->second;
-                if (frnd.AuthStatus != AS_Authorized) {
-                    throw UException("client not authorized");
-                }
-                assert(frnd.PublicKey.size() != 0 && "friend has no public key");
-                if (!CheckSignature(frnd.PublicKey, packet.randomsequencehash(), packet.randomsequencehashsignature())) {
-                    throw UException("wrong signature");
-                }
-                string frndAddress;
-                auto cliIt = ClientsByLogin.find(packet.friendlogin());
-                if (cliIt != ClientsByLogin.end()) {
-                    TClientRef& cli = cliIt->second;
-                    frndAddress = cli->Address.ToString();
-                    TConnectFriendRequest connectRequest;
-                    connectRequest.set_login(packet.login());
-                    connectRequest.set_address(client->Address.ToString());
-                    string connectRequestData;
-                    connectRequestData.resize(1);
-                    connectRequestData[0] = (ui8)SP_ConnectToFriend;
-                    connectRequestData += connectRequest.SerializeAsString();
-                    connectRequestData = Serialize(EncryptSymmetrical(cli->SessionKey, Compress(connectRequestData)));
-                    Server->Send(connectRequestData, cli->Address);
+
+                bool acceptingConnection = packet.acceptingconnection();
+                if (acceptingConnection) {
+                    string login = GetLoginHost(packet.login()).first;
+                    auto cliIt = ClientsByLogin.find(login);
+                    if (cliIt != ClientsByLogin.end()) {
+                        TClientRef& cli = cliIt->second;
+                        auto frndConnIt = cli->FriendConnections.find(packet.friendlogin());
+                        if (frndConnIt != cli->FriendConnections.end()) {
+                            TClientRef& frndConn = frndConnIt->second;
+                            response = Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey, Compress(frndConn->Address.ToString())));
+                        } else {
+                            disconnectClient = true;
+                        }
+                    } else {
+                        disconnectClient = true;
+                    }
+
                 } else {
-                    frndAddress = "offline";
+                    string friendLogin = GetLoginHost(packet.friendlogin()).first;
+                    boost::optional<TClientInfo> clientInfo;
+                    clientInfo = ClientInfoStorage->Get(friendLogin);
+                    if (!clientInfo.is_initialized()) {
+                        throw UException("no such client");
+                    }
+
+                    if (Hash(client->RandomSequence) != packet.randomsequencehash()) {
+                        throw UException("wrong hash");
+                    }
+
+                    auto friendIt = clientInfo->Friends.find(packet.login());
+                    if (friendIt == clientInfo->Friends.end()) {
+                        throw UException("no such friend in friend-list");
+                    }
+
+                    TFriendInfo& frnd = friendIt->second;
+                    if (frnd.AuthStatus != AS_Authorized) {
+                        throw UException("client not authorized");
+                    }
+
+                    assert(frnd.PublicKey.size() != 0 && "friend has no public key");
+                    if (!CheckSignature(frnd.PublicKey, packet.randomsequencehash(), packet.randomsequencehashsignature())) {
+                        throw UException("wrong signature");
+                    }
+
+                    auto cliIt = ClientsByLogin.find(friendLogin);
+                    if (cliIt != ClientsByLogin.end()) {
+                        // if friend is online - send him connect request
+                        TClientRef& cli = cliIt->second;
+                        string connectRequestData;
+                        connectRequestData.resize(1);
+                        connectRequestData[0] = (ui8)SP_ConnectToFriend;
+                        connectRequestData += packet.login();
+                        Server->Send(connectRequestData, cli->Address);
+                        client->Info = *clientInfo;
+                        cli->FriendConnections[packet.login()] = client;
+                    } else {
+                        response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress("offline")));
+                        disconnectClient = true;
+                    }
                 }
-                response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress(frndAddress)));
-                disconnectClient = true;
             }
         } catch (const std::exception& e) {
             cout << "notice:\tclient authorization error: " << e.what() << "\n";

@@ -319,16 +319,12 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 }
             } break;
             case SP_ConnectToFriend: {
-                TConnectFriendRequest packet;
-                if (!packet.ParseFromString(packetStr)) {
-                    throw UException("failed to parse connect friend request");
-                }
-                auto frndIt = Friends.find(packet.login());
+                auto frndIt = Friends.find(packetStr);
                 if (frndIt == Friends.end()) {
                     throw UException("no friend to connect to");
                 }
                 TFriend& frnd = frndIt->second;
-                frnd.ConnectThrowNat(packet.address());
+                frnd.ConnectAccept();
             }
             }
         }

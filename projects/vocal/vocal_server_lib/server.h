@@ -31,9 +31,12 @@ enum EClientStatus {
     CS_Authorized
 };
 
+class TClient;
+typedef std::shared_ptr<TClient> TClientRef;
 class TClient {
 public:
     TClient(const TNetworkAddress& address);
+    ~TClient();
     TNetworkAddress Address;
     EClientStatus Status;
     TClientInfo Info;
@@ -43,8 +46,9 @@ public:
     std::string RandomSequence;
     std::string SessionKey;
     TDuration SessionLastSync;
+    std::unordered_map<std::string, TClientRef> FriendConnections;
 };
-typedef std::shared_ptr<TClient> TClientRef;
+
 
 typedef std::function<void()> TCallBack;
 typedef std::function<void(const TBuffer& /*data*/, const std::string& /*host*/)> TPartnerDataCallback;

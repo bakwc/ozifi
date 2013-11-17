@@ -1,3 +1,5 @@
+#include <thread>
+
 #include <projects/vocal/vocal_lib/resolver.h>
 #include <projects/vocal/vocal_lib/utils.h>
 #include <projects/vocal/vocal_lib/compress.h>
@@ -25,6 +27,14 @@ TFriend::TFriend(const string& login, EFriendStatus status)
     , ConnectionStatus(COS_Offline)
     , Client(nullptr)
 {
+}
+
+void TFriend::InitUdtClient() {
+    NUdt::TClientConfig config;
+    config.ConnectionCallback = std::bind(&TFriend::OnConnected, this, _1);
+    config.DataReceivedCallback = std::bind(&TFriend::OnDataReceived, this, _1);
+    config.ConnectionLostCallback = std::bind(&TFriend::OnDisconnected, this);
+    UdtClient.reset(new NUdt::TClient(config));
 }
 
 const string& TFriend::GetLogin() {
@@ -87,11 +97,8 @@ void TFriend::Connect() {
     }
     assert(!PublicKey.empty() && "no public key for friend");
     assert(!ServerPublicKey.empty() && "no server key for friend");
-    NUdt::TClientConfig config;
-    config.ConnectionCallback = std::bind(&TFriend::OnConnected, this, _1);
-    config.DataReceivedCallback = std::bind(&TFriend::OnDataReceived, this, _1);
-    config.ConnectionLostCallback = std::bind(&TFriend::OnDisconnected, this);
-    UdtClient.reset(new NUdt::TClient(config));
+
+    InitUdtClient();
 
     pair<string, string> loginHost = GetLoginHost(FullLogin);
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(loginHost.first, loginHost.second);
@@ -100,10 +107,32 @@ void TFriend::Connect() {
     }
     // todo: random address selection
     ConnectionStatus = COS_ConnectingToServer;
+    AcceptingConnection = false;
     UdtClient->Connect(*addresses[0], false);
 }
 
+void TFriend::ConnectAccept() {
+    if (Status != FS_Offline || ConnectionStatus != COS_Offline) {
+        return;
+    }
+
+    assert(!PublicKey.empty() && "no public key for friend");
+    assert(!ServerPublicKey.empty() && "no server key for friend");
+
+    InitUdtClient();
+
+    std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(Client->State.login(), Client->State.host());
+    if (addresses.size() == 0) {
+        throw UException("no address found for host");
+    }
+    // todo: random address selection
+    ConnectionStatus = COS_ConnectingToServer;
+    AcceptingConnection = true;
+    UdtClient->Connect(*addresses[0]);
+}
+
 void TFriend::OnConnected(bool success) {
+    cerr << "TFriend::OnConnected\n";
     if (!success) {
         ConnectionStatus = COS_Offline;
         return;
@@ -114,10 +143,12 @@ void TFriend::OnConnected(bool success) {
         UdtClient->Send(data);
     } else if (ConnectionStatus == COS_ConnectingToFriend) {
         cerr << "ESTABLISHED FRIEND CONNECTION!\n"; // todo: process friend connection
+        UdtClient->Send(string("hello, words!"));
     }
 }
 
 void TFriend::OnDataReceived(const TBuffer& data) {
+    cerr << "TFriend::OnDataReceived\n";
     Buffer += data.ToString();
     string packetStr;
     if (!Deserialize(Buffer, packetStr)) {
@@ -141,12 +172,12 @@ void TFriend::OnDataReceived(const TBuffer& data) {
         TClientConnectHelpAuthorizeRequest request;
         assert(!FullLogin.empty() && "friend has no login");
         assert(Client != nullptr && "Client is NULL");
-        pair<string, string> loginHost = GetLoginHost(FullLogin);
         request.set_login(Client->GetFullLogin());
-        request.set_friendlogin(loginHost.first);
+        request.set_friendlogin(FullLogin);
         string hash = Hash(packet.randomsequence());
         request.set_randomsequencehash(hash);
         request.set_randomsequencehashsignature(Sign(Client->GetPrivateKey(), hash));
+        request.set_acceptingconnection(AcceptingConnection);
         string response = Compress(request.SerializeAsString());
         response = Serialize(EncryptAsymmetrical(ServerPublicKey, response));
         ConnectionStatus = COS_WaitingFriendAddress;
@@ -173,7 +204,7 @@ void TFriend::ForceDisconnect() {
     UdtClient->Disconnect();
 }
 
-void TFriend::ConnectThrowNat(const TNetworkAddress& address) {
+void TFriend::ConnectThrowNat(const TNetworkAddress& address, ui16 localPort) {
     if (Status != FS_Offline ||
             !(ConnectionStatus == COS_Offline ||
               ConnectionStatus == COS_WaitingFriendAddress))
@@ -182,7 +213,7 @@ void TFriend::ConnectThrowNat(const TNetworkAddress& address) {
         return;
     }
     ConnectionStatus = COS_ConnectingToFriend;
-    UdtClient->Connect(address, true);
+    UdtClient->Connect(address, localPort, true);
 }
 
 } // NVocal

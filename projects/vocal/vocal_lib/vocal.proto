@@ -54,11 +54,7 @@ message TClientConnectHelpAuthorizeRequest {
     required string FriendLogin = 2;
     required bytes RandomSequenceHash = 3;
     required bytes RandomSequenceHashSignature = 4;
-}
-
-message TConnectFriendRequest {
-    required string Login = 1;
-    required string Address = 2;
+    required bool AcceptingConnection = 5;
 }
 
 message TAddFriendRequest {
