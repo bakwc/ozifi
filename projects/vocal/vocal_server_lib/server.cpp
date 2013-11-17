@@ -228,6 +228,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
 
                 bool acceptingConnection = packet.acceptingconnection();
                 if (acceptingConnection) {
+
                     string login = GetLoginHost(packet.login()).first;
                     auto cliIt = ClientsByLogin.find(login);
                     if (cliIt != ClientsByLogin.end()) {
@@ -235,13 +236,15 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                         auto frndConnIt = cli->FriendConnections.find(packet.friendlogin());
                         if (frndConnIt != cli->FriendConnections.end()) {
                             TClientRef& frndConn = frndConnIt->second;
-                            response = Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey, Compress(frndConn->Address.ToString())));
-                        } else {
-                            disconnectClient = true;
+                            /** frndConn -> c2 connection;
+                             *  client   -> c12 connection  (current)
+                             *  cli      -> c1 connection */
+                            response = Serialize(EncryptAsymmetrical(cli->Info.PublicKey, Compress(frndConn->Address.ToString())));
+                            Server->Send(Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey, Compress(client->Address.ToString()))),
+                                         frndConn->Address);
                         }
-                    } else {
-                        disconnectClient = true;
                     }
+                    disconnectClient = true;
 
                 } else {
                     string friendLogin = GetLoginHost(packet.friendlogin()).first;
@@ -274,12 +277,16 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     if (cliIt != ClientsByLogin.end()) {
                         // if friend is online - send him connect request
                         TClientRef& cli = cliIt->second;
+                        /** client -> c2 connection (current)
+                         *  cli    -> c1 connection
+                         *  frnd   -> c2 info */
                         string connectRequestData;
                         connectRequestData.resize(1);
                         connectRequestData[0] = (ui8)SP_ConnectToFriend;
                         connectRequestData += packet.login();
+                        connectRequestData = Serialize(EncryptSymmetrical(cli->SessionKey, Compress(connectRequestData)));
                         Server->Send(connectRequestData, cli->Address);
-                        client->Info = *clientInfo;
+                        client->Info.PublicKey = frnd.PublicKey;
                         cli->FriendConnections[packet.login()] = client;
                     } else {
                         response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress("offline")));
