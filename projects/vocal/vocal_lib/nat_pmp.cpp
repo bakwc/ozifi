@@ -21,7 +21,6 @@ TNatPmp::TNatPmp() {
         } else if (r != NATPMP_TRYAGAIN) {
           ui32 addr = response.pnu.publicaddress.addr.s_addr;
           PublicAddress = TNetworkAddress(addr, 0);
-          std::cerr << "Public address detected: " << PublicAddress.ToString() << "\n";
           break;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
