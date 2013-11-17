@@ -132,7 +132,6 @@ void TFriend::ConnectAccept() {
 }
 
 void TFriend::OnConnected(bool success) {
-    cerr << "TFriend::OnConnected\n";
     if (!success) {
         ConnectionStatus = COS_Offline;
         return;
@@ -148,7 +147,6 @@ void TFriend::OnConnected(bool success) {
 }
 
 void TFriend::OnDataReceived(const TBuffer& data) {
-    cerr << "TFriend::OnDataReceived\n";
     Buffer += data.ToString();
     string packetStr;
     if (!Deserialize(Buffer, packetStr)) {

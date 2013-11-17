@@ -53,16 +53,18 @@ public:
             Done = true;
             UDT::epoll_release(MainEid);
         }
+
         if (overNat) {
             if (localPort == 0) {
                 throw UException("you need to specify local port to traverse nat");
             }
-            cerr << "listening port: " << localPort << "\n";
             sockaddr_in addr;
             addr.sin_family = AF_INET;
             addr.sin_port = htons(localPort);
             addr.sin_addr.s_addr = INADDR_ANY;
             memset(&(addr.sin_zero), '\0', 8);
+            bool rendezvous = true;
+            UDT::setsockopt(Socket, 0, UDT_RENDEZVOUS, &rendezvous, sizeof(bool));
             if (UDT::ERROR == UDT::bind(Socket, (sockaddr*)&addr, sizeof(addr))) {
                 throw UException(string("cannot traverse nat: failed to bind: ") + UDT::getlasterror().getErrorMessage());
             }
@@ -76,8 +78,9 @@ public:
         Status = CS_Connecting;
         auto duration = chrono::system_clock::now().time_since_epoch();
         LastActive = chrono::duration_cast<chrono::milliseconds>(duration);
-        cerr << "connecting to: " << address.ToString() << "\n";
-        UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength());
+        if (UDT::ERROR == UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength())) {
+            throw UException(string("connect error: ") + UDT::getlasterror().getErrorMessage());
+        }
         Done = false;
         if (!WorkerThreadHolder) {
             WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
@@ -136,6 +139,7 @@ private:
                     if (UDT::ERROR != result) {
                         Config.DataReceivedCallback(TBuffer(buff.data(), result));
                     } else {
+                        cerr << "warning: unhandled event\n";
                         // todo: process connection lost and other
                     }
                 }
