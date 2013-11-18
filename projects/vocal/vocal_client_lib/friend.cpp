@@ -226,12 +226,6 @@ void TFriend::OnDataReceived(const TBuffer& data) {
             ConnectThrowNat(TNetworkAddress(connectHelp.address()), LocalPort);
         } break;
         case CTP_Listen: {
-            // todo: listen port and accept first connection
-        } break;
-        case CTP_Connect: {
-            ConnectionStatus = COS_ConnectingToFriend;
-            UdtClient->Connect(connectHelp.address());
-        } break;
             UdtClient->Disconnect();
             NUdt::TServerConfig config;
             config.NewConnectionCallback = bind(&TFriend::OnClientConnected, this, _1);
@@ -239,6 +233,11 @@ void TFriend::OnDataReceived(const TBuffer& data) {
             config.Port = LocalPort;
             ConnectionStatus = COS_WaitingFriendConnection;
             UdtServer.reset(new NUdt::TServer(config));
+        } break;
+        case CTP_Connect: {
+            ConnectionStatus = COS_ConnectingToFriend;
+            UdtClient->Connect(connectHelp.address());
+        } break;
         }
 
     } break;

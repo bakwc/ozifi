@@ -429,7 +429,7 @@ void TClient::Connect() {
     }
     // todo: random address selection
     CurrentState = CS_Connecting;
-    UdtClient->Connect(*addresses[0], false);
+    UdtClient->Connect(*addresses[0]);
 }
 
 void TClient::Disconnect() {
