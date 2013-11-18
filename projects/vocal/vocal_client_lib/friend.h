@@ -6,6 +6,7 @@
 
 #include <boost/optional.hpp>
 #include <library/udt/client.h>
+#include <library/udt/server.h>
 
 #include "message.h"
 #include "callback.h"
@@ -26,6 +27,8 @@ enum EConnectionStatus {
     COS_ConnectingToServer,
     COS_WaitingFriendAddress,
     COS_ConnectingToFriend,
+    COS_WaitingFriendConnection,
+    COS_AcceptedConnection,
     COS_Connected
 };
 
@@ -67,6 +70,7 @@ protected:
     void ConnectThrowNat(const TNetworkAddress& address, ui16 localPort = 0);
 private:
     void InitUdtClient();
+    bool OnClientConnected(const TNetworkAddress& addr);
 protected:
     bool ToDelete;
     TClient* Client;
@@ -79,6 +83,8 @@ protected:
     bool AcceptingConnection;
     std::string Buffer;
     std::unique_ptr<NUdt::TClient> UdtClient;
+    std::unique_ptr<NUdt::TServer> UdtServer;
+    TNetworkAddress FriendAddress;
     ui16 LocalPort;
     ui16 PublicPort;
     TNetworkAddress PublicAddress;

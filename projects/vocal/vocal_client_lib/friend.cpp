@@ -38,6 +38,15 @@ void TFriend::InitUdtClient() {
     UdtClient.reset(new NUdt::TClient(config));
 }
 
+bool TFriend::OnClientConnected(const TNetworkAddress& addr) {
+    if (ConnectionStatus != COS_WaitingFriendConnection) {
+        return false;
+    }
+    FriendAddress = addr;
+    ConnectionStatus = COS_AcceptedConnection;
+    cerr << "ESTABLISHED FRIEND CONNECTION!\n";
+}
+
 const string& TFriend::GetLogin() {
     return FullLogin;
 }
@@ -201,12 +210,37 @@ void TFriend::OnDataReceived(const TBuffer& data) {
     } break;
     case COS_WaitingFriendAddress: {
         assert(Client != nullptr && "Client is NULL");
-        string friendAddress = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
-        if (friendAddress == "offline") {
-            ForceDisconnect();
+        packetStr = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
+        TServerConnectHelpRequest connectHelp;
+        if (!connectHelp.ParseFromString(packetStr)) {
+            cerr << "error: failed to deserialize connect help request\n";
             return;
         }
-        ConnectThrowNat(friendAddress, LocalPort);
+        // todo: free nat-pmp port if not used
+        switch (connectHelp.connectiontype()) {
+        case CTP_Offline: {
+            ForceDisconnect();
+            return;
+        } break;
+        case CTP_NatTraversal: {
+            ConnectThrowNat(TNetworkAddress(connectHelp.address()), LocalPort);
+        } break;
+        case CTP_Listen: {
+            // todo: listen port and accept first connection
+        } break;
+        case CTP_Connect: {
+            ConnectionStatus = COS_ConnectingToFriend;
+            UdtClient->Connect(connectHelp.address());
+        } break;
+            UdtClient->Disconnect();
+            NUdt::TServerConfig config;
+            config.NewConnectionCallback = bind(&TFriend::OnClientConnected, this, _1);
+            config.DataReceivedCallback = bind(&TFriend::OnDataReceived, this, _1);
+            config.Port = LocalPort;
+            ConnectionStatus = COS_WaitingFriendConnection;
+            UdtServer.reset(new NUdt::TServer(config));
+        }
+
     } break;
     }
 }

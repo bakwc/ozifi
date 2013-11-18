@@ -239,16 +239,32 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                             /** frndConn -> c2 connection;
                              *  client   -> c12 connection  (current)
                              *  cli      -> c1 connection */
+
+                            TServerConnectHelpRequest clientHelpRequest;
+                            TServerConnectHelpRequest friendHelpRequest;
+
                             string clientAddress = client->Address.ToString();
+                            string frndAddress = frndConn->Address.ToString();
                             if (packet.has_publicaddress()) {
                                 clientAddress = packet.publicaddress();
-                            }
-                            string frndAddress = frndConn->Address.ToString();
-                            if (frndConn->PublicAddress.is_initialized()) {
+                                clientHelpRequest.set_connectiontype(CTP_Listen);
+                                friendHelpRequest.set_connectiontype(CTP_Connect);
+                                friendHelpRequest.set_address(clientAddress);
+                            } else if (frndConn->PublicAddress.is_initialized()) {
                                 frndAddress = frndConn->PublicAddress->ToString();
+                                clientHelpRequest.set_connectiontype(CTP_Connect);
+                                clientHelpRequest.set_address(frndAddress);
+                                friendHelpRequest.set_connectiontype(CTP_Listen);
+                            } else {
+                                clientHelpRequest.set_connectiontype(CTP_NatTraversal);
+                                clientHelpRequest.set_address(frndAddress);
+                                friendHelpRequest.set_connectiontype(CTP_NatTraversal);
+                                friendHelpRequest.set_address(clientAddress);
                             }
-                            response = Serialize(EncryptAsymmetrical(cli->Info.PublicKey, Compress(frndAddress)));
-                            Server->Send(Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey, Compress(clientAddress))),
+                            response = Serialize(EncryptAsymmetrical(cli->Info.PublicKey,
+                                                 Compress(clientHelpRequest.SerializeAsString())));
+                            Server->Send(Serialize(EncryptAsymmetrical(frndConn->Info.PublicKey,
+                                         Compress(friendHelpRequest.SerializeAsString()))),
                                          frndConn->Address);
                         }
                     }
@@ -300,7 +316,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                         }
                         cli->FriendConnections[packet.login()] = client;
                     } else {
-                        response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress("offline")));
+                        TServerConnectHelpRequest connectHelpRequest;
+                        connectHelpRequest.set_connectiontype(CTP_Offline);
+                        response = Serialize(EncryptAsymmetrical(frnd.PublicKey, Compress(connectHelpRequest.SerializeAsString())));
                         disconnectClient = true;
                     }
                 }

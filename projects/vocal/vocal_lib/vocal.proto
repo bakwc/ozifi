@@ -58,6 +58,18 @@ message TClientConnectHelpAuthorizeRequest {
     optional string PublicAddress = 6;  // nat-pmp detected address
 }
 
+enum EConnectionType {
+    CTP_NatTraversal = 1;
+    CTP_Listen = 2;
+    CTP_Connect = 3;
+    CTP_Offline = 4;
+}
+
+message TServerConnectHelpRequest {
+    required EConnectionType ConnectionType = 1;
+    optional string Address = 2;
+}
+
 message TAddFriendRequest {
     required string Login = 1;
     required bytes EncryptedKey = 2;
