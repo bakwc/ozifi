@@ -14,6 +14,7 @@ typedef std::function<bool(const TNetworkAddress& /*address*/)> TNewConnectionCa
 typedef std::function<void(const TBuffer& /*data*/, const TNetworkAddress& /*address*/)> TAddressedDataCallback;
 
 struct TServerConfig {
+    TServerConfig();
     ui16 Port;
     size_t MaxConnections;
     TNewConnectionCallback NewConnectionCallback; // on new client connected
