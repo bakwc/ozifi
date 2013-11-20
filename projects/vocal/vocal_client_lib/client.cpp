@@ -276,10 +276,12 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 for (size_t i = 0; i < packet.friends_size(); ++i) {
                     const TSyncFriend& frnd = packet.friends(i);
                     auto frndIt = Friends.find(frnd.login());
+                    TFriend* frndPtr = 0;
                     if (frndIt == Friends.end()) {
                         // todo: refactor syncing
                         friendListUpdated = true;
                         TFriend& currentFrnd = Friends[frnd.login()];
+                        frndPtr = &currentFrnd;
                         currentFrnd.FullLogin = frnd.login();
                         currentFrnd.PublicKey = frnd.publickey();
                         currentFrnd.ServerPublicKey = frnd.serverpublickey();
@@ -296,9 +298,9 @@ void TClient::OnDataReceived(const TBuffer& data) {
                         } else {
                             assert(!"unknown status");
                         }
-                        currentFrnd.ToDelete = false;
                     } else {
                         TFriend& currentFrnd = frndIt->second;
+                        frndPtr = &currentFrnd;
                         if (IsAuthorized(currentFrnd.Status)) {
                             if (frnd.has_offlinekey() && frnd.has_offlinekeysignature()) {
                                 if (!CheckSignature(currentFrnd.PublicKey, frnd.offlinekey(), frnd.offlinekeysignature())) {
@@ -320,7 +322,20 @@ void TClient::OnDataReceived(const TBuffer& data) {
                         } else if (frnd.status() == AS_UnAuthorized) {
                             currentFrnd.Status = FS_Unauthorized;
                         }
-                        currentFrnd.ToDelete = false;
+
+                    }
+                    frndPtr->ToDelete = false;
+                    if (frnd.has_needofflinekey() && frnd.needofflinekey()) {
+                        string response;
+                        response.resize(1);
+                        response[0] = RT_SetFriendOfflineKey;
+                        TFriendOfflineKey offlineKeyPacket;
+                        offlineKeyPacket.set_offlinekey(EncryptAsymmetrical(frndPtr->PublicKey, frndPtr->SelfOfflineKey));
+                        offlineKeyPacket.set_offlinekeysignature(Sign(State.privatekey(), frndPtr->SelfOfflineKey));
+                        offlineKeyPacket.set_login(frndPtr->GetLogin());
+                        response += offlineKeyPacket.SerializeAsString();
+                        response = EncryptSymmetrical(State.sessionkey(), Compress(response));
+                        UdtClient->Send(Serialize(response));
                     }
                 }
 

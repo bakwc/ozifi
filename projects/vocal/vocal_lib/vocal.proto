@@ -89,6 +89,7 @@ message TSyncFriend {
     required bytes ServerPublicKey = 5;
     optional bytes OfflineKey = 6;
     optional bytes OfflineKeySignature = 7;
+    optional bool NeedOfflineKey = 8;
 }
 
 message TClientSyncInfoPacket {

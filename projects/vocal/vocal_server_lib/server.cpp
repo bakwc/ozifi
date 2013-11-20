@@ -356,6 +356,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                         if (frnd.AuthStatus == AS_WaitingAuthorization) {
                             frnd.AuthStatus = AS_Authorized;
                             frnd.EncryptedKey = request.encryptedkey();
+                            frnd.NeedOfflineKey = true;
                         }
                     }
                     SyncClientInfo(client->Info);
@@ -455,6 +456,7 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
             frnd.AuthStatus = AS_Authorized;
             frnd.PublicKey = pubKey;
             frnd.ServerPublicKey = serverPubKey;
+            frnd.NeedOfflineKey = true;
         }
     }
     SyncClientInfo(*info);
@@ -552,6 +554,9 @@ void TServer::SyncClientInfo(const TClientInfo& info) {
             frnd->set_serverpublickey(frndInfo.ServerPublicKey);
             frnd->set_offlinekey(frndInfo.OfflineKey);
             frnd->set_offlinekeysignature(frndInfo.OfflineKeySignature);
+            if (frndInfo.NeedOfflineKey) {
+                frnd->set_needofflinekey(frndInfo.NeedOfflineKey);
+            }
         }
 
         assert(!client->SessionKey.empty() && "client must have session key");
