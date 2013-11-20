@@ -284,6 +284,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
                         currentFrnd.PublicKey = frnd.publickey();
                         currentFrnd.ServerPublicKey = frnd.serverpublickey();
                         currentFrnd.Client = this;
+                        currentFrnd.SelfOfflineKey = DecryptSymmetrical(GenerateKey(State.privatekey()), frnd.encryptedkey());
                         if (frnd.status() == AS_WaitingAuthorization) {
                             currentFrnd.Status = FS_AddRequest;
                             Config.FriendRequestCallback(frnd.login());
@@ -298,6 +299,15 @@ void TClient::OnDataReceived(const TBuffer& data) {
                         currentFrnd.ToDelete = false;
                     } else {
                         TFriend& currentFrnd = frndIt->second;
+                        if (IsAuthorized(currentFrnd.Status)) {
+                            if (frnd.has_offlinekey() && frnd.has_offlinekeysignature()) {
+                                if (!CheckSignature(currentFrnd.PublicKey, frnd.offlinekey(), frnd.offlinekeysignature())) {
+                                    cerr << "all bad, wrong signature\n"; // todo: normal handling
+                                    continue;
+                                }
+                                currentFrnd.FriendOfflineKey = frnd.offlinekey();
+                            }
+                        }
                         if ((currentFrnd.Status == FS_Unauthorized ||
                              currentFrnd.Status == FS_AddRequest) &&
                                 frnd.status() == AS_Authorized)
@@ -518,13 +528,13 @@ void TClient::AddFriend(const std::string& friendLogin) {
         throw UException("not connected");
     }
     string message(1, (ui8)RT_AddFriend);
-    string friendKey = GenerateRandomSequence(16);
+    string friendKey = GenerateKey();
     TAddFriendRequest request;
     request.set_login(friendLogin);
     request.set_encryptedkey(EncryptSymmetrical(GenerateKey(State.privatekey()), friendKey));
     message += request.SerializeAsString();
     UdtClient->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
-    Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized)));
+    Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized, friendKey)));
     Config.FriendlistChangedCallback();
 }
 

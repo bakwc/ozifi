@@ -87,8 +87,22 @@ message TSyncFriend {
     required bytes EncryptedKey = 3;
     required bytes PublicKey = 4;
     required bytes ServerPublicKey = 5;
+    optional bytes OfflineKey = 6;
+    optional bytes OfflineKeySignature = 7;
 }
 
 message TClientSyncInfoPacket {
     repeated TSyncFriend Friends = 1;
+}
+
+message TFriendRandomSequenceConfirm {
+    required bytes RandomSequenceHash = 1;
+    required bytes Signature = 2;
+    required bytes SessionKey = 4;
+}
+
+message TFriendOfflineKey {
+    required string Login = 1;
+    required bytes OfflineKey = 2;
+    required bytes OfflineKeySignature = 3;
 }

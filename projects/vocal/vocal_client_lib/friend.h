@@ -22,6 +22,10 @@ enum EFriendStatus {
     FS_Available
 };
 
+inline bool IsAuthorized(EFriendStatus status) {
+    return status == FS_Offline || FS_Away || FS_Available;
+}
+
 enum EConnectionStatus {
     COS_Offline,
     COS_ConnectingToServer,
@@ -32,12 +36,18 @@ enum EConnectionStatus {
     COS_Connected
 };
 
+enum EFriendPacketType {
+    FPT_RandomSequence,
+    FPT_RandomSequenceConfirm,
+    FPT_Authorized
+};
+
 class TClient;
 class TFriend {
     friend class TClient;
 public:
     TFriend();
-    TFriend(const std::string& login, EFriendStatus status);
+    TFriend(const std::string& login, EFriendStatus status, const std::string& offlineKey);
     const std::string& GetLogin();
     const std::string& GetName();
     EFriendStatus GetStatus();
@@ -71,6 +81,9 @@ protected:
 private:
     void InitUdtClient();
     bool OnClientConnected(const TNetworkAddress& addr);
+    void OnConnectionEstablished();
+    void SendSerialized(const TBuffer& data, EFriendPacketType friendPacketType);
+    void SendRaw(const TBuffer& data);
 protected:
     bool ToDelete;
     TClient* Client;
@@ -80,6 +93,8 @@ protected:
     std::string ServerPublicKey;
     EFriendStatus Status;
     EConnectionStatus ConnectionStatus;
+    bool SelfAuthorized;    // friend authorize us
+    bool FriendAuthorized;  // we authorized friend
     bool AcceptingConnection;
     std::string Buffer;
     std::unique_ptr<NUdt::TClient> UdtClient;
@@ -88,6 +103,12 @@ protected:
     ui16 LocalPort;
     ui16 PublicPort;
     TNetworkAddress PublicAddress;
+    std::string RandomSequence;
+    std::string SessionKey;
+    std::string FriendRandomSequence;
+    std::string FriendSessionKey;
+    std::string SelfOfflineKey;     // using for encryption
+    std::string FriendOfflineKey;   // using for decryption
 };
 
 typedef std::unordered_map<std::string, TFriend> TFriends;

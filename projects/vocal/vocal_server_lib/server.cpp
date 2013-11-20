@@ -7,7 +7,6 @@
 #include <projects/vocal/vocal_lib/serializer.h>
 #include <projects/vocal/vocal_lib/compress.h>
 #include <projects/vocal/vocal_lib/crypto.h>
-#include <projects/vocal/vocal_lib/vocal.pb.h>
 
 #include "server.h"
 
@@ -366,6 +365,18 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
 
                     responseStr += packetStr;
                 } break;
+                case RT_SetFriendOfflineKey: {
+                    TFriendOfflineKey friendOfflineKey;
+                    if (!friendOfflineKey.ParseFromString(packetStr)) {
+                        throw UException("failed to parse setFriendOfflineKey");
+                    }
+                    if (client->Info.Friends.find(friendOfflineKey.login()) ==
+                        client->Info.Friends.end())
+                    {
+                        throw UException("friend not found");
+                    }
+                    SendSetFriendOfflineKeyRequest(client->Login, friendOfflineKey);
+                } break;
                 default:
                     throw UException("unknown request type");
                 }
@@ -408,6 +419,18 @@ void TServer::SendAddFriendRequest(const string& login,
     }
 }
 
+void TServer::SendSetFriendOfflineKeyRequest(const string& login,
+                                             const TFriendOfflineKey& offlineKeyPacket)
+{
+    pair<string, string> loginHost = GetLoginHost(offlineKeyPacket.login()); // user@host.com
+    if (loginHost.second == Config.Hostname) {
+        OnFriendOfflineKeyRequest(loginHost.first,
+                                  login + "@" + Config.Hostname,
+                                  offlineKeyPacket.offlinekey(),
+                                  offlineKeyPacket.offlinekeysignature());
+    }
+}
+
 void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
                                  const string& pubKey, const string& serverPubKey)
 {
@@ -433,6 +456,33 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
             frnd.PublicKey = pubKey;
             frnd.ServerPublicKey = serverPubKey;
         }
+    }
+    SyncClientInfo(*info);
+}
+
+void TServer::OnFriendOfflineKeyRequest(const string& login,
+                                        const string& frndLogin,
+                                        const string& offlineKey,
+                                        const string& offlineKeySignature)
+{
+    boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
+    if (!info.is_initialized()) {
+        cerr << "fatal error: client not exists\n"; // todo: replace with somethin normal
+        return;
+    }
+    TFriendList& friends = info->Friends;
+    auto frndIt = friends.find(frndLogin);
+    if (frndIt == friends.end()) {
+        TFriendInfo& frnd = friends[frndLogin];
+        if (!frnd.OfflineKey.empty()) {
+            cerr << "fatal error: trying to set not-empty offline key\n";
+            return;
+        }
+        frnd.OfflineKey = offlineKey;
+        frnd.OfflineKeySignature = offlineKeySignature;
+    } else {
+        cerr << "fatal error: client not exists\n";
+        return;
     }
     SyncClientInfo(*info);
 }
@@ -500,6 +550,8 @@ void TServer::SyncClientInfo(const TClientInfo& info) {
             frnd->set_encryptedkey(frndInfo.EncryptedKey);
             frnd->set_publickey(frndInfo.PublicKey);
             frnd->set_serverpublickey(frndInfo.ServerPublicKey);
+            frnd->set_offlinekey(frndInfo.OfflineKey);
+            frnd->set_offlinekeysignature(frndInfo.OfflineKeySignature);
         }
 
         assert(!client->SessionKey.empty() && "client must have session key");

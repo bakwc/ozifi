@@ -11,6 +11,8 @@
 #include <library/udt/client.h>
 #include <library/http_server/server.h>
 
+#include <projects/vocal/vocal_lib/vocal.pb.h>
+
 #include "storage.h"
 
 namespace NVocal {
@@ -87,8 +89,12 @@ private:
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,
                               const std::string& frndLogin);
+    void SendSetFriendOfflineKeyRequest(const std::string& login,
+                                        const TFriendOfflineKey& offlineKeyPacket);
     void OnAddFriendRequest(const std::string& login, const string& frndLogin,
                             const string& pubKey, const string& serverPubKey);
+    void OnFriendOfflineKeyRequest(const string& login, const string& frndLogin,
+                                   const string& offlineKey, const string& offlineKeySignature);
     void SendToServer(const std::string& host, const std::string& message);
     void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
     void SyncNewMessages(const std::string& login); // thread-safe

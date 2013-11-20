@@ -12,7 +12,10 @@ struct TFriendInfo {
     std::string Login;
     std::string PublicKey;
     std::string ServerPublicKey;
-    std::string EncryptedKey;
+    // keys for offline messages
+    std::string EncryptedKey;    // ourself keys, encrypted symmetrically with our password
+    std::string OfflineKey;      // friends key, encrypted assymetrically with our private key
+    std::string OfflineKeySignature; // friends offline key signature
     EFriendType Type;
     EAuthStatus AuthStatus;
 };
