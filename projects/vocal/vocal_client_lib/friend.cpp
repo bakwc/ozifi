@@ -16,18 +16,19 @@ using namespace std::placeholders;
 
 namespace NVocal {
 
-TFriend::TFriend()
-    : ConnectionStatus(COS_Offline)
-    , Client(nullptr)
+TFriend::TFriend(TClient* client)
+    : Status(FS_Unauthorized)
+    , ConnectionStatus(COS_Offline)
+    , Client(client)
 {
 }
 
-TFriend::TFriend(const string& login, EFriendStatus status, const string& offlineKey)
+TFriend::TFriend(TClient* client, const string& login, EFriendStatus status)
     : FullLogin(login)
     , Status(status)
     , ToDelete(false)
     , ConnectionStatus(COS_Offline)
-    , Client(nullptr)
+    , Client(client)
 {
 }
 
@@ -45,15 +46,21 @@ bool TFriend::OnClientConnected(const TNetworkAddress& addr) {
     }
     FriendAddress = addr;
     ConnectionStatus = COS_AcceptedConnection;
-    OnConnectionEstablished();
+    return true;
 }
 
 void TFriend::OnConnectionEstablished() {
     SelfAuthorized = false;
     FriendAuthorized = false;
-    cerr << "ESTABLISHED FRIEND CONNECTION!\n";
     RandomSequence = GenerateRandomSequence();
     SendSerialized(RandomSequence, FPT_RandomSequence);
+}
+
+void TFriend::SendEncrypted(const TBuffer& data, EFriendPacketType friendPacketType) {
+    assert(!FriendSessionKey.empty() && "friend session key missing");
+    string newData(1, static_cast<ui8>(friendPacketType));
+    newData += data.ToString();
+    SendSerialized(EncryptSymmetrical(FriendSessionKey, Compress(newData)), FPT_Encrypted);
 }
 
 void TFriend::SendSerialized(const TBuffer& data, EFriendPacketType friendPacketType) {
@@ -62,7 +69,7 @@ void TFriend::SendSerialized(const TBuffer& data, EFriendPacketType friendPacket
     serializedData.resize(1);
     serializedData[0] = (char)friendPacketType;
     serializedData += data.ToString();
-    SendRaw(serializedData);
+    SendRaw(Serialize(serializedData));
 }
 
 void TFriend::SendRaw(const TBuffer& data) {
@@ -73,6 +80,13 @@ void TFriend::SendRaw(const TBuffer& data) {
         UdtServer->Send(data, FriendAddress);
     } else {
         throw UException("not connected to friend");
+    }
+}
+
+void TFriend::UpdateOnlineStatus() {
+    if (SelfAuthorized && FriendAuthorized && !IsOnline(Status)) {
+        Status = FS_Available;
+        Client->OnFriendStatusChanged(*this);
     }
 }
 
@@ -136,6 +150,7 @@ void TFriend::Connect() {
     }
     assert(!PublicKey.empty() && "no public key for friend");
     assert(!ServerPublicKey.empty() && "no server key for friend");
+    assert(Client && "client is not set");
 
     if (Client->HasNatPmp()) {
         TNatPmp& natPmp = Client->GetNatPmp();
@@ -260,6 +275,7 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                 NUdt::TServerConfig config;
                 config.NewConnectionCallback = bind(&TFriend::OnClientConnected, this, _1);
                 config.DataReceivedCallback = bind(&TFriend::OnDataReceived, this, _1);
+                config.ConnectionAcceptedCallback = std::bind(&TFriend::OnConnectionEstablished, this);
                 config.Port = LocalPort;
                 ConnectionStatus = COS_WaitingFriendConnection;
                 UdtServer.reset(new NUdt::TServer(config));
@@ -276,15 +292,18 @@ void TFriend::OnDataReceived(const TBuffer& data) {
             packetStr = packetStr.substr(1);
             switch (packetType) {
             case FPT_RandomSequence: {
+                cerr << "fpt random seq\n";
                 TFriendRandomSequenceConfirm confirm;
                 FriendRandomSequence = packetStr;
                 string randomSeqHash = Hash(FriendRandomSequence + "frnd");
                 confirm.set_randomsequencehash(randomSeqHash);
                 confirm.set_signature(Sign(Client->GetPrivateKey(), randomSeqHash));
-                confirm.set_sessionkey(GenerateKey());
+                SelfSessionKey = GenerateKey();
+                confirm.set_sessionkey(SelfSessionKey);
                 SendSerialized(EncryptAsymmetrical(PublicKey, Compress(confirm.SerializeAsString())), FPT_RandomSequenceConfirm);
             } break;
             case FPT_RandomSequenceConfirm: {
+                cerr << "fpt random seq confirm\n";
                 packetStr = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
                 TFriendRandomSequenceConfirm confirm;
                 if (!confirm.ParseFromString(packetStr)) {
@@ -298,12 +317,22 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                     throw UException("signature verification failed");
                 }
                 FriendSessionKey = confirm.sessionkey();
-//                ui64 myNum = LittleHash(RandomSequence);
-//                ui64 frndNum = LittleHash(FriendRandomSequence);
+                SendEncrypted("", FPT_Authorized);
+                FriendAuthorized = true;
+                UpdateOnlineStatus();
             } break;
-            case FPT_Authorized: {
-            } break;
+            case FPT_Encrypted: {
+                cerr << "fpt authorized\n";
+                packetStr = Decompress(DecryptSymmetrical(SelfSessionKey, packetStr));
+                packetType = static_cast<EFriendPacketType>(packetStr[0]);
+                packetStr = packetStr.substr(1);
+                switch (packetType) {
+                case FPT_Authorized:
+                    SelfAuthorized = true;
+                    UpdateOnlineStatus();
+                } break;
             }
+            } break;
         } break;
         }
     } catch (const std::exception& e) {

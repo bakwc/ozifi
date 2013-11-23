@@ -106,6 +106,7 @@ private:
     void LoadState();
     void SaveState();
     void ConnectWithFriends();
+    void OnFriendStatusChanged(TFriend&);
 private:
     EClientState CurrentState;
     std::string StateDir;

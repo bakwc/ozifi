@@ -155,12 +155,12 @@ public:
         cerr << "ShowFriend()\n";
         TFriendIterator it;
         for (it = Client->FriendsBegin(); it != Client->FriendsEnd(); ++it) {
-            TFriend& frnd = it->second;
-            cout << FriendStatusToChar(frnd.GetStatus()) << " ";
-            if (!frnd.GetName().empty()) {
-                cout << frnd.GetName() << " (" << frnd.GetLogin() << ")";
+            TFriendRef& frnd = it->second;
+            cout << FriendStatusToChar(frnd->GetStatus()) << " ";
+            if (!frnd->GetName().empty()) {
+                cout << frnd->GetName() << " (" << frnd->GetLogin() << ")";
             } else {
-                cout << frnd.GetLogin();
+                cout << frnd->GetLogin();
             }
             cout << "\n";
         }

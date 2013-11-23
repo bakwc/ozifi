@@ -79,8 +79,8 @@ void TClient::SaveState() {
 
 void TClient::ConnectWithFriends() {
     for (auto it = Friends.begin(); it != Friends.end(); ++it) {
-        TFriend& frnd = it->second;
-        frnd.Connect();
+        TFriendRef& frnd = it->second;
+        frnd->Connect();
     }
 }
 
@@ -243,7 +243,11 @@ void TClient::OnDataReceived(const TBuffer& data) {
         Buffer += data.ToString();
         string packetStr;
         if (Deserialize(Buffer, packetStr)) {
-            packetStr = Decompress(DecryptSymmetrical(State.sessionkey(), packetStr));
+            assert(!packetStr.empty() && "empty packet");
+            packetStr = DecryptSymmetrical(State.sessionkey(), packetStr);
+            assert(!packetStr.empty() && "empty decrypted");
+            packetStr = Decompress(packetStr);
+            assert(!packetStr.empty() && "empty decompress");
             EServerPacket packetType = (EServerPacket)packetStr[0];
             packetStr = packetStr.substr(1);
             switch (packetType) {
@@ -269,70 +273,95 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     throw UException("failed to parse client sync info packet");
                 }
                 for (TFriendIterator it = Friends.begin(); it != Friends.end(); ++it) {
-                    TFriend& frnd = it->second;
-                    frnd.ToDelete = true;
+                    TFriendRef& frnd = it->second;
+                    frnd->ToDelete = true;
                 }
                 bool friendListUpdated = false;
                 for (size_t i = 0; i < packet.friends_size(); ++i) {
                     const TSyncFriend& frnd = packet.friends(i);
                     auto frndIt = Friends.find(frnd.login());
-                    TFriend* frndPtr = 0;
+                    TFriendRef currentFrnd;
                     if (frndIt == Friends.end()) {
                         // todo: refactor syncing
                         friendListUpdated = true;
-                        TFriend& currentFrnd = Friends[frnd.login()];
-                        frndPtr = &currentFrnd;
-                        currentFrnd.FullLogin = frnd.login();
-                        currentFrnd.PublicKey = frnd.publickey();
-                        currentFrnd.ServerPublicKey = frnd.serverpublickey();
-                        currentFrnd.Client = this;
-                        currentFrnd.SelfOfflineKey = DecryptSymmetrical(GenerateKey(State.privatekey()), frnd.encryptedkey());
+                        Friends.insert(pair<string, TFriendRef>(frnd.login(), make_shared<TFriend>(this)));
+                        currentFrnd = Friends[frnd.login()];
+                        currentFrnd->FullLogin = frnd.login();
+                        currentFrnd->PublicKey = frnd.publickey();
+                        currentFrnd->ServerPublicKey = frnd.serverpublickey();
+                        currentFrnd->SelfOfflineKey = DecryptSymmetrical(GenerateKey(State.privatekey()), frnd.encryptedkey());
                         if (frnd.status() == AS_WaitingAuthorization) {
-                            currentFrnd.Status = FS_AddRequest;
+                            currentFrnd->Status = FS_AddRequest;
                             Config.FriendRequestCallback(frnd.login());
                         } else if (frnd.status() == AS_UnAuthorized) {
-                            currentFrnd.Status = FS_Unauthorized;
+                            currentFrnd->Status = FS_Unauthorized;
                         } else if (frnd.status() == AS_Authorized) {
-                            currentFrnd.Status = FS_Offline;
+                            currentFrnd->Status = FS_Offline;
                             // todo: start trying to connect
                         } else {
                             assert(!"unknown status");
                         }
                     } else {
-                        TFriend& currentFrnd = frndIt->second;
-                        frndPtr = &currentFrnd;
-                        if (IsAuthorized(currentFrnd.Status)) {
+                        currentFrnd = frndIt->second;
+                        if (currentFrnd->PublicKey.empty()) {
+                            currentFrnd->PublicKey = frnd.publickey();
+                        } else {
+                            if (currentFrnd->PublicKey != frnd.publickey()) {
+                                throw UException("public keys missmatch");
+                            }
+                        }
+                        if (currentFrnd->SelfOfflineKey.empty()) {
+                            currentFrnd->SelfOfflineKey = DecryptSymmetrical(GenerateKey(State.privatekey()), frnd.encryptedkey());
+                        } else {
+                            if (!frnd.encryptedkey().empty() &&
+                                currentFrnd->SelfOfflineKey != DecryptSymmetrical(GenerateKey(State.privatekey()), frnd.encryptedkey()))
+                            {
+                                throw UException("public keys missmatch");
+                            }
+                        }
+                        if (currentFrnd->ServerPublicKey.empty()) {
+                            currentFrnd->ServerPublicKey = frnd.serverpublickey();
+                        } else {
+                            if (currentFrnd->ServerPublicKey != frnd.serverpublickey()) {
+                                throw UException("server public keys missmatch");
+                            }
+                        }
+                        if (IsAuthorized(currentFrnd->Status)) {
                             if (frnd.has_offlinekey() && frnd.has_offlinekeysignature()) {
-                                if (!CheckSignature(currentFrnd.PublicKey, frnd.offlinekey(), frnd.offlinekeysignature())) {
+                                assert(!frnd.offlinekey().empty() && "empty offline key");
+                                string offlineSignature = DecryptAsymmetrical(State.privatekey(), frnd.offlinekey());
+                                assert(!currentFrnd->PublicKey.empty() && "no public key for friend");
+                                if (!CheckSignature(currentFrnd->PublicKey, offlineSignature, frnd.offlinekeysignature())) {
                                     cerr << "all bad, wrong signature\n"; // todo: normal handling
                                     continue;
                                 }
-                                currentFrnd.FriendOfflineKey = frnd.offlinekey();
+                                currentFrnd->FriendOfflineKey = frnd.offlinekey();
                             }
                         }
-                        if ((currentFrnd.Status == FS_Unauthorized ||
-                             currentFrnd.Status == FS_AddRequest) &&
+                        if ((currentFrnd->Status == FS_Unauthorized ||
+                             currentFrnd->Status == FS_AddRequest) &&
                                 frnd.status() == AS_Authorized)
                         {
                             friendListUpdated = true;
-                            currentFrnd.Status = FS_Offline;
+                            currentFrnd->Status = FS_Offline;
                             // todo: start trying to connect
                         } else if (frnd.status() == AS_WaitingAuthorization) {
-                            currentFrnd.Status = FS_AddRequest;
+                            currentFrnd->Status = FS_AddRequest;
                         } else if (frnd.status() == AS_UnAuthorized) {
-                            currentFrnd.Status = FS_Unauthorized;
+                            currentFrnd->Status = FS_Unauthorized;
                         }
-
                     }
-                    frndPtr->ToDelete = false;
+                    currentFrnd->ToDelete = false;
                     if (frnd.has_needofflinekey() && frnd.needofflinekey()) {
                         string response;
                         response.resize(1);
                         response[0] = RT_SetFriendOfflineKey;
                         TFriendOfflineKey offlineKeyPacket;
-                        offlineKeyPacket.set_offlinekey(EncryptAsymmetrical(frndPtr->PublicKey, frndPtr->SelfOfflineKey));
-                        offlineKeyPacket.set_offlinekeysignature(Sign(State.privatekey(), frndPtr->SelfOfflineKey));
-                        offlineKeyPacket.set_login(frndPtr->GetLogin());
+                        assert(!currentFrnd->PublicKey.empty() && "missing friend public key");
+                        assert(!currentFrnd->SelfOfflineKey.empty() && "missing self offline key for friend");
+                        offlineKeyPacket.set_offlinekey(EncryptAsymmetrical(currentFrnd->PublicKey, currentFrnd->SelfOfflineKey));
+                        offlineKeyPacket.set_offlinekeysignature(Sign(State.privatekey(), currentFrnd->SelfOfflineKey));
+                        offlineKeyPacket.set_login(currentFrnd->GetLogin());
                         response += offlineKeyPacket.SerializeAsString();
                         response = EncryptSymmetrical(State.sessionkey(), Compress(response));
                         UdtClient->Send(Serialize(response));
@@ -340,11 +369,11 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 }
 
                 for (TFriendIterator it = Friends.begin(); it != Friends.end();) {
-                    TFriend& frnd = it->second;;
-                    if (frnd.ToDelete) {
+                    TFriendRef& frnd = it->second;
+                    if (frnd->ToDelete) {
                         it = Friends.erase(it);
                     } else {
-                        frnd.Connect();
+                        frnd->Connect();
                         ++it;
                     }
                 }
@@ -357,8 +386,8 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 if (frndIt == Friends.end()) {
                     throw UException("no friend to connect to");
                 }
-                TFriend& frnd = frndIt->second;
-                frnd.ConnectAccept();
+                TFriendRef& frnd = frndIt->second;
+                frnd->ConnectAccept();
             }
             }
         }
@@ -549,7 +578,7 @@ void TClient::AddFriend(const std::string& friendLogin) {
     request.set_encryptedkey(EncryptSymmetrical(GenerateKey(State.privatekey()), friendKey));
     message += request.SerializeAsString();
     UdtClient->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
-    Friends.insert(pair<string, TFriend>(friendLogin, TFriend(friendLogin, FS_Unauthorized, friendKey)));
+    Friends.insert(pair<string, TFriendRef>(friendLogin, make_shared<TFriend>(this, friendLogin, FS_Unauthorized)));
     Config.FriendlistChangedCallback();
 }
 
@@ -581,6 +610,10 @@ TConferenceIterator TClient::ConferencesBegin() {
 }
 
 TConferenceIterator TClient::ConferencesEnd() {
+}
+
+void TClient::OnFriendStatusChanged(TFriend&) {
+    Config.FriendlistChangedCallback();
 }
 
 }

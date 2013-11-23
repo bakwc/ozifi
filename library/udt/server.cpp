@@ -113,6 +113,7 @@ public:
         assert(data.Size() == result && "sended not all bytes");
         return true;
     }
+
     void DisconnectClient(const TNetworkAddress& client) {
         // todo: drop client
     }
@@ -149,12 +150,15 @@ public:
                 UDTSOCKET clientSocket = UDT::accept(Socket, (sockaddr*)&clientAddr, &clientAddrLen);
                 if (clientSocket != UDT::INVALID_SOCK) {
                     TNetworkAddress addr(clientAddr);
-                    if (Config.NewConnectionCallback(addr)) {
+                    if (!Config.NewConnectionCallback || Config.NewConnectionCallback(addr)) {
                         { 
                             lock_guard<mutex> guard(Lock);
                             Clients.Insert(make_shared<TClient>(clientSocket, addr));
                         }
                         UDT::epoll_add_usock(MainEid, clientSocket);
+                        if (Config.ConnectionAcceptedCallback) {
+                            Config.ConnectionAcceptedCallback(addr);
+                        }
                     } else {
                         UDT::close(clientSocket);
                     }
