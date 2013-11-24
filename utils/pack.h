@@ -13,6 +13,7 @@ std::string PackTransformed(T val) {
     size_t length = sizeof(val);
     result.resize(length);
     memcpy(&result[0], &val, length);
+    return result;
 }
 
 inline void SwapByteOrder(ui8&) {

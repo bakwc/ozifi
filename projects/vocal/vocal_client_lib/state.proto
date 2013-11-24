@@ -7,4 +7,5 @@ message TClientState {
     optional string Login = 4;
     optional string Host = 5;
     optional bytes SessionKey = 6;
+    optional uint64 LastSync = 7;
 }

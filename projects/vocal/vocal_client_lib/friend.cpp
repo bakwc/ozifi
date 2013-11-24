@@ -64,6 +64,7 @@ void TFriend::SendMessage(const TMessage& message) {
     messagePacket.set_time(message.Time.GetValue());
     string serializedMessage = messagePacket.SerializeAsString();
     SendEncrypted(serializedMessage, FPT_Message);
+    assert(!FriendOfflineKey.empty() && "missing friend offline key");
     Client->SendOfflineMessage(FullLogin, EncryptSymmetrical(FriendOfflineKey, serializedMessage));
 }
 
@@ -350,7 +351,6 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                     if (!messagePacket.ParseFromString(packetStr)) {
                         throw UException("failed to parse message");
                     }
-                    cerr << "online message received\n";
                     TMessage message;
                     message.From = messagePacket.from();
                     message.To = messagePacket.to();
@@ -396,7 +396,6 @@ void TFriend::OnOfflineMessageReceived(const TBuffer& data, bool isIncoming) {
         cerr << "error: failed to deserialize offline message\n";
         return;
     }
-    cerr << "offline message received";
     TMessage message;
     message.From = messagePacket.from();
     message.To = messagePacket.to();
@@ -407,7 +406,7 @@ void TFriend::OnOfflineMessageReceived(const TBuffer& data, bool isIncoming) {
 
 void TFriend::OnMessageReceived(const TMessage& message) {
     string signature = message.CalcSignature();
-    if (PrevMessages.find(signature) == PrevMessages.end()) {
+    if (PrevMessages.find(signature) != PrevMessages.end()) {
         return;
     }
     PrevMessages.insert(signature);

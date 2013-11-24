@@ -76,7 +76,7 @@ public:
     // friends
     void AddFriend(const std::string& friendLogin);
     void RemoveFriend(const std::string& friendLogin);  // remove friend from friendlist
-    TFriend& GetFriend(const std::string& login);       // friend by login
+    TFriendRef GetFriend(const std::string& login);     // friend by login
     TFriendIterator FriendsBegin();                     // use it to iterate over friends
     TFriendIterator FriendsEnd();
 
