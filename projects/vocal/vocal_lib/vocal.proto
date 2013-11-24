@@ -75,8 +75,14 @@ message TAddFriendRequest {
     required bytes EncryptedKey = 2;
 }
 
+message TDirectionedMessage {
+    required string Login = 1;
+    required bytes Message = 2;
+    required bool Incoming = 3;
+}
+
 message TClientSyncPacket {
-    repeated bytes EncryptedMessages = 1;
+    repeated TDirectionedMessage EncryptedMessages = 1;
     required uint64 From = 2;
     required uint64 To = 3;
 }
@@ -106,4 +112,21 @@ message TFriendOfflineKey {
     required string Login = 1;
     required bytes OfflineKey = 2;
     required bytes OfflineKeySignature = 3;
+}
+
+message TOfflineMessage {
+    required string FriendLogin = 1;
+    required bytes EncryptedMessage = 2;
+}
+
+message TSyncMessagesRequest {
+    required uint64 From = 1;
+    required uint64 To = 2;
+}
+
+message TMessagePacket {
+    required string From = 1;
+    required string To = 2;
+    required uint64 Time = 3;
+    required string Text = 4;
 }

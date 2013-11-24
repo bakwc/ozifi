@@ -3,10 +3,16 @@
 #include "types.h"
 
 #include <string>
+#include <cstring>
 #include <boost/array.hpp>
 
 class TBuffer {
 public:
+    TBuffer(const char* data)
+        : DataPtr(data)
+        , Length(strlen(data))
+    {
+    }
     TBuffer(const char* data, size_t size)
         : DataPtr(data)
         , Length(size)

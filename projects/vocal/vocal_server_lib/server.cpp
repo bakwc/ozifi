@@ -378,6 +378,30 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                     }
                     SendSetFriendOfflineKeyRequest(client->Login, friendOfflineKey);
                 } break;
+                case RT_SendMessage: {
+                    TOfflineMessage offlineMessage;
+                    if (offlineMessage.ParseFromString(packetStr)) {
+                        throw UException("failed to parse offline message");
+                    }
+                    auto frndIt = client->Info.Friends.find(offlineMessage.friendlogin());
+                    if (frndIt == client->Info.Friends.end()) {
+                        throw UException("friend not found");
+                    }
+                    TFriendInfo frnd = frndIt->second;
+                    if (frnd.AuthStatus != AS_Authorized) {
+                        throw UException("friend not authorized");
+                    }
+                    SendOfflineMessage(client->Login, offlineMessage.friendlogin(), offlineMessage.encryptedmessage());
+                } break;
+                case RT_SyncMessages: {
+                    TSyncMessagesRequest syncRequest;
+                    if (!syncRequest.ParseFromString(packetStr)) {
+                        throw UException("failed to parse syn request");
+                    }
+                    TDuration from(syncRequest.from());
+                    TDuration to(syncRequest.to());
+                    SyncMessages(client->Login, from, to);
+                } break;
                 default:
                     throw UException("unknown request type");
                 }
@@ -418,6 +442,7 @@ void TServer::SendAddFriendRequest(const string& login,
                            pubKey, SelfStorage->GetPublicKey());
     } else {
         string request;
+        // todo: fill request
         SendToServer(loginHost.second, request);
     }
 }
@@ -434,13 +459,28 @@ void TServer::SendSetFriendOfflineKeyRequest(const string& login,
     }
 }
 
+void TServer::SendOfflineMessage(const string& login,
+                                 const string& friendLogin,
+                                 const string& message)
+{
+    MessageStorage->Put(login, "o" + Serialize(friendLogin) + Serialize(message), Now());  // store outgoing message
+    pair<string, string> loginHost = GetLoginHost(friendLogin);
+    if (loginHost.second == Config.Hostname) {
+        OnOfflineMessageReceived(loginHost.first, login + "@" + Config.Hostname, message);
+    } else {
+        string request;
+        // todo: fill request
+        SendToServer(loginHost.second, request);
+    }
+}
+
 void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
                                  const string& pubKey, const string& serverPubKey)
 {
     // todo: thread-safe storage access
     boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
     if (!info.is_initialized()) {
-        cerr << "fatal error: client not exists\n";
+        cerr << "onAddFriendRequest error: client not exists\n";
         return;
     }
     TFriendList& friends = info->Friends;
@@ -471,24 +511,51 @@ void TServer::OnFriendOfflineKeyRequest(const string& login,
 {
     boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
     if (!info.is_initialized()) {
-        cerr << "fatal error: client not exists\n"; // todo: replace with somethin normal
+        cerr << "onFriendOfflineKeyRequest error: client not exists\n"; // todo: replace with somethin normal
         return;
     }
     TFriendList& friends = info->Friends;
     auto frndIt = friends.find(frndLogin);
-    if (frndIt == friends.end()) {
+    if (frndIt != friends.end()) {
         TFriendInfo& frnd = friends[frndLogin];
         if (!frnd.OfflineKey.empty()) {
-            cerr << "fatal error: trying to set not-empty offline key\n";
+            cerr << "onFriendOfflineKeyRequest error: trying to set not-empty offline key\n";
             return;
         }
         frnd.OfflineKey = offlineKey;
         frnd.OfflineKeySignature = offlineKeySignature;
     } else {
-        cerr << "fatal error: client not exists\n";
+        cerr << "onFriendOfflineKeyRequest error: client not exists\n";
+        return;
+    }
+    SyncNewMessages(login);
+}
+
+void TServer::OnOfflineMessageReceived(const string& login,
+                                       const string& friendLogin,
+                                       const string& message)
+{
+    boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
+    if (!info.is_initialized()) {
+        cerr << "onOfflineMessageReceived error: client not exists\n"; // todo: replace with somethin normal
+        return;
+    }
+    TFriendList& friends = info->Friends;
+    auto frndIt = friends.find(friendLogin);
+    if (frndIt != friends.end()) {
+        TFriendInfo& frnd = friends[friendLogin];
+        if (frnd.AuthStatus == AS_Authorized) {
+            MessageStorage->Put(login, "i" + Serialize(friendLogin) + Serialize(message), Now()); // store incoming message
+        } else {
+            cerr << "onOfflineMessageReceived error: friend not exists\n";
+            return;
+        }
+    } else {
+        cerr << "onOfflineMessageReceived error: friend not exists\n";
         return;
     }
     SyncClientInfo(*info);
+    SyncNewMessages(login);
 }
 
 void TServer::SendToServer(const string& host, const string& message) {
@@ -515,7 +582,19 @@ void TServer::SyncMessages(const string &login, TDuration from, TDuration to) {
     }
     TClientSyncPacket packet;
     for (size_t i = 0; i < messages.size(); ++i) {
-        *packet.add_encryptedmessages() = messages[i];
+        assert(messages[i].size() > 1);
+        TDirectionedMessage* currMessage = packet.add_encryptedmessages();
+        string buffer = messages[i].substr(1);
+        bool isIncoming = messages[i][0] == 'i';
+        string friendLogin;
+        string message;
+        Deserialize(buffer, friendLogin);
+        Deserialize(buffer, message);
+        assert(!message.empty());
+        assert(!friendLogin.empty());
+        currMessage->set_incoming(isIncoming);
+        currMessage->set_login(friendLogin);
+        currMessage->set_message(message);
     }
     packet.set_from(from.MicroSeconds());
     packet.set_to(to.MicroSeconds());
@@ -535,7 +614,9 @@ void TServer::SyncNewMessages(const string& login) {
         return;
     }
     TClientRef client = clientIt->second;
-    SyncMessages(login, client->SessionLastSync, Now());
+    TDuration now = Now();
+    SyncMessages(login, client->SessionLastSync, now);
+    client->SessionLastSync = now;
 }
 
 void TServer::SyncClientInfo(const TClientInfo& info) {

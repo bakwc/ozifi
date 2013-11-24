@@ -13,7 +13,7 @@ TDuration::TDuration(ui64 value)
 {
 }
 
-ui64 TDuration::GetValue() {
+ui64 TDuration::GetValue() const {
     return Value;
 }
 

@@ -89,23 +89,26 @@ public:
 
     bool HasConnectData();                              // check if has keys, host address and other
                                                         // data, required for connection
+    std::string GetFullLogin();
 protected:
     std::string GetLogin();
-    std::string GetFullLogin();
     std::string GetPublicKey();
     std::string GetPrivateKey();
     std::string GetHost();
     bool HasNatPmp();
     TNatPmp& GetNatPmp();
+    TDuration GetTime();
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
-    void OnEncryptedMessageReceived(const std::string& message);
     void OnDisconnected();
     void ForceDisconnect();
     void LoadState();
     void SaveState();
     void ConnectWithFriends();
+    void OnFriendStatusChanged(TFriend&);
+    void OnMessageReceived(const TMessage& message);
+    void SendOfflineMessage(const std::string& friendLogin, const TBuffer& data);
 private:
     EClientState CurrentState;
     std::string StateDir;

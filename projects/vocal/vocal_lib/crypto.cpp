@@ -258,24 +258,24 @@ std::string DecryptAsymmetrical(const std::string& privKey, const std::string& d
     return result;
 }
 
-std::string EncryptSymmetrical(const std::string& key, const std::string& data) {
+std::string EncryptSymmetrical(const std::string& key, const TBuffer& data) {
     assert(key.size() == AES::MAX_KEYLENGTH + AES::BLOCKSIZE);
     string result;
-    result.resize(data.size());
+    result.resize(data.Size());
     CFB_Mode<AES>::Encryption cfbEncryption((byte*)key.data(), AES::MAX_KEYLENGTH,
                                             (byte*)key.data() + AES::MAX_KEYLENGTH);
 
-    cfbEncryption.ProcessData((byte*)result.data(), (byte*)data.data(), data.size());
+    cfbEncryption.ProcessData((byte*)result.data(), (byte*)data.Data(), data.Size());
     return result;
 }
 
-std::string DecryptSymmetrical(const std::string& key, const std::string& data) {
+std::string DecryptSymmetrical(const std::string& key, const TBuffer& data) {
     assert(key.size() == AES::MAX_KEYLENGTH + AES::BLOCKSIZE);
     string result;
-    result.resize(data.size());
+    result.resize(data.Size());
     CFB_Mode<AES>::Decryption cfbDecryption((byte*)key.data(), AES::MAX_KEYLENGTH,
                                             (byte*)key.data() + AES::MAX_KEYLENGTH);
-    cfbDecryption.ProcessData((byte*)result.data(), (byte*)data.data(), data.size());
+    cfbDecryption.ProcessData((byte*)result.data(), (byte*)data.Data(), data.Size());
     return result;
 }
 

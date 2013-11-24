@@ -12,7 +12,9 @@ enum ERequestType {
     RT_Authorize,
     RT_AddFriend,
     RT_HelpConnect,
-    RT_SetFriendOfflineKey
+    RT_SetFriendOfflineKey,
+    RT_SendMessage,
+    RT_SyncMessages
 };
 
 enum ERegisterResult {

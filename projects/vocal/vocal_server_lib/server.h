@@ -91,10 +91,16 @@ private:
                               const std::string& frndLogin);
     void SendSetFriendOfflineKeyRequest(const std::string& login,
                                         const TFriendOfflineKey& offlineKeyPacket);
+    void SendOfflineMessage(const std::string& login,
+                            const string& friendLogin,
+                            const std::string& message);
     void OnAddFriendRequest(const std::string& login, const string& frndLogin,
                             const string& pubKey, const string& serverPubKey);
     void OnFriendOfflineKeyRequest(const string& login, const string& frndLogin,
                                    const string& offlineKey, const string& offlineKeySignature);
+    void OnOfflineMessageReceived(const std::string& login,
+                                  const std::string& friendLogin,
+                                  const std::string& message);
     void SendToServer(const std::string& host, const std::string& message);
     void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
     void SyncNewMessages(const std::string& login); // thread-safe
