@@ -12,7 +12,8 @@ message TFriendInfoData {
     required uint32 AuthStatus = 4;
     required bytes PublicKey = 5;
     required bytes ServerPublicKey = 6;
-    optional bytes OfflineKey = 7;      // offline key, encrypted asymetrically by our public key
+    optional bytes OfflineKey = 7;          // offline key, encrypted asymetrically by our public key
+    optional bytes OfflineKeySignature = 8; // and signed by friend
 }
 
 message TClientInfoData {

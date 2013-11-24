@@ -380,7 +380,7 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 } break;
                 case RT_SendMessage: {
                     TOfflineMessage offlineMessage;
-                    if (offlineMessage.ParseFromString(packetStr)) {
+                    if (!offlineMessage.ParseFromString(packetStr)) {
                         throw UException("failed to parse offline message");
                     }
                     auto frndIt = client->Info.Friends.find(offlineMessage.friendlogin());
@@ -464,6 +464,7 @@ void TServer::SendOfflineMessage(const string& login,
                                  const string& message)
 {
     MessageStorage->Put(login, "o" + Serialize(friendLogin) + Serialize(message), Now());  // store outgoing message
+    SyncNewMessages(login);
     pair<string, string> loginHost = GetLoginHost(friendLogin);
     if (loginHost.second == Config.Hostname) {
         OnOfflineMessageReceived(loginHost.first, login + "@" + Config.Hostname, message);
@@ -528,7 +529,7 @@ void TServer::OnFriendOfflineKeyRequest(const string& login,
         cerr << "onFriendOfflineKeyRequest error: client not exists\n";
         return;
     }
-    SyncNewMessages(login);
+    SyncClientInfo(*info);
 }
 
 void TServer::OnOfflineMessageReceived(const string& login,
@@ -598,7 +599,6 @@ void TServer::SyncMessages(const string &login, TDuration from, TDuration to) {
     }
     packet.set_from(from.MicroSeconds());
     packet.set_to(to.MicroSeconds());
-    client->SessionLastSync = to;
 
     string data(1, (ui8)SP_SyncMessages);
     data += packet.SerializeAsString();

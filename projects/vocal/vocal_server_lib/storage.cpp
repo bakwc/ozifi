@@ -33,6 +33,11 @@ void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
         friendData->set_authstatus(frnd.second.AuthStatus);
         friendData->set_publickey(frnd.second.PublicKey);
         friendData->set_serverpublickey(frnd.second.ServerPublicKey);
+        if (!frnd.second.OfflineKey.empty()) {
+            assert(!frnd.second.OfflineKeySignature.empty());
+            friendData->set_offlinekey(frnd.second.OfflineKey);
+            friendData->set_offlinekeysignature(frnd.second.OfflineKeySignature);
+        }
     }
     Storage->Put(clientInfo.Login, Compress(data.SerializeAsString()));
 }
@@ -64,6 +69,11 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         friendInfo.AuthStatus = (EAuthStatus)frnd.authstatus();
         friendInfo.PublicKey = frnd.publickey();
         friendInfo.ServerPublicKey = frnd.serverpublickey();
+        if (frnd.has_offlinekey()) {
+            assert(frnd.has_offlinekeysignature());
+            friendInfo.OfflineKey = frnd.offlinekey();
+            friendInfo.OfflineKeySignature = frnd.offlinekeysignature();
+        }
     }
     return result;
 }
@@ -87,7 +97,6 @@ void TMessageStorage::Put(const string& login,
     message.set_login(login);
     message.set_date(date.GetValue());
     message.set_encryptedmessage(encryptedMessage);
-
     string key = login + ToString(date.GetValue()) + ToString(LittleHash(encryptedMessage));
     Storage->Put(key, Compress(message.SerializeAsString()));
 }
