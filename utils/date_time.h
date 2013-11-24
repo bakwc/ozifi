@@ -6,7 +6,7 @@ class TDuration {
 public:
     TDuration();
     TDuration(ui64 value);
-    ui64 GetValue();
+    ui64 GetValue() const;
     ui64 MicroSeconds();
     ui64 MilliSeconds();
     ui64 Seconds();

@@ -41,6 +41,7 @@ public:
         config.ConnectedCallback = std::bind(&TVocaConsa::OnConnected, this, _1);
         config.FriendRequestCallback = std::bind(&TVocaConsa::OnFriendRequest, this, _1);
         config.FriendlistChangedCallback = std::bind(&TVocaConsa::ShowFriends, this);
+        //config.MessageCallback =
         config.StateDir = "data";
         Client.reset(new TClient(config));
         AuthorizationMenu();
@@ -177,10 +178,14 @@ public:
             if (message.empty()) {
                 break;
             }
-            frnd.SendMssg(message);
+            frnd.SendMessage(message);
         }
     }
-
+    void OnMessageReceived(const TMessage& message) {
+        if (message.From != Client->GetFullLogin()) {
+            cout << message.From << ": " << message.Text << "\n" << flush;
+        }
+    }
 private:
     unique_ptr<TClient> Client;
     unique_ptr<thread> MainThreadPtr;

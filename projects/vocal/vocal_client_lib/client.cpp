@@ -264,7 +264,14 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     throw UException("failed to parse client sync message packet");
                 }
                 for (size_t i = 0; i < packet.encryptedmessages_size(); ++i) {
-                    OnEncryptedMessageReceived(packet.encryptedmessages(i));
+                    const TDirectionedMessage& currMessage = packet.encryptedmessages(1);
+                    auto friendIt = Friends.find(currMessage.login());
+                    if (friendIt == Friends.end()) {
+                        cerr << "warning: friend login not found\n";
+                        continue;
+                    }
+                    TFriendRef& frnd = friendIt->second;
+                    frnd->OnOfflineMessageReceived(currMessage.message(), currMessage.incoming());
                 }
             } break;
             case SP_SyncInfo: {
@@ -398,10 +405,6 @@ void TClient::OnDataReceived(const TBuffer& data) {
     }
 }
 
-void TClient::OnEncryptedMessageReceived(const string& message) {
-    // todo: implement this
-}
-
 void TClient::OnDisconnected() {
     if (CurrentState == CS_Connected) {
         CurrentState = CS_Disconnected; // todo: connection lost callback
@@ -462,6 +465,10 @@ bool TClient::HasNatPmp() {
 TNatPmp &TClient::GetNatPmp() {
     assert(NatPmp && "nat-pmp not initialized");
     return *NatPmp;
+}
+
+TDuration TClient::GetTime() {
+    return Now(); // todo: return synced time
 }
 
 // connection
@@ -614,6 +621,14 @@ TConferenceIterator TClient::ConferencesEnd() {
 
 void TClient::OnFriendStatusChanged(TFriend&) {
     Config.FriendlistChangedCallback();
+}
+
+void TClient::OnMessageReceived(const TMessage& message) {
+    Config.MessageCallback(message);
+}
+
+void TClient::SendOfflineMessage(const string& friendLogin, const TBuffer& data) {
+    // todo: implement
 }
 
 }

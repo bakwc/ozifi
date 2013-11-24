@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include <boost/optional.hpp>
 #include <library/udt/client.h>
@@ -46,7 +47,8 @@ enum EFriendPacketType {
     FPT_RandomSequence,
     FPT_RandomSequenceConfirm,
     FPT_Encrypted,
-    FPT_Authorized
+    FPT_Authorized,
+    FPT_Message
 };
 
 class TClient;
@@ -60,7 +62,7 @@ public:
     EFriendStatus GetStatus();
     const std::string& GetStatusMessage();
     std::vector<TMessage> GetHistory(); // old messages
-    void SendMssg(const std::string& message);
+    void SendMessage(const std::string& text);
     void SendFile(const std::string& name,
                   size_t size,
                   TDataRequireCallback fileDataCallback);
@@ -85,10 +87,13 @@ protected:
     void ForceDisconnect();
     /** connect to friend and bind known local port to traverse nat */
     void ConnectThrowNat(const TNetworkAddress& address, ui16 localPort = 0);
+    void OnOfflineMessageReceived(const TBuffer& data, bool isIncoming);
+    void OnMessageReceived(const TMessage& message);
 private:
     void InitUdtClient();
     bool OnClientConnected(const TNetworkAddress& addr);
     void OnConnectionEstablished();
+    void SendMessage(const TMessage& message);
     void SendEncrypted(const TBuffer& data, EFriendPacketType friendPacketType);
     void SendSerialized(const TBuffer& data, EFriendPacketType friendPacketType);
     void SendRaw(const TBuffer& data);
@@ -119,6 +124,7 @@ protected:
     std::string SelfSessionKey;
     std::string SelfOfflineKey;     // using for encryption
     std::string FriendOfflineKey;   // using for decryption
+    std::unordered_set<std::string> PrevMessages;
 };
 
 typedef std::shared_ptr<TFriend> TFriendRef;

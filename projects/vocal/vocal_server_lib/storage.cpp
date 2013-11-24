@@ -81,14 +81,14 @@ TMessageStorage::~TMessageStorage() {
 
 void TMessageStorage::Put(const string& login,
                           const string& encryptedMessage,
-                          chrono::microseconds date)
+                          TDuration date)
 {
     TMessageData message;
     message.set_login(login);
-    message.set_date(date.count());
+    message.set_date(date.GetValue());
     message.set_encryptedmessage(encryptedMessage);
 
-    string key = login + ToString(date.count()) + ToString(LittleHash(encryptedMessage));
+    string key = login + ToString(date.GetValue()) + ToString(LittleHash(encryptedMessage));
     Storage->Put(key, Compress(message.SerializeAsString()));
 }
 
