@@ -381,7 +381,9 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                 default:
                     throw UException("unknown request type");
                 }
-                response = Serialize(EncryptSymmetrical(client->SessionKey, Compress(responseStr)));
+                if (!responseStr.empty()) {
+                    response = Serialize(EncryptSymmetrical(client->SessionKey, Compress(responseStr)));
+                }
             }
         } catch (const std::exception& e) {
             cout << "notice:\tclient communication error: " << e.what() << "\n";
@@ -552,8 +554,11 @@ void TServer::SyncClientInfo(const TClientInfo& info) {
             frnd->set_encryptedkey(frndInfo.EncryptedKey);
             frnd->set_publickey(frndInfo.PublicKey);
             frnd->set_serverpublickey(frndInfo.ServerPublicKey);
-            frnd->set_offlinekey(frndInfo.OfflineKey);
-            frnd->set_offlinekeysignature(frndInfo.OfflineKeySignature);
+            if (!frndInfo.OfflineKey.empty()) {
+                assert(!frndInfo.OfflineKeySignature.empty() && "missing signature for offline key");
+                frnd->set_offlinekey(frndInfo.OfflineKey);
+                frnd->set_offlinekeysignature(frndInfo.OfflineKeySignature);
+            }
             if (frndInfo.NeedOfflineKey) {
                 frnd->set_needofflinekey(frndInfo.NeedOfflineKey);
             }
