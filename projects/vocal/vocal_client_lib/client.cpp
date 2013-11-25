@@ -288,6 +288,8 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     TFriendRef& frnd = friendIt->second;
                     frnd->OnOfflineMessageReceived(currMessage.message(), currMessage.incoming());
                 }
+                State.set_lastsync(packet.to());
+                SaveState();
             } break;
             case SP_SyncInfo: {
                 TClientSyncInfoPacket packet;
