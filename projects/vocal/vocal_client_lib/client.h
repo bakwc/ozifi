@@ -10,49 +10,18 @@
 #include <utils/buffer.h>
 #include <library/udt/client.h>
 #include <projects/vocal/vocal_client_lib/state.pb.h>
-#include <projects/vocal/vocal_lib/vocal.pb.h>
-#include <projects/vocal/vocal_lib/defines.h>
 
 #include "callback.h"
 #include "message.h"
+#include "config.h"
 #include "friend.h"
 #include "conference.h"
+#include "state.h"
+
+/** This is a main interface that should be used
+ * to communicate with core in client applications. */
 
 namespace NVocal {
-
-// Client
-
-enum EClientState {
-    CS_Disconnected,
-    CS_Disconnecting,
-    CS_Connecting,
-    CS_ConnectingConfirmWait,
-    CS_Logining,
-    CS_LoginingConfirmWait,
-    CS_Registering,
-    CS_RegisteringConfirmWait,
-    CS_Connected
-};
-
-typedef std::function<void(ELoginResult)> TLoginCallback;
-typedef std::function<void(ERegisterResult)> TRegisterCallback;
-typedef std::function<void()> TCallBack;
-
-struct TClientConfig {
-    std::string StateDir;                       // directory with internal state data
-    TDataCallback CaptchaAvailableCallback;     // on captcha available (for login, reigster, etc.)
-    TLoginCallback LoginResultCallback;         // on login failed / success
-    TRegisterCallback RegisterResultCallback;   // on register success / fail
-    TBoolCallback ConnectedCallback;            // on connection established / failed
-    TNamedCallback CallCallback;                // on incoming call
-    TNamedCallback ConferenceCallCallback;      // on incoming conference call
-    TNamedCallback ConferenceJoinCallback;      // on join to conference
-    TNamedCallback ConferenceLeftCallback;      // on conference left
-    TMessageCallback MessageCallback;           // on message received
-    TMessageCallback ConferenceMessageCallback; // on conference message received
-    TStringCallback FriendRequestCallback;      // on friend request received (friend login)
-    TCallBack FriendlistChangedCallback;        // on friendlist changed
-};
 
 class TNatPmp;
 class TClient {
@@ -63,33 +32,50 @@ public:
     EClientState GetState();
 
     // connection
-    void Connect();                                     // initialize connection
-    void Disconnect();                                  // initialize disconnection
-    void Login(const std::string& login);               // initialize login
-    void Login(const std::string& password,             // continue login
-               const std::string& captcha);
-    void Register(const std::string& preferedLogin);    // initialize registration
-    void Register(const std::string& preferedPassword,  // continue registration
-                  const std::string& email,
+    void Connect();                                     // Connect to server, using stored login info.
+                                                        // You can perform connection only after
+                                                        // authorization / registration. Use
+                                                        // HasConnectData() to check if connection
+                                                        // can be performed.
+
+    bool HasConnectData();                              // Check if has keys, host address and other
+                                                        // data, required for connection.
+
+    void Disconnect();                                  // Disconnect from server and friends
+
+    void Login(const std::string& login);               // Start login procedure. It will send
+                                                        // captcha if succes or calls
+                                                        // LoginResultCallback with failure result.
+
+    void Login(const std::string& password,             // Continue login. It will calls
+               const std::string& captcha);             // LoginResultCallback on success or fail.
+
+    void Register(const std::string& preferedLogin);    // Start registration procedure. It will send
+                                                        // captcha if succes or calls
+                                                        // RegisterResultCallback with failure result.
+
+    void Register(const std::string& preferedPassword,  // Continue registration. It will calls
+                  const std::string& email,             // RegisterResultCallback on success or fail.
                   const std::string& captcha);
 
     // friends
-    void AddFriend(const std::string& friendLogin);
-    void RemoveFriend(const std::string& friendLogin);  // remove friend from friendlist
-    TFriendRef GetFriend(const std::string& login);     // friend by login
-    TFriendIterator FriendsBegin();                     // use it to iterate over friends
+    void AddFriend(const std::string& friendLogin);     // Send friend add request or accept friend.
+    void RemoveFriend(const std::string& friendLogin);  // Remove friend from the friendlist.
+    TFriendRef GetFriend(const std::string& login);     // Returns friend by his login.
+    TFriendIterator FriendsBegin();                     // Use it to iterate over friendlist.
     TFriendIterator FriendsEnd();
 
     // conference
-    void CreateConference();                            // init new conference creation
-    void LeaveConference(const std::string& id);        // leaves conference
-    TConference& GetConference(const std::string& id);  // conference by id
-    TConferenceIterator ConferencesBegin();             // use it to iterate over conferences
+    void CreateConference();                            // Init new conference creation.
+    void LeaveConference(const std::string& id);        // Leaves conference.
+    TConference& GetConference(const std::string& id);  // Returns conference by id.
+    TConferenceIterator ConferencesBegin();             // Use it to iterate over conferences.
     TConferenceIterator ConferencesEnd();
 
-    bool HasConnectData();                              // check if has keys, host address and other
-                                                        // data, required for connection
-    std::string GetFullLogin();
+    // other stuff
+    std::string GetFullLogin();                         // Returns full client login, eg. login@exaple.com
+
+
 protected:
     std::string GetLogin();
     std::string GetPublicKey();

@@ -25,6 +25,4 @@ struct TMessage {
     }
 };
 
-typedef std::function<void(const TMessage&)> TMessageCallback;
-
 } // NVocal
