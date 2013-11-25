@@ -96,7 +96,11 @@ public:
         //SetAsyncMode(false);
         //UDT::close(Socket);  todo: close socket if required
         UDT::epoll_release(MainEid);
-        Config.ConnectionLostCallback();
+        if (Config.ConnectionLostCallback) {
+            Config.ConnectionLostCallback();
+        } else {
+            cerr << "warning: connection lost callback missing\n";
+        }
     }
 
     inline void Send(const TBuffer& data) {
@@ -139,8 +143,14 @@ private:
                     if (UDT::ERROR != result) {
                         Config.DataReceivedCallback(TBuffer(buff.data(), result));
                     } else {
-                        cerr << "warning: unhandled event\n";
-                        // todo: process connection lost and other
+                        if (UDT::getlasterror().getErrorCode() == 5004 ||
+                            UDT::getlasterror().getErrorCode() == 2001)
+                        {
+                            UDT::close(*it);
+                            Disconnect();
+                        } else {
+                            cerr << "warning: unhandled event\n";
+                        }
                     }
                 }
             }

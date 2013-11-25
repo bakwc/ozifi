@@ -124,16 +124,32 @@ public:
             UDT::epoll_wait(MainEid, &eventedSockets, NULL, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 int result = UDT::recv(*it, buff.data(), 1024, 0);
+                TNetworkAddress clientAddr;
+                {
+                    lock_guard<mutex> guard(Lock);
+                    clientAddr = Clients.Get(*it)->Address;
+                }
                 if (UDT::ERROR != result) {
-                    TNetworkAddress clientAddr;
-                    {
-                        lock_guard<mutex> guard(Lock);
-                        clientAddr = Clients.Get(*it)->Address;
+
+                    if (Config.DataReceivedCallback) {
+                        Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
+                    } else {
+                        cerr << "warning: data callback missing\n";
                     }
-                    Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
                 } else {
-                    cerr << "error: " << UDT::getlasterror().getErrorMessage() << "\n";
-                    // todo: process connection lost and other
+                    if (UDT::getlasterror().getErrorCode() == 5004 ||
+                        UDT::getlasterror().getErrorCode() == 2001)
+                    {
+                        UDT::epoll_remove_usock(MainEid, *it);
+                        UDT::close(*it);
+                        if (Config.ConnectionLostCallback) {
+                            Config.ConnectionLostCallback(clientAddr);
+                        } else {
+                            cerr << "warning: connection lost callback missing\n";
+                        }
+                    } else {
+                        cerr << "error: " << UDT::getlasterror().getErrorMessage() << "\n";
+                    }
                 }
             }
         }
