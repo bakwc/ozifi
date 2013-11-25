@@ -196,10 +196,6 @@ void TFriend::Connect() {
 }
 
 void TFriend::ConnectAccept() {
-    if (Status != FS_Offline || ConnectionStatus != COS_Offline) {
-        return;
-    }
-
     assert(!PublicKey.empty() && "no public key for friend");
     assert(!ServerPublicKey.empty() && "no server key for friend");
 
