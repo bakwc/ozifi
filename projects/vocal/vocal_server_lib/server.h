@@ -84,6 +84,7 @@ public:
     void PrintClientStatus(const std::string& client, std::ostream& out);
 private:
     bool OnClientConnected(const TNetworkAddress& addr);
+    void OnClientDisconnected(const TNetworkAddress& addr);
     void OnDataReceived(const TBuffer& data, const TNetworkAddress& addr);
     void OnServerDataReceived(const TBuffer& data, const std::string& host);
     void SendAddFriendRequest(const std::string& login,

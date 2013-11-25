@@ -36,6 +36,7 @@ TServer::TServer(const TServerConfig& config)
     NUdt::TServerConfig udtConfig;
     udtConfig.NewConnectionCallback = bind(&TServer::OnClientConnected, this, _1);
     udtConfig.DataReceivedCallback = bind(&TServer::OnDataReceived, this, _1, _2);
+    udtConfig.ConnectionLostCallback = bind(&TServer::OnClientDisconnected, this, _1);
     udtConfig.Port = config.Port;
     Server.reset(new NUdt::TServer(udtConfig));
     NHttpServer::TSettings httpConfig(config.AdminPort);
@@ -52,9 +53,30 @@ void TServer::PrintClientStatus(const std::string& client, std::ostream& out) {
 bool TServer::OnClientConnected(const TNetworkAddress& addr) {
     // todo: some ip filtering here
     TClientRef client = make_shared<TClient>(addr);
+    OnClientDisconnected(addr);
     assert(Clients.find(addr) == Clients.end());
     Clients[addr] = client;
     return true;
+}
+
+void TServer::OnClientDisconnected(const TNetworkAddress& addr) {
+    auto cliIt = Clients.find(addr);
+    TClientRef cli;
+    if (cliIt != Clients.end()) {
+        cli = cliIt->second;
+        Clients.erase(cliIt);
+    }
+    if (!cli || cli->Login.empty()) {
+        return;
+    }
+    auto cliByLoginIt = ClientsByLogin.find(cli->Login);
+    if (cliByLoginIt == ClientsByLogin.end()) {
+        return;
+    }
+    TClientRef cliByLogin = cliByLoginIt->second;
+    if (cliByLogin->Address == cli->Address) {
+        ClientsByLogin.erase(cliByLoginIt);
+    }
 }
 
 void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
