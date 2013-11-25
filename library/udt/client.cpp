@@ -32,20 +32,42 @@ public:
         }
     }
 
-    inline void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
+    inline TNetworkAddress GetLocalAddress() {
+        struct sockaddr_in localaddr;
+        int len;
+        if (UDT::ERROR == UDT::getsockname(Socket, (sockaddr*)&localaddr, &len)) {
+            throw UException(string("failed to get local addr: ") + UDT::getlasterror().getErrorMessage());
+        }
+        return localaddr;
+    }
+
+    inline void Connect(TNetworkAddress address, ui16 localPort, bool overNat) {
         if (CurrentConnection.is_initialized()) {
+            if (localPort == 0 && overNat) {
+                localPort = GetLocalAddress().Port;
+            }
             SetAsyncMode(false);
             UDT::close(Socket); // todo: process connection close error
+            Socket = UDT::socket(AF_INET, SOCK_STREAM, 0);
             CurrentConnection = boost::optional<TNetworkAddress>();
             Done = true;
-            WorkerThreadHolder->join();
             UDT::epoll_release(MainEid);
         }
+
         if (overNat) {
-            if (!CurrentLocalAddress.is_initialized()) {
-                throw UException("cannot traverse nat cause local address not available");
+            if (localPort == 0) {
+                throw UException("you need to specify local port to traverse nat");
             }
-            UDT::bind(Socket, CurrentLocalAddress->Sockaddr(), CurrentLocalAddress->SockaddrLength());
+            sockaddr_in addr;
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(localPort);
+            addr.sin_addr.s_addr = INADDR_ANY;
+            memset(&(addr.sin_zero), '\0', 8);
+            bool rendezvous = true;
+            UDT::setsockopt(Socket, 0, UDT_RENDEZVOUS, &rendezvous, sizeof(bool));
+            if (UDT::ERROR == UDT::bind(Socket, (sockaddr*)&addr, sizeof(addr))) {
+                throw UException(string("cannot traverse nat: failed to bind: ") + UDT::getlasterror().getErrorMessage());
+            }
         }
         CurrentConnection = address;
 
@@ -56,9 +78,13 @@ public:
         Status = CS_Connecting;
         auto duration = chrono::system_clock::now().time_since_epoch();
         LastActive = chrono::duration_cast<chrono::milliseconds>(duration);
-        UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength());
+        if (UDT::ERROR == UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength())) {
+            throw UException(string("connect error: ") + UDT::getlasterror().getErrorMessage());
+        }
         Done = false;
-        WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        if (!WorkerThreadHolder) {
+            WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        }
     }
     inline void Disconnect(bool waitWorkerThread = true) {
         // todo: ensure that ondisconnected callback will be called
@@ -70,15 +96,26 @@ public:
         //SetAsyncMode(false);
         //UDT::close(Socket);  todo: close socket if required
         UDT::epoll_release(MainEid);
-        Config.ConnectionLostCallback();
+        if (Config.ConnectionLostCallback) {
+            Config.ConnectionLostCallback();
+        } else {
+            cerr << "warning: connection lost callback missing\n";
+        }
     }
 
     inline void Send(const TBuffer& data) {
         if (Status != CS_Connected) {
             throw UException("not connected");
         }
-        UDT::send(Socket, data.Data(), data.Size(), 0);
+        for (size_t i = 0; i <= (data.Size() - 1) / 900; ++i) { // dirty hack to send big messages. otherwise udt fails
+            if (UDT::ERROR == UDT::send(Socket, data.Data() + i * 900,
+                                        std::min(data.Size() - i * 900, (size_t)900), 0))
+            {
+                throw UException(UDT::getlasterror().getErrorMessage());
+            }
+        }
     }
+
 private:
     inline void SetAsyncMode(bool async) {
         if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_SNDSYN, &async, sizeof(bool))) {
@@ -106,7 +143,14 @@ private:
                     if (UDT::ERROR != result) {
                         Config.DataReceivedCallback(TBuffer(buff.data(), result));
                     } else {
-                        // todo: process connection lost and other
+                        if (UDT::getlasterror().getErrorCode() == 5004 ||
+                            UDT::getlasterror().getErrorCode() == 2001)
+                        {
+                            UDT::close(*it);
+                            Disconnect();
+                        } else {
+                            cerr << "warning: unhandled event\n";
+                        }
                     }
                 }
             }
@@ -125,7 +169,6 @@ private:
 private:
     TClientConfig Config;
     boost::optional<TNetworkAddress> CurrentConnection;
-    boost::optional<TNetworkAddress> CurrentLocalAddress;
     UDTSOCKET Socket;
     unique_ptr<thread> WorkerThreadHolder;
     mutex Lock;
@@ -143,8 +186,12 @@ TClient::TClient(const TClientConfig& config)
 TClient::~TClient() {
 }
 
-void TClient::Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback) {
-    Impl->Connect(address, overNat, callback);
+void TClient::Connect(const TNetworkAddress& address, ui16 localPort, bool overNat) {
+    Impl->Connect(address, localPort, overNat);
+}
+
+TNetworkAddress TClient::GetLocalAddress() {
+    return Impl->GetLocalAddress();
 }
 
 void TClient::Disconnect() {

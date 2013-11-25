@@ -11,6 +11,8 @@
 #include <library/udt/client.h>
 #include <library/http_server/server.h>
 
+#include <projects/vocal/vocal_lib/vocal.pb.h>
+
 #include "storage.h"
 
 namespace NVocal {
@@ -27,13 +29,18 @@ enum EClientStatus {
     CS_Registering,
     CS_Logining,
     CS_Authorizing,
+    CS_AuthorizingHelpConnect,
     CS_Authorized
 };
 
+class TClient;
+typedef std::shared_ptr<TClient> TClientRef;
 class TClient {
 public:
     TClient(const TNetworkAddress& address);
+    ~TClient();
     TNetworkAddress Address;
+    boost::optional<TNetworkAddress> PublicAddress;
     EClientStatus Status;
     TClientInfo Info;
     std::string Login;
@@ -42,8 +49,9 @@ public:
     std::string RandomSequence;
     std::string SessionKey;
     TDuration SessionLastSync;
+    std::unordered_map<std::string, TClientRef> FriendConnections;
 };
-typedef std::shared_ptr<TClient> TClientRef;
+
 
 typedef std::function<void()> TCallBack;
 typedef std::function<void(const TBuffer& /*data*/, const std::string& /*host*/)> TPartnerDataCallback;
@@ -76,12 +84,24 @@ public:
     void PrintClientStatus(const std::string& client, std::ostream& out);
 private:
     bool OnClientConnected(const TNetworkAddress& addr);
+    void OnClientDisconnected(const TNetworkAddress& addr);
     void OnDataReceived(const TBuffer& data, const TNetworkAddress& addr);
     void OnServerDataReceived(const TBuffer& data, const std::string& host);
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,
                               const std::string& frndLogin);
-    void OnAddFriendRequest(const std::string& login, const string& frndLogin, const string& pubKey);
+    void SendSetFriendOfflineKeyRequest(const std::string& login,
+                                        const TFriendOfflineKey& offlineKeyPacket);
+    void SendOfflineMessage(const std::string& login,
+                            const string& friendLogin,
+                            const std::string& message);
+    void OnAddFriendRequest(const std::string& login, const string& frndLogin,
+                            const string& pubKey, const string& serverPubKey);
+    void OnFriendOfflineKeyRequest(const string& login, const string& frndLogin,
+                                   const string& offlineKey, const string& offlineKeySignature);
+    void OnOfflineMessageReceived(const std::string& login,
+                                  const std::string& friendLogin,
+                                  const std::string& message);
     void SendToServer(const std::string& host, const std::string& message);
     void SyncMessages(const std::string& login, TDuration from, TDuration to); // thread-safe
     void SyncNewMessages(const std::string& login); // thread-safe

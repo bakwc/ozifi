@@ -9,11 +9,20 @@
 namespace NVocal {
 
 struct TFriendInfo {
+    inline TFriendInfo()
+        : NeedOfflineKey(false)
+    {
+    }
     std::string Login;
     std::string PublicKey;
-    std::string EncryptedKey;
+    std::string ServerPublicKey;
+    // keys for offline messages
+    std::string EncryptedKey;    // ourself keys, encrypted symmetrically with our password
+    std::string OfflineKey;      // friends key, encrypted assymetrically with our private key
+    std::string OfflineKeySignature; // friends offline key signature
     EFriendType Type;
     EAuthStatus AuthStatus;
+    bool NeedOfflineKey;
 };
 
 typedef std::unordered_map<std::string, TFriendInfo> TFriendList;

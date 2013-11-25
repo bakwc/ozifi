@@ -22,15 +22,22 @@ TClientInfoStorage::~TClientInfoStorage() {
 void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
     TClientInfoData data;
     data.set_login(clientInfo.Login);
-    data.set_publickkey(clientInfo.PublicKey);
     data.set_encryptedprivatekey(clientInfo.EncryptedPrivateKey);
     data.set_loginpasswordhash(clientInfo.LoginPasswordHash);
+    data.set_publickey(clientInfo.PublicKey);
     for (auto& frnd: clientInfo.Friends) {
         TFriendInfoData* friendData = data.add_friends();
         friendData->set_login(frnd.second.Login);
         friendData->set_encryptedkey(frnd.second.EncryptedKey);
         friendData->set_type(frnd.second.Type);
         friendData->set_authstatus(frnd.second.AuthStatus);
+        friendData->set_publickey(frnd.second.PublicKey);
+        friendData->set_serverpublickey(frnd.second.ServerPublicKey);
+        if (!frnd.second.OfflineKey.empty()) {
+            assert(!frnd.second.OfflineKeySignature.empty());
+            friendData->set_offlinekey(frnd.second.OfflineKey);
+            friendData->set_offlinekeysignature(frnd.second.OfflineKeySignature);
+        }
     }
     Storage->Put(clientInfo.Login, Compress(data.SerializeAsString()));
 }
@@ -52,7 +59,7 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
     result.Login = data.login();
     result.EncryptedPrivateKey = data.encryptedprivatekey();
     result.LoginPasswordHash = data.loginpasswordhash();
-    result.PublicKey = data.publickkey();
+    result.PublicKey = data.publickey();
     for (size_t i = 0; i < data.friends_size(); ++i) {
         const TFriendInfoData& frnd = data.friends(i);
         TFriendInfo& friendInfo = result.Friends[frnd.login()];
@@ -60,6 +67,13 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
         friendInfo.EncryptedKey = frnd.encryptedkey();
         friendInfo.Type = frnd.type();
         friendInfo.AuthStatus = (EAuthStatus)frnd.authstatus();
+        friendInfo.PublicKey = frnd.publickey();
+        friendInfo.ServerPublicKey = frnd.serverpublickey();
+        if (frnd.has_offlinekey()) {
+            assert(frnd.has_offlinekeysignature());
+            friendInfo.OfflineKey = frnd.offlinekey();
+            friendInfo.OfflineKeySignature = frnd.offlinekeysignature();
+        }
     }
     return result;
 }
@@ -77,14 +91,13 @@ TMessageStorage::~TMessageStorage() {
 
 void TMessageStorage::Put(const string& login,
                           const string& encryptedMessage,
-                          chrono::microseconds date)
+                          TDuration date)
 {
     TMessageData message;
     message.set_login(login);
-    message.set_date(date.count());
+    message.set_date(date.GetValue());
     message.set_encryptedmessage(encryptedMessage);
-
-    string key = login + ToString(date.count()) + ToString(LittleHash(encryptedMessage));
+    string key = login + ToString(date.GetValue()) + ToString(LittleHash(encryptedMessage));
     Storage->Put(key, Compress(message.SerializeAsString()));
 }
 

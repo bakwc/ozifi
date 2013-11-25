@@ -5,12 +5,26 @@
 #include <functional>
 #include <boost/array.hpp>
 
+#include <utils/date_time.h>
+#include <utils/cast.h>
+#include <utils/pack.h>
+
+#include <projects/vocal/vocal_lib/crypto.h>
+
+namespace NVocal {
+
 struct TMessage {
-    std::string Message;
+    std::string Text;
     std::string From;                       // sender login
     std::string To;                         // destination login or chat id
-    std::chrono::microseconds Timestamp;    // sender timestamp (consider is real; auto-synced with server)
-    boost::array<char, 16> UID;             // random id
+    TDuration Time;                         // sender timestamp (consider is real; auto-synced with server)
+    inline std::string CalcSignature() const {
+        ui64 hash = LittleHash(Text + From + To);
+        ui64 time = Time.GetValue();
+        return Pack(time) + Pack(hash);
+    }
 };
 
-typedef std::function<void(const std::string&, const TMessage&)> TMessageCallback;
+typedef std::function<void(const TMessage&)> TMessageCallback;
+
+} // NVocal

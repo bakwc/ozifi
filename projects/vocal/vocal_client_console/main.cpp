@@ -41,6 +41,7 @@ public:
         config.ConnectedCallback = std::bind(&TVocaConsa::OnConnected, this, _1);
         config.FriendRequestCallback = std::bind(&TVocaConsa::OnFriendRequest, this, _1);
         config.FriendlistChangedCallback = std::bind(&TVocaConsa::ShowFriends, this);
+        config.MessageCallback =std::bind(&TVocaConsa::OnMessageReceived, this, _1);
         config.StateDir = "data";
         Client.reset(new TClient(config));
         AuthorizationMenu();
@@ -155,12 +156,12 @@ public:
         cerr << "ShowFriend()\n";
         TFriendIterator it;
         for (it = Client->FriendsBegin(); it != Client->FriendsEnd(); ++it) {
-            TFriend& frnd = it->second;
-            cout << FriendStatusToChar(frnd.GetStatus()) << " ";
-            if (!frnd.GetName().empty()) {
-                cout << frnd.GetName() << " (" << frnd.GetLogin() << ")";
+            TFriendRef& frnd = it->second;
+            cout << FriendStatusToChar(frnd->GetStatus()) << " ";
+            if (!frnd->GetName().empty()) {
+                cout << frnd->GetName() << " (" << frnd->GetLogin() << ")";
             } else {
-                cout << frnd.GetLogin();
+                cout << frnd->GetLogin();
             }
             cout << "\n";
         }
@@ -171,16 +172,21 @@ public:
         string message;
         cout << "friend login: ";
         cin >> friendLogin;
-        TFriend& frnd = Client->GetFriend(friendLogin);
+        std::getline(cin, message);
+        TFriendRef frnd = Client->GetFriend(friendLogin);
         forever {
-            cin >> message;
+            std::getline(cin, message);
             if (message.empty()) {
                 break;
             }
-            frnd.SendMssg(message);
+            frnd->SendMessage(message);
         }
     }
-
+    void OnMessageReceived(const TMessage& message) {
+        if (message.From != Client->GetFullLogin()) {
+            cout << message.From << ": " << message.Text << "\n" << flush;
+        }
+    }
 private:
     unique_ptr<TClient> Client;
     unique_ptr<thread> MainThreadPtr;

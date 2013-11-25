@@ -29,7 +29,7 @@ public:
     ~TMessageStorage();
     void Put(const std::string& login,
              const std::string& encryptedMessage,
-             std::chrono::microseconds date);
+             TDuration date);
     TStringVector GetMessages(const std::string& login,
                               TDuration from,
                               TDuration to);

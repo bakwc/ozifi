@@ -75,15 +75,15 @@ public:
         if (UDT::ERROR == UDT::bind(Socket, (sockaddr*)&addr, sizeof(addr))) {
             throw UException(string("udt: failed to bind socket: ") + UDT::getlasterror().getErrorMessage());
         }
+        if (UDT::ERROR == UDT::listen(Socket, config.MaxConnections)) {
+            throw UException(string("udt: failed to listen: ") + UDT::getlasterror().getErrorMessage());
+        }
         bool block = false;
         if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_SNDSYN, &block, sizeof(bool))) {
             throw UException(string("udt: failed to disable SNDSYN: ") + UDT::getlasterror().getErrorMessage());
         }
         if (UDT::ERROR == UDT::setsockopt(Socket, 0, UDT_RCVSYN, &block, sizeof(bool))) {
             throw UException(string("udt: failed to disable SCVSYN: ") + UDT::getlasterror().getErrorMessage());
-        }
-        if (UDT::ERROR == UDT::listen(Socket, config.MaxConnections)) {
-            throw UException(string("udt: failed to listen: ") + UDT::getlasterror().getErrorMessage());
         }
         MainEid = UDT::epoll_create();
         WorkerThreadHolder.reset(new thread(std::bind(&TServerImpl::WorkerThread, this)));
@@ -113,6 +113,7 @@ public:
         assert(data.Size() == result && "sended not all bytes");
         return true;
     }
+
     void DisconnectClient(const TNetworkAddress& client) {
         // todo: drop client
     }
@@ -123,15 +124,32 @@ public:
             UDT::epoll_wait(MainEid, &eventedSockets, NULL, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 int result = UDT::recv(*it, buff.data(), 1024, 0);
+                TNetworkAddress clientAddr;
+                {
+                    lock_guard<mutex> guard(Lock);
+                    clientAddr = Clients.Get(*it)->Address;
+                }
                 if (UDT::ERROR != result) {
-                    TNetworkAddress clientAddr;
-                    {
-                        lock_guard<mutex> guard(Lock);
-                        clientAddr = Clients.Get(*it)->Address;
+
+                    if (Config.DataReceivedCallback) {
+                        Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
+                    } else {
+                        cerr << "warning: data callback missing\n";
                     }
-                    Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
                 } else {
-                    // todo: process connection lost and other
+                    if (UDT::getlasterror().getErrorCode() == 5004 ||
+                        UDT::getlasterror().getErrorCode() == 2001)
+                    {
+                        UDT::epoll_remove_usock(MainEid, *it);
+                        UDT::close(*it);
+                        if (Config.ConnectionLostCallback) {
+                            Config.ConnectionLostCallback(clientAddr);
+                        } else {
+                            cerr << "warning: connection lost callback missing\n";
+                        }
+                    } else {
+                        cerr << "error: " << UDT::getlasterror().getErrorMessage() << "\n";
+                    }
                 }
             }
         }
@@ -147,13 +165,16 @@ public:
                 int clientAddrLen;
                 UDTSOCKET clientSocket = UDT::accept(Socket, (sockaddr*)&clientAddr, &clientAddrLen);
                 if (clientSocket != UDT::INVALID_SOCK) {
-                    TNetworkAddress addr(*(ui32*)(&clientAddr.sin_addr.s_addr), clientAddr.sin_port);
-                    if (Config.NewConnectionCallback(addr)) {
-                        {
+                    TNetworkAddress addr(clientAddr);
+                    if (!Config.NewConnectionCallback || Config.NewConnectionCallback(addr)) {
+                        { 
                             lock_guard<mutex> guard(Lock);
                             Clients.Insert(make_shared<TClient>(clientSocket, addr));
                         }
                         UDT::epoll_add_usock(MainEid, clientSocket);
+                        if (Config.ConnectionAcceptedCallback) {
+                            Config.ConnectionAcceptedCallback(addr);
+                        }
                     } else {
                         UDT::close(clientSocket);
                     }
@@ -188,6 +209,12 @@ void TServer::DisconnectClient(const TNetworkAddress& client) {
 }
 
 TServer::~TServer()
+{
+}
+
+TServerConfig::TServerConfig()
+    : Port(0)
+    , MaxConnections(1024)
 {
 }
 

@@ -46,6 +46,28 @@ message TServerAuthorizeRequest {
 message TClientAuthorizeRequest {
     required string Login = 1;
     required bytes RandomSequenceHash = 2;
+    required bytes RandomSequenceHashSignature = 3;
+}
+
+message TClientConnectHelpAuthorizeRequest {
+    required string Login = 1;
+    required string FriendLogin = 2;
+    required bytes RandomSequenceHash = 3;
+    required bytes RandomSequenceHashSignature = 4;
+    required bool AcceptingConnection = 5;
+    optional string PublicAddress = 6;  // nat-pmp detected address
+}
+
+enum EConnectionType {
+    CTP_NatTraversal = 1;
+    CTP_Listen = 2;
+    CTP_Connect = 3;
+    CTP_Offline = 4;
+}
+
+message TServerConnectHelpRequest {
+    required EConnectionType ConnectionType = 1;
+    optional string Address = 2;
 }
 
 message TAddFriendRequest {
@@ -53,8 +75,14 @@ message TAddFriendRequest {
     required bytes EncryptedKey = 2;
 }
 
+message TDirectionedMessage {
+    required string Login = 1;
+    required bytes Message = 2;
+    required bool Incoming = 3;
+}
+
 message TClientSyncPacket {
-    repeated bytes EncryptedMessages = 1;
+    repeated TDirectionedMessage EncryptedMessages = 1;
     required uint64 From = 2;
     required uint64 To = 3;
 }
@@ -63,8 +91,42 @@ message TSyncFriend {
     required string Login = 1;
     required uint32 Status = 2;
     required bytes EncryptedKey = 3;
+    required bytes PublicKey = 4;
+    required bytes ServerPublicKey = 5;
+    optional bytes OfflineKey = 6;
+    optional bytes OfflineKeySignature = 7;
+    optional bool NeedOfflineKey = 8;
 }
 
 message TClientSyncInfoPacket {
     repeated TSyncFriend Friends = 1;
+}
+
+message TFriendRandomSequenceConfirm {
+    required bytes RandomSequenceHash = 1;
+    required bytes Signature = 2;
+    required bytes SessionKey = 4;
+}
+
+message TFriendOfflineKey {
+    required string Login = 1;
+    required bytes OfflineKey = 2;
+    required bytes OfflineKeySignature = 3;
+}
+
+message TOfflineMessage {
+    required string FriendLogin = 1;
+    required bytes EncryptedMessage = 2;
+}
+
+message TSyncMessagesRequest {
+    required uint64 From = 1;
+    required uint64 To = 2;
+}
+
+message TMessagePacket {
+    required string From = 1;
+    required string To = 2;
+    required uint64 Time = 3;
+    required string Text = 4;
 }

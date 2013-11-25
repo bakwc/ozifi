@@ -54,9 +54,12 @@ struct TClientConfig {
     TCallBack FriendlistChangedCallback;        // on friendlist changed
 };
 
+class TNatPmp;
 class TClient {
+    friend class TFriend;
 public:
     TClient(const TClientConfig& config);
+    ~TClient();
     EClientState GetState();
 
     // connection
@@ -73,7 +76,7 @@ public:
     // friends
     void AddFriend(const std::string& friendLogin);
     void RemoveFriend(const std::string& friendLogin);  // remove friend from friendlist
-    TFriend& GetFriend(const std::string& login);       // friend by login
+    TFriendRef GetFriend(const std::string& login);     // friend by login
     TFriendIterator FriendsBegin();                     // use it to iterate over friends
     TFriendIterator FriendsEnd();
 
@@ -86,21 +89,34 @@ public:
 
     bool HasConnectData();                              // check if has keys, host address and other
                                                         // data, required for connection
+    std::string GetFullLogin();
+protected:
+    std::string GetLogin();
+    std::string GetPublicKey();
+    std::string GetPrivateKey();
+    std::string GetHost();
+    bool HasNatPmp();
+    TNatPmp& GetNatPmp();
+    TDuration GetTime();
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
-    void OnEncryptedMessageReceived(const std::string& message);
     void OnDisconnected();
     void ForceDisconnect();
     void LoadState();
     void SaveState();
+    void ConnectWithFriends();
+    void OnFriendStatusChanged(TFriend&);
+    void OnMessageReceived(const TMessage& message);
+    void SendOfflineMessage(const std::string& friendLogin, const TBuffer& data);
 private:
     EClientState CurrentState;
     std::string StateDir;
     TClientConfig Config;
     TFriends Friends;
     TConferences Conferences;
-    std::unique_ptr<NUdt::TClient> Client;
+    std::unique_ptr<NUdt::TClient> UdtClient;
+    std::unique_ptr<TNatPmp> NatPmp;
     TClientState State;
     std::string Buffer;
     std::mutex Lock;

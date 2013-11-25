@@ -29,7 +29,8 @@ class TClient {
 public:
     TClient(const TClientConfig& config);
     ~TClient();
-    void Connect(const TNetworkAddress& address, bool overNat, TConnectionCallback callback);
+    void Connect(const TNetworkAddress& address, ui16 localPort = 0, bool overNat = false);
+    TNetworkAddress GetLocalAddress();
     void Disconnect();
     void Send(const TBuffer& data);
 private:
