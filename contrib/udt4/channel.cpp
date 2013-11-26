@@ -170,7 +170,7 @@ void CChannel::setUDPSockOpt()
       int opts = ::fcntl(m_iSocket, F_GETFL);
       if (-1 == ::fcntl(m_iSocket, F_SETFL, opts | O_NONBLOCK))
          throw CUDTException(1, 3, NET_ERROR);
-   #elif WIN32
+   #elif __WIN32__
       DWORD ot = 1; //milliseconds
       if (0 != ::setsockopt(m_iSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&ot, sizeof(DWORD)))
          throw CUDTException(1, 3, NET_ERROR);
