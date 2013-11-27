@@ -1,7 +1,7 @@
 #ifndef __DECLSPEC_H__
 #define __DECLSPEC_H__
 
-#if defined(WIN32) && !defined(STATICLIB)
+#if defined(__WIN32__) && !defined(STATICLIB)
 	#ifdef NATPMP_EXPORTS
 		#define LIBSPEC __declspec(dllexport)
 	#else

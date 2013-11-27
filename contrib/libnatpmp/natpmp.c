@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if !defined(_MSC_VER)
 #include <sys/time.h>
 #endif
-#ifdef WIN32
+#ifdef __WIN32__
 #include <errno.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 LIBSPEC int initnatpmp(natpmp_t * p, int forcegw, in_addr_t forcedgw)
 {
-#ifdef WIN32
+#ifdef __WIN32__
 	u_long ioctlArg = 1;
 #else
 	int flags;
@@ -69,7 +69,7 @@ LIBSPEC int initnatpmp(natpmp_t * p, int forcegw, in_addr_t forcedgw)
 	p->s = socket(PF_INET, SOCK_DGRAM, 0);
 	if(p->s < 0)
 		return NATPMP_ERR_SOCKETERROR;
-#ifdef WIN32
+#ifdef __WIN32__
 	if(ioctlsocket(p->s, FIONBIO, &ioctlArg) == SOCKET_ERROR)
 		return NATPMP_ERR_FCNTLERROR;
 #else
@@ -196,7 +196,7 @@ LIBSPEC int readnatpmpresponse(natpmp_t * p, natpmpresp_t * response)
 	n = recvfrom(p->s, buf, sizeof(buf), 0,
 	             (struct sockaddr *)&addr, &addrlen);
 	if(n<0)
-#ifdef WIN32
+#ifdef __WIN32__
 		switch(WSAGetLastError()) {
 #else
 		switch(errno) {
@@ -257,7 +257,7 @@ LIBSPEC int readnatpmpresponse(natpmp_t * p, natpmpresp_t * response)
 	return n;
 }
 
-int readnatpmpresponseorretry(natpmp_t * p, natpmpresp_t * response)
+LIBSPEC int readnatpmpresponseorretry(natpmp_t * p, natpmpresp_t * response)
 {
 	int n;
 	if(!p || !response)
@@ -311,7 +311,7 @@ LIBSPEC const char * strnatpmperr(int r)
 		s = "cannot get default gateway ip address";
 		break;
 	case NATPMP_ERR_CLOSEERR:
-#ifdef WIN32
+#ifdef __WIN32__
 		s = "closesocket() failed";
 #else
 		s = "close() failed";

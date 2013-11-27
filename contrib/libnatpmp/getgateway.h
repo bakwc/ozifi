@@ -29,7 +29,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef __GETGATEWAY_H__
 #define __GETGATEWAY_H__
 
-#ifdef WIN32
+#ifdef __WIN32__
 #if !defined(_MSC_VER) || _MSC_VER >= 1600
 #include <stdint.h>
 #else

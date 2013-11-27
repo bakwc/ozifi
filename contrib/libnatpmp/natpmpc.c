@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #else
 #include <unistd.h>
 #endif
-#ifdef WIN32
+#ifdef __WIN32__
 #include <winsock2.h>
 #else
 #include <netinet/in.h>

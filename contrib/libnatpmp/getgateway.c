@@ -29,7 +29,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 #include <stdio.h>
 #include <ctype.h>
-#ifndef WIN32
+#ifndef __WIN32__
 #include <netinet/in.h>
 #endif
 #if !defined(_MSC_VER)
@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #undef USE_SYSCTL_NET_ROUTE
 #endif
 
-#ifdef WIN32
+#ifdef __WIN32__
 #undef USE_PROC_NET_ROUTE
 #undef USE_SOCKET_ROUTE
 #undef USE_SYSCTL_NET_ROUTE
@@ -122,7 +122,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "getgateway.h"
 
-#ifndef WIN32
+#ifndef __WIN32__
 #define SUCCESS (0)
 #define FAILED  (-1)
 #endif
