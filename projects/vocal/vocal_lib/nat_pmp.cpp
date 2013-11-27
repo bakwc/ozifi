@@ -1,7 +1,6 @@
 #include <thread>
 #include <utils/exception.h>
-#include <contrib/libnatpmp/getgateway.h>
-
+#include <stdint.h>
 #include "nat_pmp.h"
 
 namespace NVocal {

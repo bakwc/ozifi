@@ -46,6 +46,12 @@ typedef unsigned short uint16_t;
  * return value :
  *    0 : success
  *   -1 : failure    */
-LIBSPEC int getdefaultgateway(in_addr_t * addr);
+#ifdef __cplusplus
+extern "C" {
+#endif
+int getdefaultgateway(in_addr_t * addr);
+#ifdef __cplusplus
+}
+#endif
 
 #endif

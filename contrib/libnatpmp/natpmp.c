@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "getgateway.h"
 #include <stdio.h>
 
+
 LIBSPEC int initnatpmp(natpmp_t * p, int forcegw, in_addr_t forcedgw)
 {
 #ifdef __WIN32__
@@ -185,7 +186,7 @@ LIBSPEC int sendnewportmappingrequest(natpmp_t * p, int protocol,
 	return sendnatpmprequest(p);
 }
 
-LIBSPEC int readnatpmpresponse(natpmp_t * p, natpmpresp_t * response)
+int readnatpmpresponse(natpmp_t * p, natpmpresp_t * response)
 {
 	unsigned char buf[16];
 	struct sockaddr_in addr;
