@@ -19,6 +19,10 @@ namespace NVocal {
 TFriend::TFriend(TClient* client)
     : Status(FS_Unauthorized)
     , ConnectionStatus(COS_Offline)
+	, ToDelete(false)
+	, SelfAuthorized(false)
+	, FriendAuthorized(false)
+	, AcceptingConnection(false)
     , Client(client)
 {
 }
