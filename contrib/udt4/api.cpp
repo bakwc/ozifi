@@ -1180,6 +1180,10 @@ CUDTSocket* CUDTUnited::locate(const sockaddr* peer, const UDTSOCKET id, int32_t
 
 void CUDTUnited::checkBrokenSockets()
 {
+    // Wat windows bug o_O
+   #ifdef __WIN32__
+   return;
+   #endif
    CGuard cg(m_ControlLock);
 
    // set of sockets To Be Closed and To Be Removed
