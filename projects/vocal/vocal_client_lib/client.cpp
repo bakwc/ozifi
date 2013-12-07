@@ -305,9 +305,11 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     const TSyncFriend& frnd = packet.friends(i);
                     auto frndIt = Friends.find(frnd.login());
                     TFriendRef currentFrnd;
+                    bool friendAdded = false;
                     if (frndIt == Friends.end()) {
                         // todo: refactor syncing
                         friendListUpdated = true;
+                        friendAdded = true;
                         Friends.insert(pair<string, TFriendRef>(frnd.login(), make_shared<TFriend>(this)));
                         currentFrnd = Friends[frnd.login()];
                         currentFrnd->FullLogin = frnd.login();
@@ -378,6 +380,10 @@ void TClient::OnDataReceived(const TBuffer& data) {
                     }
 
                     currentFrnd->ToDelete = false;
+                    if (friendAdded && Config.OnFriendAdded) {
+                        Config.OnFriendAdded(currentFrnd);
+                    }
+
                     if (frnd.has_needofflinekey() && frnd.needofflinekey()) {
                         string response;
                         response.resize(1);
@@ -397,13 +403,17 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 for (TFriendIterator it = Friends.begin(); it != Friends.end();) {
                     TFriendRef& frnd = it->second;
                     if (frnd->ToDelete) {
+                        friendListUpdated = true;
+                        if (Config.OnFriendRemoved) {
+                            Config.OnFriendRemoved(frnd);
+                        }
                         it = Friends.erase(it);
                     } else {
                         frnd->Connect();
                         ++it;
                     }
                 }
-                if (friendListUpdated) {
+                if (friendListUpdated && Config.FriendlistChangedCallback) {
                     Config.FriendlistChangedCallback();
                 }
             } break;
@@ -594,6 +604,10 @@ void TClient::Register(const std::string& preferedPassword,
     UdtClient->Send(Serialize(data));
 }
 
+size_t TClient::FriendsSize() {
+    return Friends.size();
+}
+
 void TClient::AddFriend(const std::string& friendLogin) {
     if (CurrentState != CS_Connected) {
         throw UException("not connected");
@@ -605,8 +619,14 @@ void TClient::AddFriend(const std::string& friendLogin) {
     request.set_encryptedkey(EncryptSymmetrical(GenerateKey(State.privatekey()), friendKey));
     message += request.SerializeAsString();
     UdtClient->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
-    Friends.insert(pair<string, TFriendRef>(friendLogin, make_shared<TFriend>(this, friendLogin, FS_Unauthorized)));
-    Config.FriendlistChangedCallback();
+    TFriendRef frnd = make_shared<TFriend>(this, friendLogin, FS_Unauthorized);
+    Friends.insert(pair<string, TFriendRef>(friendLogin, frnd));
+    if (Config.OnFriendAdded) {
+        Config.OnFriendAdded(frnd);
+    }
+    if (Config.FriendlistChangedCallback) {
+        Config.FriendlistChangedCallback();
+    }
 }
 
 void TClient::RemoveFriend(const std::string& friendLogin) {
@@ -627,6 +647,10 @@ TFriendIterator TClient::FriendsBegin() {
 
 TFriendIterator TClient::FriendsEnd() {
     return Friends.end();
+}
+
+size_t TClient::ConferencesSize() {
+    return Conferences.size();
 }
 
 // conference

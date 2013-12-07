@@ -1,6 +1,7 @@
 #pragma once
 
 #include "callback.h"
+#include "friend.h"
 
 /** This file contains client config declaration.
  * Client config required to construct client.
@@ -22,7 +23,10 @@ struct TClientConfig {
     TMessageCallback MessageCallback;           // on message received
     TMessageCallback ConferenceMessageCallback; // on conference message received
     TStringCallback FriendRequestCallback;      // on friend request received (friend login)
-    TCallBack FriendlistChangedCallback;        // on friendlist changed
+    TCallBack FriendlistChangedCallback;        // on friendlist changed (optional)
+    TFriendCallback OnFriendAdded;              // on new friend appeared in friendlist (optional)
+    TFriendCallback OnFriendRemoved;            // on friend removed from friendlist (optional)
+    TFriendCallback OnFriendUpdated;            // on friend info updated
 };
 
 } // NVocal

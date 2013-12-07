@@ -20,7 +20,7 @@ const size_t LOGIN_WINDOW_HEIGHT_CAPTCHA = LOGIN_WINDOW_HEIGHT_NOCAPTCHA +
 class TLoginWindow: public QWidget {
     Q_OBJECT
 public:
-    TLoginWindow();
+    explicit TLoginWindow();
     ~TLoginWindow();
 signals:
     void Register(const QString& login);
@@ -30,6 +30,7 @@ signals:
     void DoRegister(const QString& captcha,
                     const QString& password,
                     const QString& email);
+    void Connect();
 public slots:
     void OnBadLogin();
     void OnCaptchaAvailable(QImage image);

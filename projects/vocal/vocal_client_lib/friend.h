@@ -131,5 +131,6 @@ typedef std::shared_ptr<TFriend> TFriendRef;
 
 typedef std::unordered_map<std::string, TFriendRef> TFriends;
 typedef TFriends::iterator TFriendIterator;
+typedef std::function<void(const TFriendRef& frnd)> TFriendCallback;
 
 } // NVocal

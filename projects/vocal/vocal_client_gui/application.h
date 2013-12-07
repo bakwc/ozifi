@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <QApplication>
 #include <QImage>
+#include <QAbstractListModel>
 #include <utils/string.h>
 #include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
@@ -17,6 +18,20 @@ enum EStatus {
     ST_Registering,
     ST_Logining,
     ST_Authorizing
+};
+
+class TFriendListModel: public QAbstractListModel {
+    Q_OBJECT
+public:
+    TFriendListModel(NVocal::TClient& vocalClient);
+    int rowCount(const QModelIndex& parent = QModelIndex()) const;
+    QVariant data(const QModelIndex &index, int role) const;
+    void OnFriendAdded(const NVocal::TFriendRef& frnd);
+    void OnFriendRemoved(const NVocal::TFriendRef& frnd);
+    void OnFriendUpdated(const NVocal::TFriendRef& frnd);
+private:
+    QVector<NVocal::TFriendRef> Friends;
+    NVocal::TClient& VocalClient;
 };
 
 class TVocaGuiApp: public QApplication {
@@ -43,8 +58,14 @@ private slots:
                     const QString& password,
                     const QString& email);
 private:
+    void LaunchLogin();                 // Show login window
+    void LaunchMain();                  // Show main window and connect
     void OnSuccesfullyRegistered();
+    void OnFriendAdded(const NVocal::TFriendRef& frnd);
+    void OnFriendRemoved(const NVocal::TFriendRef& frnd);
+    void OnFriendUpdated(const NVocal::TFriendRef& frnd);
 private:
+    std::unique_ptr<TFriendListModel> FriendListModel;
     std::unique_ptr<NVocal::TClient> Client;
     std::unique_ptr<TLoginWindow> LoginWindow;
     std::unique_ptr<TMainWindow> MainWindow;

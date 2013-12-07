@@ -59,6 +59,7 @@ public:
                   const std::string& captcha);
 
     // friends
+    size_t FriendsSize();                               // total number of friends
     void AddFriend(const std::string& friendLogin);     // Send friend add request or accept friend.
     void RemoveFriend(const std::string& friendLogin);  // Remove friend from the friendlist.
     TFriendRef GetFriend(const std::string& login);     // Returns friend by his login.
@@ -66,6 +67,7 @@ public:
     TFriendIterator FriendsEnd();
 
     // conference
+    size_t ConferencesSize();                           // total number of conferences
     void CreateConference();                            // Init new conference creation.
     void LeaveConference(const std::string& id);        // Leaves conference.
     TConference& GetConference(const std::string& id);  // Returns conference by id.

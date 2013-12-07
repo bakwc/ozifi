@@ -7,7 +7,9 @@
 
 #include "login_window.h"
 
-TLoginWindow::TLoginWindow() {
+TLoginWindow::TLoginWindow()
+    : QWidget(NULL)
+{
     qDebug() << Q_FUNC_INFO;
     this->setFixedSize(LOGIN_WINDOW_WIDTH, LOGIN_WINDOW_HEIGHT_NOCAPTCHA);
     this->setGeometry(QDesktopWidget().availableGeometry().center().x() - (this->width() / 2),
@@ -22,7 +24,7 @@ TLoginWindow::TLoginWindow() {
     QLabel* passwordLabel = new QLabel(tr("Password:"), this);
     layout->addWidget(passwordLabel, 1, 0);
 
-    CaptchaImageWidget = new QWidget();
+    CaptchaImageWidget = new QWidget(this);
 
     CaptchaImageWidget->setFixedSize(0, 0);
     layout->addWidget(CaptchaImageWidget, 2, 0, 1, 2);
