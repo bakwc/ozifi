@@ -38,5 +38,4 @@ add_executable (protoc
                     
                     python/python_generator.cc)
 
-target_link_libraries(protoc
-                        protobuf)
+target_link_libraries(protoc protobuf pthread)
