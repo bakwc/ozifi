@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(ozifi)
 
-set(CMAKE_CXX_FLAGS "-std=c++0x -static")
+set(CMAKE_CXX_FLAGS "-std=c++0x")
 
 set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
