@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file>icons/user-available.png</file>
+    <file>icons/user-away.png</file>
+    <file>icons/user-extended-away.png</file>
+    <file>icons/user-offline.png</file>
+</qresource>
+</RCC>

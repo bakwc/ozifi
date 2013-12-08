@@ -20,6 +20,25 @@ enum EStatus {
     ST_Authorizing
 };
 
+enum EFriendStatus {
+    FS_Unauthorized,
+    FS_Offline,
+    FS_Busy,
+    FS_Away,
+    FS_Available,
+
+    FS_Count
+};
+
+Q_STATIC_ASSERT(FS_Count == 5);
+
+struct TFriendData {
+    QString Login;
+    EFriendStatus Status;
+};
+
+Q_DECLARE_METATYPE(TFriendData)
+
 class TFriendListModel: public QAbstractListModel {
     Q_OBJECT
 public:
@@ -34,12 +53,19 @@ private:
     NVocal::TClient& VocalClient;
 };
 
+class TImageStorage { // todo: make singleton
+public:
+    TImageStorage();
+    const QImage& GetStatusImage(EFriendStatus status);
+private:
+    QVector<QImage> StatusImages;
+};
+
 class TVocaGuiApp: public QApplication {
     Q_OBJECT
 public:
     TVocaGuiApp(int& argc, char **argv);
     ~TVocaGuiApp();
-    void AuthorizationMenu();
     void Authorize();
     void OnCaptcha(const TBuffer& data);
     void OnRegistered(NVocal::ERegisterResult res);
@@ -65,6 +91,7 @@ private:
     void OnFriendRemoved(const NVocal::TFriendRef& frnd);
     void OnFriendUpdated(const NVocal::TFriendRef& frnd);
 private:
+    TImageStorage ImageStorage;
     std::unique_ptr<TFriendListModel> FriendListModel;
     std::unique_ptr<NVocal::TClient> Client;
     std::unique_ptr<TLoginWindow> LoginWindow;

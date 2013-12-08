@@ -9,8 +9,11 @@ qt5_wrap_cpp(MOC_SOURCES application.h
                             main_window.h
                             chat_window.h)
 
+qt5_add_resources(MOC_RESOURCES statuses.qrc)
+
 add_executable (vocal_client_gui main.cpp
                                 ${MOC_SOURCES}
+                                ${MOC_RESOURCES}
                                 application.cpp
                                 login_window.cpp
                                 main_window.cpp

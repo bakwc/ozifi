@@ -4,13 +4,12 @@
 
 using namespace std;
 using namespace std::placeholders;
-using namespace NVocal;
 
 TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     : QApplication(argc, argv)
     , Status(ST_None)
 {
-    TClientConfig config;
+    NVocal::TClientConfig config;
     config.CaptchaAvailableCallback = std::bind(&TVocaGuiApp::OnCaptcha, this, _1);
     config.RegisterResultCallback = std::bind(&TVocaGuiApp::OnRegistered, this, _1);
     config.LoginResultCallback = std::bind(&TVocaGuiApp::OnLogined, this, _1);
@@ -19,7 +18,7 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.StateDir = "data";
-    Client.reset(new TClient(config));
+    Client.reset(new NVocal::TClient(config));
     if (Client->HasConnectData()) {
         LaunchMain();
     } else {
@@ -28,24 +27,6 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
 }
 
 TVocaGuiApp::~TVocaGuiApp() {
-}
-
-void TVocaGuiApp::AuthorizationMenu() {
-    cout << "1 - registrationg\n";
-    cout << "2 - login with username & password\n";
-    cout << "3 - login using existing keys\n";
-    string choice;
-    cin >> choice;
-    if (choice == "1") {
-        //Registration();
-    } else if (choice == "2") {
-        //Login();
-    } else if (choice == "3") {
-        //Authorize();
-    } else {
-        cout << "wrong selectiong\n";
-        _exit(42);
-    }
 }
 
 void TVocaGuiApp::Authorize() {
@@ -64,8 +45,8 @@ void TVocaGuiApp::OnCaptcha(const TBuffer& data) {
     emit CaptchaAvailable(captchaImage);
 }
 
-void TVocaGuiApp::OnRegistered(ERegisterResult res) {
-    if (res == RR_Success) {
+void TVocaGuiApp::OnRegistered(NVocal::ERegisterResult res) {
+    if (res == NVocal::RR_Success) {
         OnSuccesfullyRegistered();
     } else {
         QString msg = QString::fromStdString(RegisterResultToString(res));
@@ -73,8 +54,8 @@ void TVocaGuiApp::OnRegistered(ERegisterResult res) {
     }
 }
 
-void TVocaGuiApp::OnLogined(ELoginResult res) {
-    if (res == LR_Success) {
+void TVocaGuiApp::OnLogined(NVocal::ELoginResult res) {
+    if (res == NVocal::LR_Success) {
         OnSuccesfullyRegistered();
     } else {
         QString msg = QString::fromStdString(LoginResultToString(res));
@@ -152,7 +133,7 @@ void TVocaGuiApp::LaunchLogin() {
 
 void TVocaGuiApp::LaunchMain() {
     FriendListModel.reset(new TFriendListModel(*Client));
-    MainWindow.reset(new TMainWindow(FriendListModel.get()));
+    MainWindow.reset(new TMainWindow(&ImageStorage, FriendListModel.get()));
     Client->Connect();
 }
 
@@ -163,27 +144,25 @@ void TVocaGuiApp::OnSuccesfullyRegistered() {
     LaunchMain();
 }
 
-void TVocaGuiApp::OnFriendAdded(const TFriendRef& frnd) {
-    qDebug() << Q_FUNC_INFO;
+void TVocaGuiApp::OnFriendAdded(const NVocal::TFriendRef& frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendAdded(frnd);
     }
 }
 
-void TVocaGuiApp::OnFriendRemoved(const TFriendRef& frnd) {
+void TVocaGuiApp::OnFriendRemoved(const NVocal::TFriendRef& frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendRemoved(frnd);
     }
 }
 
-void TVocaGuiApp::OnFriendUpdated(const TFriendRef& frnd) {
-    qDebug() << Q_FUNC_INFO;
+void TVocaGuiApp::OnFriendUpdated(const NVocal::TFriendRef& frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendUpdated(frnd);
     }
 }
 
-TFriendListModel::TFriendListModel(TClient& vocalClient)
+TFriendListModel::TFriendListModel(NVocal::TClient& vocalClient)
     : VocalClient(vocalClient)
 {
     for (NVocal::TFriendIterator it = VocalClient.FriendsBegin(); it != VocalClient.FriendsEnd(); ++it) {
@@ -193,26 +172,38 @@ TFriendListModel::TFriendListModel(TClient& vocalClient)
 
 
 int TFriendListModel::rowCount(const QModelIndex&) const {
-    qDebug() << Q_FUNC_INFO << Friends.size();
     return Friends.size();
 }
 
 QVariant TFriendListModel::data(const QModelIndex& index, int role) const {
-    qDebug() << Q_FUNC_INFO << index.row();
+    QVariant result;
     if (role == Qt::DisplayRole && index.row() < Friends.size()) {
-        return QString::fromStdString(Friends[index.row()]->GetLogin());
+        const NVocal::TFriendRef& frnd = Friends[index.row()];
+        TFriendData frndData;
+        frndData.Login = QString::fromStdString(frnd->GetLogin());
+        switch (frnd->GetStatus()) {
+        case NVocal::FS_AddRequest:
+        case NVocal::FS_Unauthorized: frndData.Status = FS_Unauthorized; break;
+        case NVocal::FS_Offline: frndData.Status = FS_Offline; break;
+        case NVocal::FS_Busy: frndData.Status = FS_Busy; break;
+        case NVocal::FS_Away: frndData.Status = FS_Away; break;
+        case NVocal::FS_Available: frndData.Status = FS_Away; break;
+        default: Q_ASSERT(!"unexpected status");
+        }
+        result.setValue(frndData);
     }
-    return QVariant();
+    return result;
 }
 
-void TFriendListModel::OnFriendAdded(const TFriendRef& frnd) {
+void TFriendListModel::OnFriendAdded(const NVocal::TFriendRef& frnd) {
     qDebug() << Q_FUNC_INFO;
     beginInsertRows(QModelIndex(), Friends.size(), Friends.size());
     Friends.push_back(frnd);
     endInsertRows();
 }
 
-void TFriendListModel::OnFriendRemoved(const TFriendRef& frnd) {
+void TFriendListModel::OnFriendRemoved(const NVocal::TFriendRef& frnd) {
+    qDebug() << Q_FUNC_INFO;
     // todo: rewrite using hash
     for (size_t i = 0; i < Friends.size(); ++i) {
         if (frnd == Friends[i]) {
@@ -224,7 +215,7 @@ void TFriendListModel::OnFriendRemoved(const TFriendRef& frnd) {
     }
 }
 
-void TFriendListModel::OnFriendUpdated(const TFriendRef& frnd) {
+void TFriendListModel::OnFriendUpdated(const NVocal::TFriendRef& frnd) {
     qDebug() << Q_FUNC_INFO;
     // todo: rewrite using hash for quick friend access
     for (size_t i = 0; i < Friends.size(); ++i) {
@@ -233,4 +224,18 @@ void TFriendListModel::OnFriendUpdated(const TFriendRef& frnd) {
             break;
         }
     }
+}
+
+TImageStorage::TImageStorage() {
+    StatusImages.resize(FS_Count);
+    StatusImages[FS_Unauthorized].load(":/icons/user-offline.png");
+    StatusImages[FS_Busy].load(":/icons/user-extended-away.png");
+    StatusImages[FS_Away].load(":/icons/user-away.png");
+    StatusImages[FS_Offline].load(":/icons/user-offline.png");
+    StatusImages[FS_Available].load(":/icons/user-available.png");
+}
+
+const QImage& TImageStorage::GetStatusImage(EFriendStatus status) {
+    Q_ASSERT(status < StatusImages.size() && "no image for status");
+    return StatusImages[status];
 }
