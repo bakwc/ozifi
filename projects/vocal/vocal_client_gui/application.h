@@ -73,6 +73,7 @@ public:
     void OnConnected(bool success);
 signals:
     void BadLogin();
+    void RegistrationSuccess();
     void CaptchaAvailable(QImage image);
     void RegistrationFailed(const QString& message);
 private slots:

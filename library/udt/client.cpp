@@ -81,10 +81,12 @@ public:
         if (UDT::ERROR == UDT::connect(Socket, address.Sockaddr(), address.SockaddrLength())) {
             throw UException(string("connect error: ") + UDT::getlasterror().getErrorMessage());
         }
-        Done = false;
-        if (!WorkerThreadHolder) {
-            WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        Done = true;
+        if (WorkerThreadHolder && WorkerThreadHolder->joinable()) {
+            WorkerThreadHolder->join();
         }
+        WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        Done = false;
     }
     inline void Disconnect(bool waitWorkerThread = true) {
         // todo: ensure that ondisconnected callback will be called
@@ -111,7 +113,7 @@ public:
             if (UDT::ERROR == UDT::send(Socket, data.Data() + i * 900,
                                         std::min(data.Size() - i * 900, (size_t)900), 0))
             {
-                throw UException(UDT::getlasterror().getErrorMessage());
+                throw UException(string("send error: ") + UDT::getlasterror().getErrorMessage());
             }
         }
     }

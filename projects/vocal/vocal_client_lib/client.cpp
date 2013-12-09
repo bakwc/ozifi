@@ -88,6 +88,7 @@ void TClient::OnConnected(bool success) {
     switch (CurrentState) {
     case CS_Logining: {
         if (!success) {
+            ForceDisconnect();
             Config.LoginResultCallback(LR_ConnectionFail);
             return;
         }
@@ -97,6 +98,7 @@ void TClient::OnConnected(bool success) {
     } break;
     case CS_Registering: {
         if (!success) {
+            ForceDisconnect();
             Config.RegisterResultCallback(RR_ConnectionFailure);
             return;
         }
@@ -107,6 +109,8 @@ void TClient::OnConnected(bool success) {
     case CS_Connecting: {
         if (!success) {
             // todo: try to reconnect several times to different servers
+            UdtClient->Disconnect();
+            CurrentState = CS_Disconnected;
             Config.ConnectedCallback(success);
         }
         string data;
@@ -153,8 +157,8 @@ void TClient::OnDataReceived(const TBuffer& data) {
             if (registerResult == RR_Success) {
                 SaveState();
             }
-            Config.RegisterResultCallback(registerResult);
             ForceDisconnect();
+            Config.RegisterResultCallback(registerResult);
             return;
         }
     } break;
@@ -186,6 +190,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 return;
             }
             if (packet.result() != LR_Success) {
+                ForceDisconnect();
                 Config.LoginResultCallback(packet.result());
             } else {
                 assert(packet.has_publickey() && "no public key in packet");
@@ -195,6 +200,7 @@ void TClient::OnDataReceived(const TBuffer& data) {
                 State.set_privatekey(DecryptSymmetrical(GenerateKey(Password), packet.encryptedprivatekey()));
                 Password.clear();
                 SaveState();
+                ForceDisconnect();
                 Config.LoginResultCallback(packet.result());
             }
             ForceDisconnect();
@@ -443,6 +449,7 @@ void TClient::OnDisconnected() {
 void TClient::ForceDisconnect() {
     CurrentState = CS_Disconnecting;
     UdtClient->Disconnect();
+    CurrentState = CS_Disconnected;
 }
 
 EClientState TClient::GetState() {

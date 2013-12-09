@@ -18,6 +18,8 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.StateDir = "data";
+    connect(this, &TVocaGuiApp::RegistrationSuccess,
+            this, &TVocaGuiApp::OnSuccesfullyRegistered);
     Client.reset(new NVocal::TClient(config));
     if (Client->HasConnectData()) {
         LaunchMain();
@@ -47,7 +49,7 @@ void TVocaGuiApp::OnCaptcha(const TBuffer& data) {
 
 void TVocaGuiApp::OnRegistered(NVocal::ERegisterResult res) {
     if (res == NVocal::RR_Success) {
-        OnSuccesfullyRegistered();
+        emit RegistrationSuccess();
     } else {
         QString msg = QString::fromStdString(RegisterResultToString(res));
         emit RegistrationFailed(msg);
@@ -56,7 +58,7 @@ void TVocaGuiApp::OnRegistered(NVocal::ERegisterResult res) {
 
 void TVocaGuiApp::OnLogined(NVocal::ELoginResult res) {
     if (res == NVocal::LR_Success) {
-        OnSuccesfullyRegistered();
+        emit RegistrationSuccess();
     } else {
         QString msg = QString::fromStdString(LoginResultToString(res));
         emit RegistrationFailed(msg);
