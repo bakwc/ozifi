@@ -685,8 +685,8 @@ void TClient::OnFriendStatusChanged(TFriend&) {
 }
 
 void TClient::OnMessageReceived(const TMessage& message) {
-    if (Config.MessageCallback) {
-        Config.MessageCallback(message);
+    if (Config.OnMessageReceived) {
+        Config.OnMessageReceived(message);
     } else {
         cerr << "warning: messagecallback function missing\n";
     }

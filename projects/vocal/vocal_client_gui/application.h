@@ -71,11 +71,13 @@ public:
     void OnRegistered(NVocal::ERegisterResult res);
     void OnLogined(NVocal::ELoginResult res);
     void OnConnected(bool success);
+    void OnMessageReceived(const NVocal::TMessage& message);
 signals:
     void BadLogin();
     void RegistrationSuccess();
     void CaptchaAvailable(QImage image);
     void RegistrationFailed(const QString& message);
+    void MessageReceived(const QString& frndLogin, const QString& message);
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
@@ -97,6 +99,6 @@ private:
     std::unique_ptr<NVocal::TClient> Client;
     std::unique_ptr<TLoginWindow> LoginWindow;
     std::unique_ptr<TMainWindow> MainWindow;
-    std::unordered_map<std::string, std::unique_ptr<TChatWindow> > ChatWindows;
+    std::unique_ptr<TChatWindows> ChatWindows;
     EStatus Status;
 };

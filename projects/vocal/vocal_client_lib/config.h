@@ -20,7 +20,7 @@ struct TClientConfig {
     TNamedCallback ConferenceCallCallback;      // on incoming conference call
     TNamedCallback ConferenceJoinCallback;      // on join to conference
     TNamedCallback ConferenceLeftCallback;      // on conference left
-    TMessageCallback MessageCallback;           // on message received
+    TMessageCallback OnMessageReceived;         // on message received
     TMessageCallback ConferenceMessageCallback; // on conference message received
     TStringCallback FriendRequestCallback;      // on friend request received (friend login)
     TCallBack FriendlistChangedCallback;        // on friendlist changed (optional)

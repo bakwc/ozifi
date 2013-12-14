@@ -41,7 +41,7 @@ public:
         config.ConnectedCallback = std::bind(&TVocaConsa::OnConnected, this, _1);
         config.FriendRequestCallback = std::bind(&TVocaConsa::OnFriendRequest, this, _1);
         config.FriendlistChangedCallback = std::bind(&TVocaConsa::ShowFriends, this);
-        config.MessageCallback =std::bind(&TVocaConsa::OnMessageReceived, this, _1);
+        config.OnMessageReceived =std::bind(&TVocaConsa::OnMessageReceived, this, _1);
         config.StateDir = "data";
         Client.reset(new TClient(config));
         AuthorizationMenu();

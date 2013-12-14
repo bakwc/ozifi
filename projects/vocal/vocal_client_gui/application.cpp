@@ -17,9 +17,13 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendAdded = std::bind(&TVocaGuiApp::OnFriendAdded, this, _1);
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
+    config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
     config.StateDir = "data";
     connect(this, &TVocaGuiApp::RegistrationSuccess,
             this, &TVocaGuiApp::OnSuccesfullyRegistered);
+    ChatWindows.reset(new TChatWindows());
+    connect(this, &TVocaGuiApp::MessageReceived,
+            ChatWindows.get(), &TChatWindows::ShowMessage);
     Client.reset(new NVocal::TClient(config));
     if (Client->HasConnectData()) {
         LaunchMain();
@@ -70,6 +74,12 @@ void TVocaGuiApp::OnConnected(bool success) {
         cout << "failed to authorize\n";
     }
     cout << "authorized\n";
+}
+
+void TVocaGuiApp::OnMessageReceived(const NVocal::TMessage& message) {
+    QString frndLogin = QString::fromStdString(message.From);
+    QString messageText = QString::fromStdString(message.Text);
+    emit MessageReceived(frndLogin, messageText);
 }
 
 void TVocaGuiApp::Register(const QString& login) {
