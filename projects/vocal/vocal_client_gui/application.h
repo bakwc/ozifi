@@ -86,6 +86,7 @@ private slots:
     void DoRegister(const QString& captcha,
                     const QString& password,
                     const QString& email);
+    void SendMessage(const QString& frndLogin, const QString& message);
 private:
     void LaunchLogin();                 // Show login window
     void LaunchMain();                  // Show main window and connect

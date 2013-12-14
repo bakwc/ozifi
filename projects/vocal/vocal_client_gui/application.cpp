@@ -24,6 +24,8 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     ChatWindows.reset(new TChatWindows());
     connect(this, &TVocaGuiApp::MessageReceived,
             ChatWindows.get(), &TChatWindows::ShowMessage);
+    connect(ChatWindows.get(), &TChatWindows::SendMessage,
+            this, &TVocaGuiApp::SendMessage);
     Client.reset(new NVocal::TClient(config));
     if (Client->HasConnectData()) {
         LaunchMain();
@@ -125,6 +127,10 @@ void TVocaGuiApp::DoRegister(const QString& captcha,
     // todo: handle exceptions
 }
 
+void TVocaGuiApp::SendMessage(const QString& frndLogin, const QString& message) {
+    Client->GetFriend(frndLogin.toStdString())->SendMessage(message.toStdString());
+}
+
 void TVocaGuiApp::LaunchLogin() {
     LoginWindow.reset(new TLoginWindow());
     connect(LoginWindow.get(), &TLoginWindow::Register,
@@ -146,6 +152,7 @@ void TVocaGuiApp::LaunchLogin() {
 void TVocaGuiApp::LaunchMain() {
     FriendListModel.reset(new TFriendListModel(*Client));
     MainWindow.reset(new TMainWindow(&ImageStorage, FriendListModel.get()));
+    connect(MainWindow.get(), &TMainWindow::FriendDoubleClicked, ChatWindows.get(), &TChatWindows::ShowChatWindow);
     Client->Connect();
 }
 

@@ -17,8 +17,15 @@ TMainWindow::TMainWindow(TImageStorage* imageStorage, QAbstractItemModel* friend
                        MAIN_WINDOW_WIDTH, MAIN_WINDOW_HEIGHT);
     QVBoxLayout* currentLayout = new QVBoxLayout(this);
     QListView* friendListView = new QListView();
+
     friendListView->setModel(friendListModel);
-    friendListView->setItemDelegate(new TFriendItemDelegate(imageStorage));
+
+    TFriendItemDelegate* delegate = new TFriendItemDelegate(imageStorage);
+    friendListView->setItemDelegate(delegate);
+
+    connect(friendListView, &QListView::doubleClicked, delegate, &TFriendItemDelegate::OnDoubleClick);
+    connect(delegate, &TFriendItemDelegate::FriendDoubleClicked, this, &TMainWindow::FriendDoubleClicked);
+
     currentLayout->addWidget(friendListView);
 
     this->show();
@@ -72,4 +79,13 @@ QSize TFriendItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QM
     QSize size = QStyledItemDelegate::sizeHint(option, index);
     size.setHeight(MIN_FRIEND_ITEM_HEIGHT);
     return size;
+}
+
+void TFriendItemDelegate::OnDoubleClick(const QModelIndex& index) const {
+    qDebug() << Q_FUNC_INFO;
+    if (!index.data().canConvert<TFriendData>()) {
+        return;
+    }
+    TFriendData frnd = index.data().value<TFriendData>();
+    emit FriendDoubleClicked(frnd.Login);
 }
