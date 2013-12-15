@@ -74,13 +74,6 @@ signals:
     void CaptchaAvailable(QImage image);
     void RegistrationFailed(const QString& message);
     void MessageReceived(const QString& frndLogin, const QString& message, bool incoming);
-private:
-    void Authorize();
-    void OnCaptcha(const TBuffer& data);
-    void OnRegistered(NVocal::ERegisterResult res);
-    void OnLogined(NVocal::ELoginResult res);
-    void OnConnected(bool success);
-    void OnMessageReceived(const NVocal::TMessage& message);
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
@@ -91,12 +84,19 @@ private slots:
                     const QString& email);
     void SendMessage(const QString& frndLogin, const QString& message);
 private:
+    void Authorize();
+    void OnCaptcha(const TBuffer& data);
+    void OnRegistered(NVocal::ERegisterResult res);
+    void OnLogined(NVocal::ELoginResult res);
+    void OnConnected(bool success);
+    void OnMessageReceived(const NVocal::TMessage& message);
     void LaunchLogin();                 // Show login window
     void LaunchMain();                  // Show main window and connect
     void OnSuccesfullyRegistered();
-    void OnFriendAdded(const NVocal::TFriendRef& frnd);
-    void OnFriendRemoved(const NVocal::TFriendRef& frnd);
-    void OnFriendUpdated(const NVocal::TFriendRef& frnd);
+    void OnFriendAdded(NVocal::TFriendRef frnd);
+    void OnFriendRemoved(NVocal::TFriendRef frnd);
+    void OnFriendUpdated(NVocal::TFriendRef frnd);
+    void OnCallReceived(NVocal::TFriendRef frnd);
 private:
     TImageStorage ImageStorage;
     std::unique_ptr<TFriendListModel> FriendListModel;

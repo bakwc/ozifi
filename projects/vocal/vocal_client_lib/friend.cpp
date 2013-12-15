@@ -24,6 +24,7 @@ TFriend::TFriend(TClient* client)
 	, FriendAuthorized(false)
 	, AcceptingConnection(false)
     , Client(client)
+    , CallStatus(CAS_NotCalling)
 {
 }
 
@@ -33,6 +34,7 @@ TFriend::TFriend(TClient* client, const string& login, EFriendStatus status)
     , ToDelete(false)
     , ConnectionStatus(COS_Offline)
     , Client(client)
+    , CallStatus(CAS_NotCalling)
 {
 }
 
@@ -146,26 +148,36 @@ void TFriend::SendFile(const std::string& name,
     assert(false && "unimplemented");
 }
 
-void TFriend::StartCall(TDataRequireCallback videoDataRequireCallback,
-               TDataRequireCallback audioDataRequireCallback,
-               TDataCallback audioDataCallback,
-               TDataCallback videoDataCallback,
-               TBoolCallback partnerVideoStatusCallback,
-               bool videoEnabled)
-{
-    assert(false && "unimplemented");
+void TFriend::StartCall(bool videoEnabled) {
+    if (ConnectionStatus != COS_Connected) {
+        throw UException("trying to call when not connected");
+    }
+    if (CallStatus == CAS_NotCalling) {
+        SendEncrypted("", FPT_CallRequest);
+        CallStatus = CAS_WaitingFriendConfirm;
+        VideoEnabled = videoEnabled;
+    } else if (CallStatus == CAS_WaitingSelfConfirm) {
+        // todo: start call session
+        CallStatus = CAS_Established;
+        cerr << " == CALL ESTABLISHED ==\n";
+    }
 }
 
 void TFriend::EnableVideo() {
-    assert(false && "unimplemented");
+    VideoEnabled = true;
 }
 
 void TFriend::DisableVideo() {
-    assert(false && "unimplemented");
+    VideoEnabled = false;
 }
 
 void TFriend::FinishCall() {
-    assert(false && "unimplemented");
+    if (CallStatus == CAS_WaitingSelfConfirm) {
+        SendEncrypted("", FPT_CallDecline);
+        CallStatus = CAS_NotCalling;
+    } else if (CallStatus == CAS_Established) {
+        // todo: terminate call
+    }
 }
 
 // todo: don't try to connect very often
@@ -360,6 +372,15 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                     message.Time = TDuration(messagePacket.time());
                     message.Text = messagePacket.text();
                     OnMessageReceived(message);
+                } break;
+                case FPT_CallRequest: {
+                    if (CallStatus == CAS_NotCalling) {
+                        // todo: call oncall calback
+                        Client->OnCallReceived(shared_from_this());
+                    } else if (CallStatus == CAS_WaitingFriendConfirm) {
+                        CallStatus = CAS_Established;
+                        cerr << " == CALL ESTABLISHED ==\n";
+                    }
                 } break;
                 }
             } break;

@@ -685,6 +685,12 @@ void TClient::OnFriendStatusChanged(TFriendRef frnd) {
     }
 }
 
+void TClient::OnCallReceived(TFriendRef frnd) {
+    if (Config.OnFriendCalled) {
+        Config.OnFriendCalled(frnd);
+    }
+}
+
 void TClient::OnMessageReceived(const TMessage& message) {
     if (Config.OnMessageReceived) {
         Config.OnMessageReceived(message);

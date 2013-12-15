@@ -43,12 +43,21 @@ enum EConnectionStatus {
     COS_Connected
 };
 
+enum ECallStatus {
+    CAS_NotCalling,
+    CAS_WaitingFriendConfirm,
+    CAS_WaitingSelfConfirm,
+    CAS_Established
+};
+
 enum EFriendPacketType {
     FPT_RandomSequence,
     FPT_RandomSequenceConfirm,
     FPT_Encrypted,
     FPT_Authorized,
-    FPT_Message
+    FPT_Message,
+    FPT_CallRequest,
+    FPT_CallDecline
 };
 
 class TFriend;
@@ -69,12 +78,7 @@ public:
     void SendFile(const std::string& name,
                   size_t size,
                   TDataRequireCallback fileDataCallback);
-    void StartCall(TDataRequireCallback videoDataRequireCallback, // same function for accept call
-                   TDataRequireCallback audioDataRequireCallback,
-                   TDataCallback audioDataCallback,
-                   TDataCallback videoDataCallback,
-                   TBoolCallback partnerVideoStatusCallback,
-                   bool videoEnabled);
+    void StartCall(bool videoEnabled);
     void EnableVideo();
     void DisableVideo();
     void FinishCall();
@@ -128,10 +132,14 @@ protected:
     std::string SelfOfflineKey;     // using for encryption
     std::string FriendOfflineKey;   // using for decryption
     std::unordered_set<std::string> PrevMessages;
+    ECallStatus CallStatus;
+    bool VideoEnabled;
 };
 
 typedef std::unordered_map<std::string, TFriendRef> TFriends;
 typedef TFriends::iterator TFriendIterator;
 typedef std::function<void(TFriendRef frnd)> TFriendCallback;
+typedef std::function<void(TFriendRef frnd, bool accepted)> TOnCallResult;
+typedef std::function<void(TFriendRef frnd, const TBuffer& data)> TFriendDataCallback;
 
 } // NVocal

@@ -174,19 +174,19 @@ void TVocaGuiApp::OnSuccesfullyRegistered() {
     LaunchMain();
 }
 
-void TVocaGuiApp::OnFriendAdded(const NVocal::TFriendRef& frnd) {
+void TVocaGuiApp::OnFriendAdded(NVocal::TFriendRef frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendAdded(frnd);
     }
 }
 
-void TVocaGuiApp::OnFriendRemoved(const NVocal::TFriendRef& frnd) {
+void TVocaGuiApp::OnFriendRemoved(NVocal::TFriendRef frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendRemoved(frnd);
     }
 }
 
-void TVocaGuiApp::OnFriendUpdated(const NVocal::TFriendRef& frnd) {
+void TVocaGuiApp::OnFriendUpdated(NVocal::TFriendRef frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendUpdated(frnd);
     }

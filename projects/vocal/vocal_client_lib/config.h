@@ -16,7 +16,6 @@ struct TClientConfig {
     TLoginCallback LoginResultCallback;         // on login failed / success
     TRegisterCallback RegisterResultCallback;   // on register success / fail
     TBoolCallback ConnectedCallback;            // on connection established / failed
-    TNamedCallback CallCallback;                // on incoming call
     TNamedCallback ConferenceCallCallback;      // on incoming conference call
     TNamedCallback ConferenceJoinCallback;      // on join to conference
     TNamedCallback ConferenceLeftCallback;      // on conference left
@@ -27,6 +26,12 @@ struct TClientConfig {
     TFriendCallback OnFriendAdded;              // on new friend appeared in friendlist (optional)
     TFriendCallback OnFriendRemoved;            // on friend removed from friendlist (optional)
     TFriendCallback OnFriendUpdated;            // on friend info updated
+    TFriendCallback OnFriendCalled;             // on incoming call
+    TOnCallResult OnCallResult;                 // on friend accepted / declined call
+    TDataRequireCallback VideoInput;            // callback that provide a video frame
+    TDataRequireCallback AudioInput;            // callback that provide audio data
+    TFriendDataCallback OnVideoAvailable;       // on video available
+    TFriendDataCallback OnAudioReceived;        // on audio data available
 };
 
 } // NVocal
