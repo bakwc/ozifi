@@ -35,6 +35,11 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
 }
 
 TVocaGuiApp::~TVocaGuiApp() {
+    qApp;
+}
+
+QString TVocaGuiApp::SelfLogin() {
+    return QString::fromStdString(Client->GetFullLogin());
 }
 
 void TVocaGuiApp::Authorize() {
@@ -79,9 +84,14 @@ void TVocaGuiApp::OnConnected(bool success) {
 }
 
 void TVocaGuiApp::OnMessageReceived(const NVocal::TMessage& message) {
-    QString frndLogin = QString::fromStdString(message.From);
+    qDebug() << Q_FUNC_INFO;
+    bool incoming = true;
+    if (message.From == Client->GetFullLogin()) { // todo: move to core
+        incoming = false;
+    }
+    QString frndLogin = incoming ? QString::fromStdString(message.From) : QString::fromStdString(message.To);
     QString messageText = QString::fromStdString(message.Text);
-    emit MessageReceived(frndLogin, messageText);
+    emit MessageReceived(frndLogin, messageText, incoming);
 }
 
 void TVocaGuiApp::Register(const QString& login) {
@@ -128,6 +138,7 @@ void TVocaGuiApp::DoRegister(const QString& captcha,
 }
 
 void TVocaGuiApp::SendMessage(const QString& frndLogin, const QString& message) {
+    qDebug() << Q_FUNC_INFO;
     Client->GetFriend(frndLogin.toStdString())->SendMessage(message.toStdString());
 }
 
@@ -206,7 +217,7 @@ QVariant TFriendListModel::data(const QModelIndex& index, int role) const {
         case NVocal::FS_Offline: frndData.Status = FS_Offline; break;
         case NVocal::FS_Busy: frndData.Status = FS_Busy; break;
         case NVocal::FS_Away: frndData.Status = FS_Away; break;
-        case NVocal::FS_Available: frndData.Status = FS_Away; break;
+        case NVocal::FS_Available: frndData.Status = FS_Available; break;
         default: Q_ASSERT(!"unexpected status");
         }
         result.setValue(frndData);
@@ -214,14 +225,14 @@ QVariant TFriendListModel::data(const QModelIndex& index, int role) const {
     return result;
 }
 
-void TFriendListModel::OnFriendAdded(const NVocal::TFriendRef& frnd) {
+void TFriendListModel::OnFriendAdded(NVocal::TFriendRef frnd) {
     qDebug() << Q_FUNC_INFO;
     beginInsertRows(QModelIndex(), Friends.size(), Friends.size());
     Friends.push_back(frnd);
     endInsertRows();
 }
 
-void TFriendListModel::OnFriendRemoved(const NVocal::TFriendRef& frnd) {
+void TFriendListModel::OnFriendRemoved(NVocal::TFriendRef frnd) {
     qDebug() << Q_FUNC_INFO;
     // todo: rewrite using hash
     for (size_t i = 0; i < Friends.size(); ++i) {
@@ -234,7 +245,7 @@ void TFriendListModel::OnFriendRemoved(const NVocal::TFriendRef& frnd) {
     }
 }
 
-void TFriendListModel::OnFriendUpdated(const NVocal::TFriendRef& frnd) {
+void TFriendListModel::OnFriendUpdated(NVocal::TFriendRef frnd) {
     qDebug() << Q_FUNC_INFO;
     // todo: rewrite using hash for quick friend access
     for (size_t i = 0; i < Friends.size(); ++i) {

@@ -67,8 +67,11 @@ void TFriend::SendMessage(const TMessage& message) {
     messagePacket.set_to(message.To);
     messagePacket.set_time(message.Time.GetValue());
     string serializedMessage = messagePacket.SerializeAsString();
-    SendEncrypted(serializedMessage, FPT_Message);
+    if (ConnectionStatus == COS_Connected) { // send direct message only if friend is online
+        SendEncrypted(serializedMessage, FPT_Message);
+    }
     assert(!FriendOfflineKey.empty() && "missing friend offline key");
+    // always send offline message
     Client->SendOfflineMessage(FullLogin, EncryptSymmetrical(FriendOfflineKey, serializedMessage));
 }
 
@@ -102,7 +105,7 @@ void TFriend::SendRaw(const TBuffer& data) {
 void TFriend::UpdateOnlineStatus() {
     if (SelfAuthorized && FriendAuthorized && !IsOnline(Status)) {
         Status = FS_Available;
-        Client->OnFriendStatusChanged(*this);
+        Client->OnFriendStatusChanged(shared_from_this());
     }
 }
 

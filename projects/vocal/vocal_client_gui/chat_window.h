@@ -13,6 +13,8 @@ const size_t CHAT_MESSAGE_HEIGHT = 70;
 
 class TChatMessageEdit: public QTextEdit {
     Q_OBJECT
+public:
+    TChatMessageEdit();
 signals:
     void SendMessage(const QString& message);
 private:
@@ -23,7 +25,7 @@ class TChatWindow: public QWidget {
     Q_OBJECT
 public:
     explicit TChatWindow(const QString& frndLogin);
-    void ShowMessage(const QString& message);
+    void ShowMessage(const QString& message, bool incoming);
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
 private slots:
@@ -42,7 +44,7 @@ class TChatWindows: public QWidget {
 public:
     void ShowChatWindow(const QString& frndLogin);
 public slots:
-    void ShowMessage(const QString& frndLogin, const QString& message);
+    void ShowMessage(const QString& frndLogin, const QString& message, bool incoming);
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
 private:

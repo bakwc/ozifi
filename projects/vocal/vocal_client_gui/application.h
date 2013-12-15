@@ -45,9 +45,9 @@ public:
     TFriendListModel(NVocal::TClient& vocalClient);
     int rowCount(const QModelIndex& parent = QModelIndex()) const;
     QVariant data(const QModelIndex &index, int role) const;
-    void OnFriendAdded(const NVocal::TFriendRef& frnd);
-    void OnFriendRemoved(const NVocal::TFriendRef& frnd);
-    void OnFriendUpdated(const NVocal::TFriendRef& frnd);
+    void OnFriendAdded(NVocal::TFriendRef frnd);
+    void OnFriendRemoved(NVocal::TFriendRef frnd);
+    void OnFriendUpdated(NVocal::TFriendRef frnd);
 private:
     QVector<NVocal::TFriendRef> Friends;
     NVocal::TClient& VocalClient;
@@ -66,18 +66,21 @@ class TVocaGuiApp: public QApplication {
 public:
     TVocaGuiApp(int& argc, char **argv);
     ~TVocaGuiApp();
+public:
+    QString SelfLogin();
+signals:
+    void BadLogin();
+    void RegistrationSuccess();
+    void CaptchaAvailable(QImage image);
+    void RegistrationFailed(const QString& message);
+    void MessageReceived(const QString& frndLogin, const QString& message, bool incoming);
+private:
     void Authorize();
     void OnCaptcha(const TBuffer& data);
     void OnRegistered(NVocal::ERegisterResult res);
     void OnLogined(NVocal::ELoginResult res);
     void OnConnected(bool success);
     void OnMessageReceived(const NVocal::TMessage& message);
-signals:
-    void BadLogin();
-    void RegistrationSuccess();
-    void CaptchaAvailable(QImage image);
-    void RegistrationFailed(const QString& message);
-    void MessageReceived(const QString& frndLogin, const QString& message);
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
@@ -103,3 +106,6 @@ private:
     std::unique_ptr<TChatWindows> ChatWindows;
     EStatus Status;
 };
+
+// VocaGuiApp - pointer to single instance of TVocaGuiApp
+#define VocaGuiApp (static_cast<TVocaGuiApp *>(QCoreApplication::instance()))

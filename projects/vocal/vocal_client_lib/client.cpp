@@ -676,11 +676,12 @@ TConferenceIterator TClient::ConferencesBegin() {
 TConferenceIterator TClient::ConferencesEnd() {
 }
 
-void TClient::OnFriendStatusChanged(TFriend&) {
+void TClient::OnFriendStatusChanged(TFriendRef frnd) {
     if (Config.FriendlistChangedCallback) {
         Config.FriendlistChangedCallback();
-    } else {
-        cerr << "warning: friendlistchanged callback missing\n";
+    }
+    if (Config.OnFriendUpdated) {
+        Config.OnFriendUpdated(frnd);
     }
 }
 

@@ -83,9 +83,21 @@ public:
         }
         Done = true;
         if (WorkerThreadHolder && WorkerThreadHolder->joinable()) {
-            WorkerThreadHolder->join();
+            try {
+                WorkerThreadHolder->join();
+                WorkerThreadHolder.reset(nullptr);
+            } catch (const std::system_error& e) {
+                if (e.code().value() == EDEADLK) { // not joining to ourselves
+                    WorkerThreadHolder->detach();
+                    WorkerThreadHolder.reset(nullptr);
+                } else {
+                    throw;
+                }
+            }
         }
-        WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        if (!WorkerThreadHolder) {
+            WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
+        }
         Done = false;
     }
     inline void Disconnect(bool waitWorkerThread = true) {

@@ -51,8 +51,11 @@ enum EFriendPacketType {
     FPT_Message
 };
 
+class TFriend;
+typedef std::shared_ptr<TFriend> TFriendRef;
+
 class TClient;
-class TFriend {
+class TFriend: public std::enable_shared_from_this<TFriend> {
     friend class TClient;
 public:
     TFriend(TClient* client);
@@ -127,10 +130,8 @@ protected:
     std::unordered_set<std::string> PrevMessages;
 };
 
-typedef std::shared_ptr<TFriend> TFriendRef;
-
 typedef std::unordered_map<std::string, TFriendRef> TFriends;
 typedef TFriends::iterator TFriendIterator;
-typedef std::function<void(const TFriendRef& frnd)> TFriendCallback;
+typedef std::function<void(TFriendRef frnd)> TFriendCallback;
 
 } // NVocal

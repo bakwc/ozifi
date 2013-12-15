@@ -5,13 +5,32 @@
 #include <QDebug>
 
 #include "chat_window.h"
+#include "application.h"
+
+
+// TChatMessageEdit
+
+TChatMessageEdit::TChatMessageEdit() {
+    setReadOnly(false);
+}
+
+void TChatWindow::OnSendMessage(const QString& message) {
+    qDebug() << Q_FUNC_INFO;
+    emit SendMessage(FriendLogin, message);
+}
 
 void TChatMessageEdit::keyPressEvent(QKeyEvent* e){
-    if (e->key() == Qt::Key_Enter) {
+    if (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return) {
+        qDebug() << Q_FUNC_INFO;
         emit SendMessage(this->toPlainText());
         this->clear();
+    } else {
+        QTextEdit::keyPressEvent(e);
     }
 }
+
+
+// TChatWindow
 
 TChatWindow::TChatWindow(const QString& frndLogin)
     : FriendLogin(frndLogin)
@@ -36,28 +55,35 @@ TChatWindow::TChatWindow(const QString& frndLogin)
     this->show();
 }
 
-void TChatWindow::ShowMessage(const QString& message) {
-    qDebug() << Q_FUNC_INFO;
-    Messages.append(FriendLogin + ": " + message);
+void TChatWindow::ShowMessage(const QString& message, bool incoming) {
+    QString messageToDisplay;
+    if (incoming) { // todo: use delegate for rendering purposes
+        messageToDisplay = FriendLogin + ": " + message;
+    } else {
+        messageToDisplay = VocaGuiApp->SelfLogin() + ": " + message;
+    }
+    MessagesModel.insertRow(MessagesModel.rowCount());
+    QModelIndex index = MessagesModel.index(MessagesModel.rowCount() - 1);
+    MessagesModel.setData(index, messageToDisplay);
 }
+
+
+// TChatWindows
 
 void TChatWindows::ShowChatWindow(const QString& frndLogin) {
     CreateWindowIfMissing(frndLogin);
     ChatWindows[frndLogin]->show();
 }
 
-void TChatWindows::ShowMessage(const QString& frndLogin, const QString& message) {
+void TChatWindows::ShowMessage(const QString& frndLogin, const QString& message, bool incoming) {
     CreateWindowIfMissing(frndLogin);
-    ChatWindows[frndLogin]->ShowMessage(message);
+    ChatWindows[frndLogin]->ShowMessage(message, incoming);
 }
 
 void TChatWindows::CreateWindowIfMissing(const QString& frndLogin) {
     if (ChatWindows.find(frndLogin) == ChatWindows.end()) {
-        ChatWindows.insert(frndLogin, std::make_shared<TChatWindow>(frndLogin));
+        TChatWindowRef chatWindow = std::make_shared<TChatWindow>(frndLogin);
+        connect(chatWindow.get(), &TChatWindow::SendMessage, this, &TChatWindows::SendMessage);
+        ChatWindows.insert(frndLogin, chatWindow);
     }
-}
-
-
-void TChatWindow::OnSendMessage(const QString& message) {
-    emit SendMessage(FriendLogin, message);
 }
