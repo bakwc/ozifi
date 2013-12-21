@@ -7,6 +7,10 @@
 #include <QTextEdit>
 #include <memory>
 
+#ifdef SendMessage
+#undef SendMessage
+#endif
+
 const size_t CHAT_WINDOW_WIDTH = 230;
 const size_t CHAT_WINDOW_HEIGHT = 320;
 const size_t CHAT_MESSAGE_HEIGHT = 70;

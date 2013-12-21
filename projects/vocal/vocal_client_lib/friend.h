@@ -12,6 +12,10 @@
 #include "message.h"
 #include "callback.h"
 
+#ifdef SendMessage
+#undef SendMessage
+#endif
+
 namespace NVocal {
 
 enum EFriendStatus {
