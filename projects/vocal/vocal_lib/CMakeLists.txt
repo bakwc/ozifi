@@ -9,4 +9,5 @@ target_link_libraries(vocal_lib utils
                              cryptopp
                              resolver
                              libnatpmp
+                             speex
                              ${Boost_LIBRARIES})
