@@ -8,6 +8,7 @@
 #include <utils/string.h>
 #include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
+#include <QtMultimedia/QtMultimedia>
 
 #include "main_window.h"
 #include "login_window.h"
@@ -97,6 +98,7 @@ private:
     void OnFriendRemoved(NVocal::TFriendRef frnd);
     void OnFriendUpdated(NVocal::TFriendRef frnd);
     void OnCallReceived(NVocal::TFriendRef frnd);
+    std::string OnAudioInput(size_t size);
 private:
     TImageStorage ImageStorage;
     std::unique_ptr<TFriendListModel> FriendListModel;
@@ -104,6 +106,9 @@ private:
     std::unique_ptr<TLoginWindow> LoginWindow;
     std::unique_ptr<TMainWindow> MainWindow;
     std::unique_ptr<TChatWindows> ChatWindows;
+    QAudioFormat AudioFormat;
+    QAudioDeviceInfo AudioDevice;
+    std::unique_ptr<QAudioInput> AudioInput;
     EStatus Status;
 };
 

@@ -1,5 +1,4 @@
 #include <QDebug>
-
 #include "application.h"
 
 using namespace std;
@@ -8,7 +7,21 @@ using namespace std::placeholders;
 TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     : QApplication(argc, argv)
     , Status(ST_None)
+    , AudioDevice(QAudioDeviceInfo::defaultInputDevice())
 {
+    AudioFormat.setSampleRate(32000); //set frequency to 8000
+    AudioFormat.setChannelCount(1); //set channels to mono
+    AudioFormat.setSampleSize(16); //set sample sze to 16 bit
+    AudioFormat.setSampleType(QAudioFormat::UnSignedInt ); //Sample type as usigned integer sample
+    AudioFormat.setByteOrder(QAudioFormat::LittleEndian); //Byte order
+    AudioFormat.setCodec("audio/pcm"); //set codec as simple audio/pcm
+    if (!AudioDevice.isFormatSupported(AudioFormat)) {
+
+        qWarning() << "Default format not supported, trying to use the nearest.";
+        AudioFormat = AudioDevice.nearestFormat(AudioFormat);
+    }
+    AudioInput.reset(new QAudioInput(AudioDevice,AudioFormat));
+
     NVocal::TClientConfig config;
     config.CaptchaAvailableCallback = std::bind(&TVocaGuiApp::OnCaptcha, this, _1);
     config.RegisterResultCallback = std::bind(&TVocaGuiApp::OnRegistered, this, _1);
@@ -18,6 +31,7 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
+    config.AudioInput = std::bind(&TVocaGuiApp::OnAudioInput, this, _1);
     config.StateDir = "data";
     connect(this, &TVocaGuiApp::RegistrationSuccess,
             this, &TVocaGuiApp::OnSuccesfullyRegistered);
@@ -190,6 +204,12 @@ void TVocaGuiApp::OnFriendUpdated(NVocal::TFriendRef frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendUpdated(frnd);
     }
+}
+
+string TVocaGuiApp::OnAudioInput(size_t size) {
+    string data;
+    data.resize(size);
+    return data;
 }
 
 TFriendListModel::TFriendListModel(NVocal::TClient& vocalClient)

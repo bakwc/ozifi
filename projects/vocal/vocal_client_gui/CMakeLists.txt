@@ -1,6 +1,5 @@
 
-add_definitions(${Qt5Widgets_DEFINITIONS})
-set(CMAKE_CXX_FLAGS "-std=c++0x ${Qt5Widgets_EXECUTABLE_COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++0x")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -23,5 +22,6 @@ target_link_libraries(vocal_client_gui
                         udt4
                         udtlib
                         vocal_client_lib
-                        ${Qt5Widgets_LIBRARIES}
                         ${Boost_LIBRARIES})
+
+qt5_use_modules(vocal_client_gui Widgets Multimedia)
