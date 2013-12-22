@@ -1,5 +1,5 @@
 add_subdirectory(vocal_client_lib)
-if (Qt5Widgets_FOUND)
+if (Qt5Core_FOUND)
 add_subdirectory(vocal_client_gui)
 endif()
 add_subdirectory(vocal_client_console)

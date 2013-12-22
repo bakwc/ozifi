@@ -9,7 +9,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 
 find_package(Boost 1.48.0 COMPONENTS locale system filesystem thread chrono REQUIRED)
 
-find_package(Qt5Widgets)
+find_package(Qt5Core)
 
 include_directories(${PROJECT_SOURCE_DIR}/contrib/leveldb/include)
 include_directories(${PROJECT_SOURCE_DIR}

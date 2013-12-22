@@ -116,7 +116,11 @@
    typedef unsigned short spx_uint16_t;
    typedef int spx_int32_t;
    typedef unsigned int spx_uint32_t;
-
+#elif defined(__unix__)
+    typedef short spx_int16_t;
+    typedef unsigned short spx_uint16_t;
+    typedef int spx_int32_t;
+    typedef unsigned int spx_uint32_t;
 #else
 
 #  include <contrib/libspeex/speex_config_types.h>
