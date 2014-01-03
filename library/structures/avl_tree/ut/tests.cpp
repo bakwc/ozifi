@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <map>
 
 #include <library/structures/avl_tree/avl_tree.h>
 
@@ -43,6 +44,18 @@ TEST(avl_tree_simple, setFind) {
 
     it = mset.find(30);
     ASSERT_TRUE(it != mset.end());
+}
+
+TEST(avl_tree_simple, mapSimple) {
+    NAvlTree::map<int, int> mmap;
+    mmap.insert(std::pair<int, int>(10, 40));
+    NAvlTree::map<int, int>::iterator it;
+    it = mmap.find(10);
+    ASSERT_TRUE(it != mmap.end());
+    ASSERT_EQ(it->second, 40);
+    ASSERT_EQ(mmap[10], 40);
+    mmap[30] = 8;
+    ASSERT_EQ(mmap[30], 8);
 }
 
 int main(int argc, char **argv) {

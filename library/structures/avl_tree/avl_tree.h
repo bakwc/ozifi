@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <utility>
 
 namespace NAvlTree {
 
@@ -7,64 +8,88 @@ namespace NAvlTreeInternal {
 
 template<typename K>
 struct TNode {
-    TNode(const K& key) // todo: move semantics here
-        : Key(key)
-        , H(1)
+    TNode()
+        : H(1)
     {
     }
+    virtual K& Key() = 0;
+    virtual ~TNode() {
+    }
 public:
-    K Key;
     size_t H;
     std::shared_ptr<TNode<K> > Left;
     std::shared_ptr<TNode<K> > Right;
     std::shared_ptr<TNode<K> > Parent;
 };
 
-template<typename K, typename V>
-struct TValuedNode: public TNode<K> {
-    TValuedNode(const K& key, const V& value)
-        : TNode<K>(key)
-        , Value(value)
+template<typename K>
+struct TSimpleNode: public TNode<K> {
+    TSimpleNode(const K& key)
+        : StoredKey(key)
     {
     }
+    virtual ~TSimpleNode() {
+    }
+    virtual K& Key() {
+        return StoredKey;
+    }
 public:
-    V Value;
+    K StoredKey;
+};
+
+template<typename K, typename V>
+struct TValuedNode: public TNode<K> {
+    TValuedNode(const std::pair<K, V>& element)
+        : Element(element)
+    {
+    }
+    virtual ~TValuedNode() {
+    }
+    virtual K& Key() {
+        return Element.first;
+    }
+public:
+    std::pair<K, V> Element;
 };
 
 template<typename N, bool IsMulti>
 class TAvlTree {
 public:
-    void Add(N newNode) {
+    bool Add(N newNode) {
         if (!Root) {
             Root = newNode;
-        } else {
-            Insert(Root, newNode);
+            return true;
         }
+        return Insert(Root, newNode);
     }
-    void Insert(N node, N newNode) {
-        if (!IsMulti && node->Key == newNode->Key) {
-            return;
+    bool Insert(N node, N newNode) {
+        bool result = false;
+        if (!IsMulti && node->Key() == newNode->Key()) {
+            return result;
         }
-        if (newNode->Key > node->Key) {
+        if (newNode->Key() > node->Key()) {
             if (!node->Right) {
                 node->Right = newNode;
                 newNode->Parent = node;
                 UpdateHeight(node);
+                result = true;
             } else {
-                Insert(node->Right, newNode);
+                result = Insert(node->Right, newNode);
             }
         } else {
             if (!node->Left) {
                 node->Left = newNode;
                 newNode->Parent = node;
                 UpdateHeight(node);
+                result = true;
             } else {
-                Insert(node->Left, newNode);
+                result = Insert(node->Left, newNode);
             }
         }
         if (node->Parent) {
             Balance(node->Parent);
         }
+        return result;
     }
     void Balance(N node) {
         int leftH = node->Left ? node->Left->H : 0;
@@ -136,10 +161,10 @@ public:
     }
     template<typename K>
     N FindNode(N node, const K& value) {
-        if (!node || node->Key == value) {
+        if (!node || node->Key() == value) {
             return node;
         }
-        if (value > node->Key) {
+        if (value > node->Key()) {
             return FindNode(node->Right, value);
         }
         return FindNode(node->Left, value);
@@ -202,8 +227,9 @@ private:
 
 template <typename K>
 class set {
-    typedef NAvlTreeInternal::TNode<K> TSetNode;
-    typedef std::shared_ptr<TSetNode> TSetNodeRef;
+    typedef NAvlTreeInternal::TNode<K> TNode;
+    typedef NAvlTreeInternal::TSimpleNode<K> TSetNode;
+    typedef std::shared_ptr<TNode> TSetNodeRef;
     typedef NAvlTreeInternal::TAvlTree<TSetNodeRef, false> TTree;
 public:
     class iterator {
@@ -241,15 +267,22 @@ public:
             return *this;
         }
         const K& operator *() const {
-            return Node->Key;
+            return Node->Key();
+        }
+        const K* operator ->() const {
+            return &Node->Key();
         }
     private:
         TSetNodeRef Node;
         TTree* Tree;
     };
 public:
-    void insert(const K& element) {
-        Tree.Add(std::make_shared<TSetNode>(element));
+    std::pair<iterator, bool> insert(const K& element) {
+        TSetNodeRef node = std::make_shared<TSetNode>(element);
+        if (Tree.Add(node)) {
+            return std::pair<iterator, bool>(iterator(&Tree, node), true);
+        }
+        return std::pair<iterator, bool>(iterator(), false);
     }
     iterator find(const K& element) {
         return iterator(&Tree, Tree.Find(element));
@@ -259,6 +292,94 @@ public:
     }
     iterator end() {
         return iterator();
+    }
+private:
+    TTree Tree;
+};
+
+// todo: think about merging same code from set and map
+
+// map
+
+template <typename K, typename V>
+class map {
+    typedef NAvlTreeInternal::TNode<K> TNode;
+    typedef NAvlTreeInternal::TValuedNode<K, V> TMapNode;
+    typedef std::shared_ptr<TNode> TMapNodeRef;
+    typedef NAvlTreeInternal::TAvlTree<TMapNodeRef, false> TTree;
+public:
+    class iterator {
+    public:
+        iterator()
+            : Tree(nullptr)
+        {
+        }
+        iterator(TTree* tree)
+            : Tree(tree)
+        {
+        }
+        iterator(TTree* tree, TMapNodeRef node)
+            : Node(node)
+            , Tree(tree)
+        {
+        }
+        iterator(const iterator& it)
+            : Node(it.Node)
+            , Tree(it.Tree)
+        {
+        }
+        bool operator ==(const iterator& second) const {
+            return Node == second.Node;
+        }
+        bool operator !=(const iterator& second) const {
+            return Node != second.Node;
+        }
+        iterator& operator ++() {
+            Node = Tree->Next(Node);
+            return *this;
+        }
+        iterator& operator --() {
+            Node = Tree->Previous(Node);
+            return *this;
+        }
+        std::pair<K, V>& operator *() {
+            return MapNode()->Element;
+        }
+        std::pair<K, V>* operator ->() {
+            return &MapNode()->Element;
+        }
+    private:
+        TMapNode* MapNode() {
+            return static_cast<TMapNode*>(Node.get());
+        }
+    private:
+        TMapNodeRef Node;
+        TTree* Tree;
+    };
+public:
+    std::pair<iterator, bool> insert(const std::pair<K, V>& element) {
+        TMapNodeRef node = std::make_shared<TMapNode>(element);
+        if (Tree.Add(node)) {
+            return std::pair<iterator, bool>(iterator(&Tree, node), true);
+        }
+        return std::pair<iterator, bool>(iterator(), false);
+    }
+    iterator find(const K& element) {
+        return iterator(&Tree, Tree.Find(element));
+    }
+    iterator begin() {
+        return iterator(&Tree, Tree.FindMin());
+    }
+    iterator end() {
+        return iterator();
+    }
+    V& operator [] (const K& key) {
+        iterator it = find(key);
+        if (it == end()) {
+            std::pair<iterator, bool> inserted = insert(std::pair<K, V>(key, V()));
+            it = inserted.first;
+        }
+        return it->second;
     }
 private:
     TTree Tree;
