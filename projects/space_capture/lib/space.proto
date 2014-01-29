@@ -1,0 +1,44 @@
+package Space;
+
+message TControl {
+    required int32 PlanetFrom = 1;
+    required int32 PlanetTo = 2;
+    required int32 EnergyPercent = 3; // 0 - 100
+    required string PlayerName = 4;
+}
+
+message TPlanet {
+    required int32 ID = 1;
+    required int32 X = 2;
+    required int32 Y = 3;
+    required int32 Radius = 4;
+    required int32 PlayerId = 5; // -1 - neutral
+    required int32 Energy = 6;
+}
+
+message TShip {
+    required int32 X = 1;
+    required int32 Y = 2;
+    required int32 PlayerID = 3;
+}
+
+enum EColor {
+    CR_Blue = 1;
+    CR_Red = 2;
+    CR_Green = 3;
+    CR_Yellow = 4;
+    CR_White = 5;
+    CR_Cyan = 6;
+}
+
+message TPlayer {
+    required int32 ID = 1;
+    required string Name = 2;
+    required EColor Color = 3;
+}
+
+message TWorld {
+    repeated TPlanet Planets = 1;
+    repeated TShip Ships = 2;
+    repeated TPlayer Players = 3;
+}
