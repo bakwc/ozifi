@@ -140,7 +140,10 @@ void TWorld::SendWorld() {
         packetPlayer->set_name(player->Name.toStdString());
         packetPlayer->set_color(player->Color);
     }
-    emit WorldUpdated(world);
+    for (auto& player: Players) {
+        world.set_selfid(player.Id);
+        emit SendWorldToPlayer(world, player.Id);
+    }
 }
 
 void TWorld::timerEvent(QTimerEvent *) {

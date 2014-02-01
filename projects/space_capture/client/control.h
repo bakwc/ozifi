@@ -20,6 +20,7 @@ signals:
     void OnControl(Space::TControl control);
 private:
     void timerEvent(QTimerEvent *);
+    void CheckSelection(QPoint from, QPoint to);
 private:
     TWorld* World;
     QTime LastSendControl;

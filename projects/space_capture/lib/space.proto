@@ -41,4 +41,5 @@ message TWorld {
     repeated TPlanet Planets = 1;
     repeated TShip Ships = 2;
     repeated TPlayer Players = 3;
+    required uint32 SelfId = 4;
 }

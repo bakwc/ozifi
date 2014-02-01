@@ -32,6 +32,7 @@ void TNetwork::onDataReceived() {
         client.Address = fromAddr;
         client.Port = fromPort;
         Clients[senderAddr] = client;
+        ClientsById[client.Id] = &Clients[senderAddr];
         qDebug() << "Player connected: " << senderAddr;
         emit onNewPlayerConnected(CurrentId);
         ++CurrentId;
@@ -40,11 +41,15 @@ void TNetwork::onDataReceived() {
     emit onControlReceived(client.Id, control);
 }
 
-void TNetwork::SendWorld(Space::TWorld world) {
+void TNetwork::SendWorld(Space::TWorld world, size_t playerId) {
+    auto cliIt = ClientsById.find(playerId);
+    if (cliIt == ClientsById.end()) {
+        qDebug() << "SendWorld(): client with id" << playerId << "not found";
+        return;
+    }
+    TClient* client = cliIt.value();
     QByteArray data;
     data.resize(world.ByteSize());
     world.SerializeToArray(data.data(), data.size());
-    for (auto& client: Clients) {
-        Socket.writeDatagram(data, client.Address, client.Port);
-    }
+    Socket.writeDatagram(data, client->Address, client->Port);
 }

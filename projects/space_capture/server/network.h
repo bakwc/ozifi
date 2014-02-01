@@ -22,9 +22,10 @@ signals:
     void onNewPlayerConnected(size_t playerId);
 public slots:
     void onDataReceived();
-    void SendWorld(Space::TWorld world);
+    void SendWorld(Space::TWorld world, size_t playerId);
 private:
     QUdpSocket Socket;
     QHash<QString, TClient> Clients;
+    QHash<size_t, TClient*> ClientsById;
     size_t CurrentId;
 };

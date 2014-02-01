@@ -72,12 +72,20 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
     }
     painter.setPen(planetColor);
     painter.drawEllipse(x  - radius, y  - radius, radius * 2, radius * 2);
+    if (planet.playerid() == World->selfid() &&
+        World->SelectedPlanets.find(planet.id()) != World->SelectedPlanets.end())
+    {
+        painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
+    }
 
     QString energyString = QString("%1").arg(planet.energy());
     QFontMetrics fm = fontMetrics();
     int textHeight = fm.height();
     int textWidth = fm.width(energyString);
-    if (planet.energy() != -1) {
+    if (planet.energy() != -1 &&
+       (planet.playerid() == -1 ||
+        planet.playerid() == World->selfid()))
+    {
         painter.drawText(x - textWidth / 2, y + textHeight / 3, energyString);
     }
 }
@@ -92,7 +100,6 @@ void TDisplay::DrawShip(QPainter& painter, const Space::TShip& ship) {
 
 void TDisplay::DrawSelection(QPainter& painter) {
     if (World->Selection.is_initialized()) {
-        qDebug() << "selection initialized";
         painter.setPen(Qt::cyan);
         int x = std::min(World->Selection->From.x(), World->Selection->To.x());
         int y = std::min(World->Selection->From.y(), World->Selection->To.y());
