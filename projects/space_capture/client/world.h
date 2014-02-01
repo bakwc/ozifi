@@ -23,7 +23,7 @@ public:
     void UpdateWorld(Space::TWorld world);
     void UpdateSelection(QPointF from, QPointF to);
     void RemoveSelection();
-    void UpdateSelectedPlanets(const std::vector<size_t>& planets);
+    Space::TPlayer* SelfPlayer();
 signals:
     void OnWorldUpdated();
 public:
@@ -32,6 +32,7 @@ public:
     size_t OffsetY;
     std::unordered_map<size_t, Space::TPlayer*> IdToPlayer;
     std::unordered_set<size_t> SelectedPlanets;
+    boost::optional<size_t> SelectedTarget;
     QString PlayerName;
     boost::optional<TSelection> Selection;
 };

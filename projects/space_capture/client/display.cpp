@@ -72,11 +72,6 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
     }
     painter.setPen(planetColor);
     painter.drawEllipse(x  - radius, y  - radius, radius * 2, radius * 2);
-    if (planet.playerid() == World->selfid() &&
-        World->SelectedPlanets.find(planet.id()) != World->SelectedPlanets.end())
-    {
-        painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
-    }
 
     QString energyString = QString("%1").arg(planet.energy());
     QFontMetrics fm = fontMetrics();
@@ -87,6 +82,21 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
         planet.playerid() == World->selfid()))
     {
         painter.drawText(x - textWidth / 2, y + textHeight / 3, energyString);
+    }
+
+    if (planet.playerid() == World->selfid() &&
+        World->SelectedPlanets.find(planet.id()) != World->SelectedPlanets.end())
+    {
+        painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
+    } else if (World->SelectedTarget.is_initialized() &&
+               planet.id() == *World->SelectedTarget)
+    {
+        Space::TPlayer* selfPlayer = World->SelfPlayer();
+        if (selfPlayer != nullptr) {
+            planetColor = GetQColor(selfPlayer->color());
+            painter.setPen(planetColor);
+            painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
+        }
     }
 }
 

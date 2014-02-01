@@ -27,6 +27,10 @@ void TWorld::RemoveSelection() {
     Selection.reset();
 }
 
-void TWorld::UpdateSelectedPlanets(const std::vector<size_t>& planets) {
-    SelectedPlanets.insert(planets.begin(), planets.end());
+Space::TPlayer *TWorld::SelfPlayer() {
+    if (IdToPlayer.find(this->selfid()) == IdToPlayer.end()) {
+        qDebug() << "SelfPlayer(): player with id" << this->selfid() << "missing";
+        return nullptr;
+    }
+    return IdToPlayer[this->selfid()];
 }

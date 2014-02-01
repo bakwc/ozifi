@@ -21,9 +21,12 @@ signals:
 private:
     void timerEvent(QTimerEvent *);
     void CheckSelection(QPoint from, QPoint to);
+    void CheckTargetSelection(QPoint position);
+    void SpawnShips();
 private:
     TWorld* World;
     QTime LastSendControl;
     bool MousePressed;
+    bool TargetSelection;
     QPoint SelectionFrom;
 };

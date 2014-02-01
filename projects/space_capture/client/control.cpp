@@ -12,17 +12,29 @@ void TControl::OnMouseEvent(QMouseEvent event, bool pressed) {
         SelectionFrom = event.pos();
         MousePressed = true;
         CheckSelection(SelectionFrom, event.pos());
+        TargetSelection = !World->SelectedPlanets.empty();
     } else {
         MousePressed = false;
         CheckSelection(SelectionFrom, event.pos());
         World->Selection.reset();
+        if (World->SelectedTarget.is_initialized()) {
+            SpawnShips();
+            World->SelectedTarget.reset();
+        }
+        if (TargetSelection) {
+            World->SelectedPlanets.clear();
+        }
     }
 }
 
 void TControl::OnMouseMove(QMouseEvent event) {
     if (MousePressed) {
-        World->UpdateSelection(SelectionFrom, event.pos());
-        CheckSelection(SelectionFrom, event.pos());
+        if (!TargetSelection) {
+            World->UpdateSelection(SelectionFrom, event.pos());
+            CheckSelection(SelectionFrom, event.pos());
+        } else {
+            CheckTargetSelection(event.pos());
+        }
     }
 }
 
@@ -56,7 +68,7 @@ void TControl::timerEvent(QTimerEvent *) {
     LastSendControl.restart();
 }
 
-// check if to rects intersects
+// check if two rects intersects
 inline bool Intersects(int ax1, int ax2, int ay1, int ay2, int bx1, int bx2, int by1, int by2) {
     if (ax1 > ax2) std::swap(ax1, ax2);
     if (ay1 > ay2) std::swap(ay1, ay2);
@@ -78,11 +90,14 @@ inline bool Intersects(int ax1, int ax2, int ay1, int ay2, int bx1, int bx2, int
 
 void TControl::CheckSelection(QPoint from, QPoint to) {
     World->SelectedPlanets.clear();
+    int ax1 = from.x();
+    int ay1 = from.y();
+    int ax2 = to.x();
+    int ay2 = to.y();
     for (size_t i = 0; i < World->planets_size(); ++i) {
-        int ax1 = from.x();
-        int ay1 = from.y();
-        int ax2 = to.x();
-        int ay2 = to.y();
+        if (World->planets(i).playerid() != World->selfid()) {
+            continue;
+        }
         float r = World->planets(i).radius() * World->Scale;
         int bx1 = World->planets(i).x() * World->Scale + World->OffsetX - r;
         int bx2 = World->planets(i).x() * World->Scale + World->OffsetX + r;
@@ -92,4 +107,27 @@ void TControl::CheckSelection(QPoint from, QPoint to) {
             World->SelectedPlanets.insert(World->planets(i).id());
         }
     }
+}
+
+void TControl::CheckTargetSelection(QPoint position) {
+    int ax1 = position.x();
+    int ax2 = position.x();
+    int ay1 = position.y();
+    int ay2 = position.y();
+    for (size_t i = 0; i < World->planets_size(); ++i) {
+        float r = World->planets(i).radius() * World->Scale;
+        int bx1 = World->planets(i).x() * World->Scale + World->OffsetX - r;
+        int bx2 = World->planets(i).x() * World->Scale + World->OffsetX + r;
+        int by1 = World->planets(i).y() * World->Scale + World->OffsetY - r;
+        int by2 = World->planets(i).y() * World->Scale + World->OffsetY + r;
+        if (Intersects(ax1, ax2, ay1, ay2, bx1, bx2, by1, by2)) {
+            World->SelectedTarget = i;
+            return;
+        }
+    }
+    World->SelectedTarget.reset();
+}
+
+void TControl::SpawnShips() {
+    // todo: send ship spawn packet
 }
