@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     QObject::connect(&network, &TNetwork::OnWorldReceived, &world, &TWorld::UpdateWorld);
     QObject::connect(&world, &TWorld::OnWorldUpdated, &display, &TDisplay::RedrawWorld);
     QObject::connect(&display, &TDisplay::OnMouseEvent, &control, &TControl::OnMouseEvent);
+    QObject::connect(&display, &TDisplay::OnMouseMove, &control, &TControl::OnMouseMove);
     QObject::connect(&display, &TDisplay::OnResized, &control, &TControl::OnResizeEvent);
 
     display.show();

@@ -28,17 +28,16 @@ void TDisplay::mousePressEvent(QMouseEvent* e) {
     emit OnMouseEvent(*e, false);
 }
 
+void TDisplay::mouseMoveEvent(QMouseEvent* e) {
+    emit OnMouseMove(*e);
+}
+
 void TDisplay::resizeEvent(QResizeEvent* e) {
     emit OnResized(*e);
 }
 
 void TDisplay::RedrawWorld() {
-    size_t newWidth = WORLD_WIDTH * World->ScaleX;
-    size_t newHeight = WORLD_HEIGHT * World->ScaleY;
-    if (newWidth != width() || newHeight != height()) {
-        setGeometry(x(), y(), newWidth, newHeight);
-        Frame = QImage(newWidth, newHeight, QImage::Format_RGB32);
-    }
+    Frame = QImage(width(), height(), QImage::Format_RGB32);
     Frame.fill(Qt::black);
     QPainter painter(&Frame);
     for (size_t i = 0; i < World->planets_size(); ++i) {
@@ -63,9 +62,9 @@ inline QColor GetQColor(Space::EColor color) {
 }
 
 void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
-    int radius = planet.radius() * World->ScaleX;
-    int x = planet.x() * World->ScaleX;
-    int y = planet.y() * World->ScaleY;
+    int radius = planet.radius() * World->Scale;
+    int x = planet.x() * World->Scale + World->OffsetX;
+    int y = planet.y() * World->Scale + World->OffsetY;
     QColor planetColor = Qt::gray;
     if (planet.playerid() != -1) {
         planetColor = GetQColor(World->IdToPlayer[planet.playerid()]->color());
@@ -83,9 +82,9 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
 }
 
 void TDisplay::DrawShip(QPainter& painter, const Space::TShip& ship) {
-    int r = 5 * World->ScaleX;
-    int x = ship.x() * World->ScaleX - r;
-    int y = ship.y() * World->ScaleY - r;
+    int r = 5 * World->Scale;
+    int x = ship.x() * World->Scale - r + World->OffsetX;
+    int y = ship.y() * World->Scale - r + World->OffsetY;
     painter.setPen(GetQColor(World->IdToPlayer[ship.playerid()]->color()));
     painter.drawEllipse(x, y, r * 2, r * 2); // todo: draw ship another way
 }

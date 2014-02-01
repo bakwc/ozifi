@@ -3,8 +3,9 @@
 #include "world.h"
 
 TWorld::TWorld()
-    : ScaleX(1.0)
-    , ScaleY(1.0)
+    : Scale(1.0)
+    , OffsetX(0)
+    , OffsetY(0)
 {
 }
 
@@ -15,4 +16,16 @@ void TWorld::UpdateWorld(Space::TWorld world) {
         IdToPlayer[players(i).id()] = mutable_players(i);
     }
     emit OnWorldUpdated();
+}
+
+void TWorld::UpdateSelection(QPointF from, QPointF to) {
+    Selection = {from, to};
+}
+
+void TWorld::RemoveSelection() {
+    Selection.reset();
+}
+
+void TWorld::UpdateSelectedPlanets(const std::vector<size_t>& planets) {
+    SelectedPlanets.insert(planets.begin(), planets.end());
 }

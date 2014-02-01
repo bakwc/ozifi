@@ -17,9 +17,11 @@ public:
     void paintEvent(QPaintEvent*);
     void mouseReleaseEvent(QMouseEvent* e);
     void mousePressEvent(QMouseEvent* e);
+    void mouseMoveEvent(QMouseEvent* e);
     void resizeEvent(QResizeEvent* e);
 signals:
     void OnMouseEvent(QMouseEvent event, bool pressed); // pressed or release
+    void OnMouseMove(QMouseEvent event);
     void OnResized(QResizeEvent event);
 public slots:
     void RedrawWorld();

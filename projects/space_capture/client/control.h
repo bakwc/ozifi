@@ -4,6 +4,7 @@
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QTime>
+#include <QPoint>
 
 #include "world.h"
 
@@ -13,6 +14,7 @@ public:
     explicit TControl(TWorld* world);
 public slots:
     void OnMouseEvent(QMouseEvent event, bool pressed);
+    void OnMouseMove(QMouseEvent event);
     void OnResizeEvent(QResizeEvent event);
 signals:
     void OnControl(Space::TControl control);
@@ -21,4 +23,6 @@ private:
 private:
     TWorld* World;
     QTime LastSendControl;
+    bool MousePressed;
+    QPoint SelectionFrom;
 };
