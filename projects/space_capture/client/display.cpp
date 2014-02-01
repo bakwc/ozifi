@@ -21,11 +21,11 @@ void TDisplay::paintEvent(QPaintEvent *) {
 }
 
 void TDisplay::mouseReleaseEvent(QMouseEvent* e) {
-    emit OnMouseEvent(*e, true);
+    emit OnMouseEvent(*e, false);
 }
 
 void TDisplay::mousePressEvent(QMouseEvent* e) {
-    emit OnMouseEvent(*e, false);
+    emit OnMouseEvent(*e, true);
 }
 
 void TDisplay::mouseMoveEvent(QMouseEvent* e) {
@@ -46,6 +46,7 @@ void TDisplay::RedrawWorld() {
     for (size_t i = 0; i < World->ships_size(); ++i) {
         DrawShip(painter, World->ships(i));
     }
+    DrawSelection(painter);
     update();
 }
 
@@ -87,4 +88,16 @@ void TDisplay::DrawShip(QPainter& painter, const Space::TShip& ship) {
     int y = ship.y() * World->Scale - r + World->OffsetY;
     painter.setPen(GetQColor(World->IdToPlayer[ship.playerid()]->color()));
     painter.drawEllipse(x, y, r * 2, r * 2); // todo: draw ship another way
+}
+
+void TDisplay::DrawSelection(QPainter& painter) {
+    if (World->Selection.is_initialized()) {
+        qDebug() << "selection initialized";
+        painter.setPen(Qt::cyan);
+        int x = std::min(World->Selection->From.x(), World->Selection->To.x());
+        int y = std::min(World->Selection->From.y(), World->Selection->To.y());
+        int w = abs(World->Selection->From.x() - World->Selection->To.x());
+        int h = abs(World->Selection->From.y() - World->Selection->To.y());
+        painter.drawRect(x, y, w, h);
+    }
 }

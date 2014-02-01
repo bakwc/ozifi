@@ -13,6 +13,7 @@ void TControl::OnMouseEvent(QMouseEvent event, bool pressed) {
         MousePressed = true;
     } else {
         MousePressed = false;
+        World->Selection.reset();
         //CheckSelection(SelectionFrom, event.pos());
     }
 }

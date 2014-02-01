@@ -20,6 +20,7 @@ void TWorld::UpdateWorld(Space::TWorld world) {
 
 void TWorld::UpdateSelection(QPointF from, QPointF to) {
     Selection = {from, to};
+    emit OnWorldUpdated();
 }
 
 void TWorld::RemoveSelection() {

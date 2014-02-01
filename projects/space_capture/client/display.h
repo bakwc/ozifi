@@ -28,6 +28,7 @@ public slots:
 private:
     void DrawPlanet(QPainter& painter, const Space::TPlanet& planet);
     void DrawShip(QPainter& painter, const Space::TShip& ship);
+    void DrawSelection(QPainter& painter);
 private:
     TWorld* World;
     QImage Frame;
