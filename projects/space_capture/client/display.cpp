@@ -41,6 +41,7 @@ void TDisplay::RedrawWorld() {
     Frame = QImage(width(), height(), QImage::Format_RGB32);
     Frame.fill(Qt::black);
     QPainter painter(&Frame);
+    painter.setRenderHint(QPainter::Antialiasing);
     for (size_t i = 0; i < World->planets_size(); ++i) {
         DrawPlanet(painter, World->planets(i));
     }
@@ -71,7 +72,9 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
     if (planet.playerid() != -1) {
         planetColor = GetQColor(World->IdToPlayer[planet.playerid()]->color());
     }
-    painter.setPen(planetColor);
+    QPen pen(planetColor);
+    pen.setWidth(2);
+    painter.setPen(pen);
     painter.drawEllipse(x  - radius, y  - radius, radius * 2, radius * 2);
 
     QString energyString = QString("%1").arg(planet.energy());
@@ -95,7 +98,8 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
         Space::TPlayer* selfPlayer = World->SelfPlayer();
         if (selfPlayer != nullptr) {
             planetColor = GetQColor(selfPlayer->color());
-            painter.setPen(planetColor);
+            pen.setColor(planetColor);
+            painter.setPen(pen);
             painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
         }
     }

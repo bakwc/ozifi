@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     TDisplay display(&world);
     TNetwork network;
 
-    network.ConnectToServer(QHostAddress("127.0.0.1"), 9999);
+    network.ConnectToServer(QHostAddress(serverAddr), 9999);
 
     QObject::connect(&control, &TControl::OnControl, &network, &TNetwork::SendControl);
     QObject::connect(&network, &TNetwork::OnWorldReceived, &world, &TWorld::UpdateWorld);
