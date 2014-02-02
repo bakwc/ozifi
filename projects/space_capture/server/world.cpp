@@ -27,6 +27,7 @@ TWorld::TWorld(QObject *parent)
 void TWorld::RestartRound() {
     qDebug() << "Round restarted";
     Planets.clear();
+    Ships.clear();
     GeneratePlayerPlanets();
     GenerateRandomPlanets();
 }
@@ -108,7 +109,10 @@ void TWorld::ProcessShips() {
         TShip& ship = Ships[i];
         ship.Position.setX(ship.Position.x() + ship.Speed.x());
         ship.Position.setY(ship.Position.y() + ship.Speed.y());
-        if (!ProcessCollision(ship)) {
+        if (!ProcessCollision(ship) &&
+            ship.Position.x() >= 0 && ship.Position.x() < WORLD_WIDTH &&
+            ship.Position.y() >= 0 && ship.Position.y() < WORLD_HEIGHT)
+        {
             newShips.push_back(ship);
         }
     }
@@ -163,7 +167,7 @@ void TWorld::timerEvent(QTimerEvent *) {
 void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId) {
     float totalShipsEnergy = from.Energy * energyPercents;
     from.Energy -= totalShipsEnergy;
-    size_t shipsCount = 1 + totalShipsEnergy / 7.0;
+    size_t shipsCount = std::min(1 + (int)(totalShipsEnergy / 7.0), 18);
     float energyPerShip = totalShipsEnergy / shipsCount;
     QPointF direction;
     direction.setX(to.Position.x() - from.Position.x());
