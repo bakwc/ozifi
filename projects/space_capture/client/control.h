@@ -8,12 +8,18 @@
 
 #include "world.h"
 
+enum EControlState {
+    CS_None,
+    CS_PlanetSelection,
+    CS_TargetSelection
+};
+
 class TControl: public QObject {
     Q_OBJECT
 public:
     explicit TControl(TWorld* world);
 public slots:
-    void OnMouseEvent(QMouseEvent event, bool pressed);
+    void OnMouseEvent(QMouseEvent event, bool mouseDown);
     void OnMouseMove(QMouseEvent event);
     void OnResizeEvent(QResizeEvent event);
 signals:
@@ -26,7 +32,6 @@ private:
 private:
     TWorld* World;
     QTime LastSendControl;
-    bool MousePressed;
-    bool TargetSelection;
+    EControlState State;
     QPoint SelectionFrom;
 };

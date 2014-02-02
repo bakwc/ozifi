@@ -8,9 +8,9 @@
 #include "world.h"
 
 inline void Normalize(QPointF& point) {
-    float l = point.x() * point.x() + point.y() * point.y();
+    float l = sqrt(point.x() * point.x() + point.y() * point.y());
     point.setX(point.x() / l);
-    point.setX(point.y() / l);
+    point.setY(point.y() / l);
 }
 
 inline float Distance(const QPointF& a, const QPointF& b) {
@@ -107,6 +107,7 @@ void TWorld::ProcessShips() {
     for (size_t i = 0; i < (size_t)Ships.size(); ++i) {
         TShip& ship = Ships[i];
         ship.Position.setX(ship.Position.x() + ship.Speed.x());
+        ship.Position.setY(ship.Position.y() + ship.Speed.y());
         if (!ProcessCollision(ship)) {
             newShips.push_back(ship);
         }
@@ -162,26 +163,28 @@ void TWorld::timerEvent(QTimerEvent *) {
 void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId) {
     float totalShipsEnergy = from.Energy * energyPercents;
     from.Energy -= totalShipsEnergy;
-    size_t shipsCount = totalShipsEnergy / 7.0;
+    size_t shipsCount = 1 + totalShipsEnergy / 7.0;
     float energyPerShip = totalShipsEnergy / shipsCount;
     QPointF direction;
     direction.setX(to.Position.x() - from.Position.x());
     direction.setY(to.Position.y() - from.Position.y());
     Normalize(direction);
+
     QPointF shipPosition = from.Position;
     shipPosition.setX(shipPosition.x() + direction.x() * from.Radius);
     shipPosition.setY(shipPosition.y() + direction.y() * from.Radius);
     QPointF shipSpeed = direction;
-    shipSpeed.setX(shipSpeed.x() * 0.1);
-    shipSpeed.setY(shipSpeed.y() * 0.1);
+    shipSpeed.setX(shipSpeed.x() * 2.5);
+    shipSpeed.setY(shipSpeed.y() * 2.5);
+
     for (size_t i = 0; i < shipsCount; ++i) {
         TShip ship;
         ship.Position = shipPosition;
         ship.Energy = energyPerShip;
         ship.PlayerId = playerId;
         ship.Speed = shipSpeed;
-        shipPosition.setX(shipPosition.x() + direction.x() * 0.3);
-        shipPosition.setY(shipPosition.y() + direction.y() * 0.3);
+        shipPosition.setX(shipPosition.x() + direction.x() * 6.0);
+        shipPosition.setY(shipPosition.y() + direction.y() * 6.0);
         Ships.push_back(ship);
     }
 }
@@ -236,24 +239,36 @@ void TWorld::OnControl(size_t playerId, Space::TControl control) {
         return;
     }
     TPlayer& player = Players[playerId];
-    size_t planetFrom = control.planetfrom();
+    std::vector<size_t> planetsFrom;
+    planetsFrom.reserve(control.planetfrom_size());
+    for (size_t i = 0; i < control.planetfrom_size(); ++i) {
+        planetsFrom.push_back(control.planetfrom(i));
+    }
+
     size_t planetTo = control.planetto();
     if (control.has_playername()) {
         player.Name = QString::fromStdString(control.playername());
     }
-    if (planetFrom >= (size_t)Planets.size() || planetTo >= (size_t)Planets.size()) {
+    if (planetsFrom.empty()) {
         return;
     }
-    if (planetFrom == planetTo) {
+
+    if (Planets.find(planetTo) == Planets.end()) {
         return;
     }
-    TPlanet& from = Planets[planetFrom];
     TPlanet& to = Planets[planetTo];
-    if (from.PlayerId != (int)player.Id) {
-        return;
-    }
-    float energyPercents = 0.01 * control.energypercent();
-    if (from.Energy * energyPercents >= 2.0) {
-        SpawnShips(from, to, energyPercents, playerId);
+
+    for (size_t i = 0; i < planetsFrom.size(); ++i) {
+        if (Planets.find(planetsFrom[i]) == Planets.end()) {
+            continue;
+        }
+        TPlanet& from = Planets[planetsFrom[i]];
+        if (from.PlayerId != (int)player.Id) {
+            continue;
+        }
+        float energyPercents = 0.01 * control.energypercent();
+        if (from.Energy * energyPercents >= 1.0) {
+            SpawnShips(from, to, energyPercents, playerId);
+        }
     }
 }

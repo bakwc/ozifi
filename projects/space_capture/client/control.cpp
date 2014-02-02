@@ -2,39 +2,60 @@
 
 TControl::TControl(TWorld *world)
     : World(world)
+    , State(CS_None)
 {
     LastSendControl.restart();
     startTimer(300);
 }
 
-void TControl::OnMouseEvent(QMouseEvent event, bool pressed) {
-    if (pressed) {
-        SelectionFrom = event.pos();
-        MousePressed = true;
-        CheckSelection(SelectionFrom, event.pos());
-        TargetSelection = !World->SelectedPlanets.empty();
-    } else {
-        MousePressed = false;
-        CheckSelection(SelectionFrom, event.pos());
-        World->Selection.reset();
-        if (World->SelectedTarget.is_initialized()) {
-            SpawnShips();
+void TControl::OnMouseEvent(QMouseEvent event, bool mouseDown) {
+    if (State == CS_None) {
+        CheckSelection(event.pos(), event.pos());
+        if (!World->SelectedPlanets.empty()) {
+            State = CS_TargetSelection;
+        } else if (mouseDown) {
+            State = CS_PlanetSelection;
+            SelectionFrom = event.pos();
+        }
+    } else if (State == CS_PlanetSelection && !mouseDown) {
+        if (!World->SelectedPlanets.empty()) {
+            State = CS_TargetSelection;
+            World->Selection.reset();
+        } else {
+            State = CS_None;
+            World->SelectedPlanets.clear();
+            World->Selection.reset();
             World->SelectedTarget.reset();
         }
-        if (TargetSelection) {
+    } else if (State == CS_TargetSelection && !mouseDown) {
+        CheckTargetSelection(event.pos());
+        if (World->SelectedTarget.is_initialized()) {
+            if (World->SelectedPlanets.size() == 1 &&
+                    *World->SelectedPlanets.begin() == *World->SelectedTarget)
+            {
+                CheckSelection(event.pos(), event.pos());
+            } else {
+                SpawnShips();
+                State = CS_None;
+                World->SelectedPlanets.clear();
+                World->Selection.reset();
+                World->SelectedTarget.reset();
+            }
+        } else {
+            State = CS_None;
             World->SelectedPlanets.clear();
+            World->Selection.reset();
+            World->SelectedTarget.reset();
         }
     }
 }
 
 void TControl::OnMouseMove(QMouseEvent event) {
-    if (MousePressed) {
-        if (!TargetSelection) {
-            World->UpdateSelection(SelectionFrom, event.pos());
-            CheckSelection(SelectionFrom, event.pos());
-        } else {
-            CheckTargetSelection(event.pos());
-        }
+    if (State == CS_PlanetSelection) {
+        World->UpdateSelection(SelectionFrom, event.pos());
+        CheckSelection(SelectionFrom, event.pos());
+    } else if (State == CS_TargetSelection) {
+        CheckTargetSelection(event.pos());
     }
 }
 
@@ -60,7 +81,6 @@ void TControl::timerEvent(QTimerEvent *) {
         return;
     }
     Space::TControl control;
-    control.set_planetfrom(-1);
     control.set_planetto(-1);
     control.set_playername(World->PlayerName.toStdString());
     control.set_energypercent(0);
@@ -129,5 +149,20 @@ void TControl::CheckTargetSelection(QPoint position) {
 }
 
 void TControl::SpawnShips() {
-    // todo: send ship spawn packet
+    if (!World->SelectedTarget.is_initialized()) {
+        return;
+    }
+    if (World->SelectedPlanets.empty()) {
+        return;
+    }
+
+    Space::TControl control;
+    for (auto& planet: World->SelectedPlanets) {
+        control.add_planetfrom(planet);
+    }
+    control.set_planetto(*World->SelectedTarget);
+    control.set_playername(World->PlayerName.toStdString());
+    control.set_energypercent(50);
+    emit OnControl(control);
+    LastSendControl.restart();
 }

@@ -10,6 +10,7 @@ TDisplay::TDisplay(TWorld* world, QWidget *parent)
     , Frame(WORLD_WIDTH, WORLD_HEIGHT, QImage::Format_RGB32)
 {
     setGeometry(x(), y(), WORLD_WIDTH, WORLD_HEIGHT);
+    setMouseTracking(true);
 }
 
 TDisplay::~TDisplay() {
