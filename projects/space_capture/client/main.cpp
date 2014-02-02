@@ -12,6 +12,13 @@
 
 int main(int argc, char *argv[])
 {
+    QString serverAddr = "127.0.0.1";
+    if (argc >= 2) {
+        serverAddr = argv[1];
+    }
+
+    qDebug() << serverAddr;
+
     QApplication application(argc, argv);
     TWorld world;
     TControl control(&world);
