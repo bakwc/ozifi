@@ -7,6 +7,7 @@
 #include <QPainter>
 
 #include "world.h"
+#include "graphic_manager.h"
 
 class TDisplay: public QWidget
 {
@@ -32,4 +33,5 @@ private:
 private:
     TWorld* World;
     QImage Frame;
+    TGraphicManager GraphicManager;
 };

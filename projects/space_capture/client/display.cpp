@@ -1,4 +1,6 @@
 #include <QFontMetrics>
+#include <QRgb>
+#include <QDebug>
 
 #include <projects/space_capture/lib/defines.h>
 
@@ -75,7 +77,10 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
     QPen pen(planetColor);
     pen.setWidth(2);
     painter.setPen(pen);
-    painter.drawEllipse(x  - radius, y  - radius, radius * 2, radius * 2);
+    //painter.drawEllipse(x  - radius, y  - radius, radius * 2, radius * 2);
+
+    const QImage& currentPlanet = GraphicManager.GetImage(planet.type(), radius * 2, planetColor);
+    painter.drawImage(x - radius, y - radius, currentPlanet);
 
     QString energyString = QString("%1").arg(planet.energy());
     QFontMetrics fm = fontMetrics();
@@ -85,12 +90,16 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
        (planet.playerid() == -1 ||
         planet.playerid() == World->selfid()))
     {
+        pen.setColor(Qt::white);
+        painter.setPen(pen);
         painter.drawText(x - textWidth / 2, y + textHeight / 3, energyString);
     }
 
     if (planet.playerid() == World->selfid() &&
         World->SelectedPlanets.find(planet.id()) != World->SelectedPlanets.end())
     {
+        pen.setColor(planetColor);
+        painter.setPen(pen);
         painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
     } else if (World->SelectedTarget.is_initialized() &&
                planet.id() == *World->SelectedTarget)

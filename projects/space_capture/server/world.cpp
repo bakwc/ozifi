@@ -68,6 +68,7 @@ void TWorld::GeneratePlayerPlanets() {
         planet.PlayerId = Players[i].Id;
         planet.Energy = PLAYER_PLANET_ENERGY;
         planet.Radius = PLAYER_PLANET_RADIUS;
+        planet.Type = rand() % MAX_PLANET_TYPES;
         Planets[planet.Id] = planet;
     }
 }
@@ -87,6 +88,7 @@ void TWorld::GenerateRandomPlanets() {
         planet.PlayerId = -1;
         planet.Energy = PLANET_MIN_ENERGY + rand() % size_t(PLANET_MAX_ENERGY - PLANET_MIN_ENERGY);
         planet.Radius = radius;
+        planet.Type = rand() % MAX_PLANET_TYPES;
         Planets[planet.Id] = planet;
     }
 }
@@ -130,6 +132,7 @@ void TWorld::SendWorld() {
         packetPlanet->set_x(planet->Position.x());
         packetPlanet->set_y(planet->Position.y());
         packetPlanet->set_energy(planet->Energy);
+        packetPlanet->set_type(planet->Type);
     }
     for (size_t i = 0; i < (size_t)Ships.size(); ++i) {
         TShip* ship = &Ships[i];

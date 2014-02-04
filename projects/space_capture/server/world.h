@@ -13,6 +13,7 @@ struct TPlanet {
     float Radius;
     float Energy;
     int PlayerId;
+    int Type;
 };
 
 struct TPlayer {

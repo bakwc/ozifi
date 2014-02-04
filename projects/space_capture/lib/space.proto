@@ -14,6 +14,7 @@ message TPlanet {
     required int32 Radius = 4;
     required int32 PlayerId = 5; // -1 - neutral
     required int32 Energy = 6;
+    required int32 Type = 7;
 }
 
 message TShip {
