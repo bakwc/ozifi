@@ -7,15 +7,6 @@
 
 #include <projects/space_capture/lib/space.pb.h>
 
-struct TPlanet {
-    size_t Id;
-    QPointF Position;
-    float Radius;
-    float Energy;
-    int PlayerId;
-    int Type;
-};
-
 struct TPlayer {
     QString Name;
     size_t Id;
@@ -25,8 +16,20 @@ struct TPlayer {
 struct TShip {
     QPointF Position;
     QPointF Speed;
+    QPointF Target;
     float Energy;
     size_t PlayerId;
+};
+
+struct TPlanet {
+    size_t Id;
+    QPointF Position;
+    float Radius;
+    float Energy;
+    int PlayerId;
+    int Type;
+    std::vector<TShip> SpawnQueue;
+    size_t SpawnCounter;
 };
 
 const float PLAYER_PLANET_RADIUS = 30.0f;
@@ -54,6 +57,7 @@ public:
     void SendWorld();
     void timerEvent(QTimerEvent*);
     void SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId);
+    void ProcessShipSpawn();
     bool ProcessCollision(TShip& ship);
     void CheckRoundEnd();
 signals:
@@ -62,9 +66,16 @@ public slots:
     void OnNewPlayer(size_t playerId);
     void OnControl(size_t playerId, Space::TControl control);
 private:
+    QPointF Rule1(size_t shipNum);
+    QPointF Rule2(size_t shipNum);
+    QPointF Rule3(size_t shipNum);
+    QPointF Rule4(size_t shipNum); // target
+    QPointF Rule5(size_t shipNum); // avoid planets
+private:
     QHash<size_t, TPlanet> Planets;
     QHash<size_t, TPlayer> Players;
     QVector<TShip> Ships;
+    QPointF MassCenter;
     quint64 Time;
     int Power;
 };

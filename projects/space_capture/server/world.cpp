@@ -8,6 +8,10 @@
 #include "world.h"
 
 inline void Normalize(QPointF& point) {
+    if (point.x() == 0 && point.y() == 0) {
+        point.setX(rand() % 20 - 10);
+        point.setY(rand() % 20 - 10);
+    }
     float l = sqrt(point.x() * point.x() + point.y() * point.y());
     point.setX(point.x() / l);
     point.setY(point.y() / l);
@@ -69,6 +73,7 @@ void TWorld::GeneratePlayerPlanets() {
         planet.Energy = PLAYER_PLANET_ENERGY;
         planet.Radius = PLAYER_PLANET_RADIUS;
         planet.Type = rand() % MAX_PLANET_TYPES;
+        planet.SpawnCounter = 0;
         Planets[planet.Id] = planet;
     }
 }
@@ -89,6 +94,7 @@ void TWorld::GenerateRandomPlanets() {
         planet.Energy = PLANET_MIN_ENERGY + rand() % size_t(PLANET_MAX_ENERGY - PLANET_MIN_ENERGY);
         planet.Radius = radius;
         planet.Type = rand() % MAX_PLANET_TYPES;
+        planet.SpawnCounter = 0;
         Planets[planet.Id] = planet;
     }
 }
@@ -104,11 +110,27 @@ void TWorld::UpdatePlanetEnergy() {
     }
 }
 
+inline void LimitSpeed(QPointF& speed, float limit = 2.5) {
+    float speedAbs = Distance(QPointF(), speed);
+    if (speedAbs > limit) {
+        speed = (speed / speedAbs) * limit;
+    }
+}
+
 void TWorld::ProcessShips() {
     QVector<TShip> newShips;
     newShips.reserve(Ships.size());
+
     for (size_t i = 0; i < (size_t)Ships.size(); ++i) {
         TShip& ship = Ships[i];
+        QPointF v1 = Rule1(i);
+        QPointF v2 = Rule2(i);
+        QPointF v3 = Rule3(i);
+        QPointF v4 = Rule4(i);
+        QPointF v5 = Rule5(i);
+        ship.Speed = ship.Speed + v1 + v2 + v3 + v4 + v5;
+        LimitSpeed(ship.Speed);
+
         ship.Position.setX(ship.Position.x() + ship.Speed.x());
         ship.Position.setY(ship.Position.y() + ship.Speed.y());
         if (!ProcessCollision(ship) &&
@@ -163,6 +185,7 @@ void TWorld::timerEvent(QTimerEvent *) {
         UpdatePlanetEnergy(); // update energy every second
     }
     ProcessShips();
+    ProcessShipSpawn();
     CheckRoundEnd();
     SendWorld();
 }
@@ -178,8 +201,8 @@ void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t
     Normalize(direction);
 
     QPointF shipPosition = from.Position;
-    shipPosition.setX(shipPosition.x() + direction.x() * from.Radius);
-    shipPosition.setY(shipPosition.y() + direction.y() * from.Radius);
+    shipPosition.setX(shipPosition.x() + direction.x() * (from.Radius + 6.0));
+    shipPosition.setY(shipPosition.y() + direction.y() * (from.Radius + 6.0));
     QPointF shipSpeed = direction;
     shipSpeed.setX(shipSpeed.x() * 2.5);
     shipSpeed.setY(shipSpeed.y() * 2.5);
@@ -187,12 +210,27 @@ void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t
     for (size_t i = 0; i < shipsCount; ++i) {
         TShip ship;
         ship.Position = shipPosition;
+        ship.Position.setX(ship.Position.x() + rand() % 6 - 3);
+        ship.Position.setY(ship.Position.y() + rand() % 6 - 3);
         ship.Energy = energyPerShip;
         ship.PlayerId = playerId;
         ship.Speed = shipSpeed;
-        shipPosition.setX(shipPosition.x() + direction.x() * 6.0);
-        shipPosition.setY(shipPosition.y() + direction.y() * 6.0);
-        Ships.push_back(ship);
+        ship.Target = to.Position;
+        from.SpawnQueue.push_back(ship);
+    }
+}
+
+void TWorld::ProcessShipSpawn() {
+    for (size_t i = 0; i < (size_t)Planets.size(); ++i) {
+        TPlanet& planet = Planets[i];
+        if (!planet.SpawnQueue.empty()) {
+            if (planet.SpawnCounter % 4 == 0) {
+                Ships.push_back(planet.SpawnQueue.back());
+                planet.SpawnQueue.pop_back();
+                planet.SpawnCounter = 0;
+            }
+            ++planet.SpawnCounter;
+        }
     }
 }
 
@@ -278,4 +316,80 @@ void TWorld::OnControl(size_t playerId, Space::TControl control) {
             SpawnShips(from, to, energyPercents, playerId);
         }
     }
+}
+
+QPointF TWorld::Rule1(size_t shipNum) {
+    QPointF massCenter;
+    size_t ships = 0;
+    for (int i = 0; i < Ships.size(); ++i) {
+        if (i != shipNum &&
+            Ships[i].PlayerId == Ships[shipNum].PlayerId &&
+            Ships[i].Target == Ships[shipNum].Target)
+        {
+            massCenter += Ships[i].Position;
+            ++ships;
+        }
+    }
+    if (!ships) {
+        return QPointF(0, 0);
+    }
+    massCenter /= ships;
+    return (massCenter - Ships[shipNum].Position) / 100;
+}
+
+QPointF TWorld::Rule2(size_t shipNum) {
+    QPointF c(0, 0);
+    for (int i = 0; i < Ships.size(); ++i) {
+        if (i != shipNum) {
+            float distance = Distance(Ships[i].Position, Ships[shipNum].Position);
+            if (distance < 21) {
+                QPointF direction = Ships[i].Position - Ships[shipNum].Position;
+                Normalize(direction);
+                direction *= (33 - distance);
+                c -= direction;
+            }
+        }
+    }
+    return c / 35;
+}
+
+QPointF TWorld::Rule3(size_t shipNum) {
+    QPointF massCenter;
+    size_t ships = 0;
+    for (int i = 0; i < Ships.size(); ++i) {
+        if (i != shipNum &&
+            Ships[i].PlayerId == Ships[shipNum].PlayerId &&
+            Ships[i].Target == Ships[shipNum].Target)
+        {
+            massCenter += Ships[i].Speed;
+            ++ships;
+        }
+    }
+    if (!ships) {
+        return QPointF(0, 0);
+    }
+    massCenter /= ships;
+    return (massCenter - Ships[shipNum].Speed) / 18;
+}
+
+QPointF TWorld::Rule4(size_t shipNum) {
+    QPointF direction = Ships[shipNum].Target - Ships[shipNum].Position;
+    LimitSpeed(direction, 0.65);
+    return direction;
+}
+
+QPointF TWorld::Rule5(size_t shipNum) {
+    QPointF c(0, 0);
+    for (int i = 0; i < Planets.size(); ++i) {
+        if (Ships[shipNum].Target != Planets[i].Position) {
+            float distance = Distance(Planets[i].Position, Ships[shipNum].Position);
+            if (distance < 10.0 + 1.4 * Planets[i].Radius) {
+                QPointF direction = Planets[i].Position - Ships[shipNum].Position;
+                Normalize(direction);
+                direction *= (18.0 + 1.4 * Planets[i].Radius - distance);
+                c -= direction;
+            }
+        }
+    }
+    return c / 8;
 }
