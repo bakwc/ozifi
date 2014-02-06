@@ -9,7 +9,7 @@
 TDisplay::TDisplay(TWorld* world, QWidget *parent)
     : QWidget(parent)
     , World(world)
-    , Frame(WORLD_WIDTH, WORLD_HEIGHT, QImage::Format_RGB32)
+    , Frame(WORLD_WIDTH, WORLD_HEIGHT, QImage::Format_ARGB32)
 {
     setGeometry(x(), y(), WORLD_WIDTH, WORLD_HEIGHT);
     setMouseTracking(true);
@@ -40,7 +40,7 @@ void TDisplay::resizeEvent(QResizeEvent* e) {
 }
 
 void TDisplay::RedrawWorld() {
-    Frame = QImage(width(), height(), QImage::Format_RGB32);
+    Frame = QImage(width(), height(), QImage::Format_ARGB32);
     Frame.fill(Qt::black);
     QPainter painter(&Frame);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -77,7 +77,6 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
     QPen pen(planetColor);
     pen.setWidth(2);
     painter.setPen(pen);
-    //painter.drawEllipse(x  - radius, y  - radius, radius * 2, radius * 2);
 
     const QImage& currentPlanet = GraphicManager.GetImage(planet.type(), radius * 2, planetColor);
     painter.drawImage(x - radius, y - radius, currentPlanet);
@@ -115,11 +114,15 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
 }
 
 void TDisplay::DrawShip(QPainter& painter, const Space::TShip& ship) {
-    int r = 5 * World->Scale;
-    int x = ship.x() * World->Scale - r + World->OffsetX;
-    int y = ship.y() * World->Scale - r + World->OffsetY;
-    painter.setPen(GetQColor(World->IdToPlayer[ship.playerid()]->color()));
-    painter.drawEllipse(x, y, r * 2, r * 2); // todo: draw ship another way
+    int x = ship.x() * World->Scale + World->OffsetX;
+    int y = ship.y() * World->Scale + World->OffsetY;
+
+    QColor shipColor = GetQColor(World->IdToPlayer[ship.playerid()]->color());
+    QImage shipImage = GraphicManager.GetShip(World->Scale, shipColor);
+    QTransform transform;
+    transform.rotateRadians(ship.angle() + M_PI_2);
+    shipImage = shipImage.transformed(transform);
+    painter.drawImage(x - shipImage.width() / 2, y - shipImage.height() / 2, shipImage);
 }
 
 void TDisplay::DrawSelection(QPainter& painter) {

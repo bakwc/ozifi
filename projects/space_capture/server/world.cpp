@@ -162,6 +162,8 @@ void TWorld::SendWorld() {
         packetShip->set_playerid(ship->PlayerId);
         packetShip->set_x(ship->Position.x());
         packetShip->set_y(ship->Position.y());
+        float angle = atan(ship->Speed.y() / ship->Speed.x());
+        packetShip->set_angle(angle);
     }
     for (size_t i = 0; i < (size_t)Players.size(); ++i) {
         TPlayer* player = &Players[i];
@@ -334,7 +336,7 @@ QPointF TWorld::Rule1(size_t shipNum) {
         return QPointF(0, 0);
     }
     massCenter /= ships;
-    return (massCenter - Ships[shipNum].Position) / 100;
+    return (massCenter - Ships[shipNum].Position) / 160;
 }
 
 QPointF TWorld::Rule2(size_t shipNum) {

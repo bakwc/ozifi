@@ -21,6 +21,7 @@ message TShip {
     required int32 X = 1;
     required int32 Y = 2;
     required int32 PlayerID = 3;
+    required float Angle = 4;
 }
 
 enum EColor {
