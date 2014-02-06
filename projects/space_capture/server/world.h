@@ -34,7 +34,7 @@ struct TPlanet {
 
 const float PLAYER_PLANET_RADIUS = 30.0f;
 const float MINIMUM_PLAYER_PLANET_DISTANCE = 100.0f;
-const float MINIMUM_PLANET_DISTANCE = 15.0f;
+const float MINIMUM_PLANET_DISTANCE = 31.0f;
 const float PLAYER_PLANET_ENERGY = 100.0f;
 const size_t PLANETS_MAX_NUMBER = 20;
 const size_t PLANETS_MIN_NUMBER = 10;

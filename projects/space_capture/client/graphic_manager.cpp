@@ -32,6 +32,7 @@ TGraphicManager::TGraphicManager(QObject *parent) :
         PlanetImages.push_back(QImage(resourceName));
     }
     Ship = QImage(":/graphics/ship.png");
+    Background = QImage(":/graphics/background.jpeg");
     ClearCache();
 }
 
@@ -48,7 +49,7 @@ const QImage& TGraphicManager::GetImage(size_t planetType, size_t diameter, QCol
         for (size_t i = 0; i < image.width(); ++i) {
             for (size_t j = 0; j < image.height(); ++j) {
                 QRgb p = image.pixel(i, j);
-                QRgb newP = qRgb(cr * qRed(p), cg * qGreen(p), cb * qBlue(p));
+                QRgb newP = qRgba(cr * qRed(p), cg * qGreen(p), cb * qBlue(p), qAlpha(p));
                 image.setPixel(i, j, newP);
             }
         }
@@ -58,7 +59,7 @@ const QImage& TGraphicManager::GetImage(size_t planetType, size_t diameter, QCol
     return it->second;
 }
 
-const QImage &TGraphicManager::GetShip(float scale, QColor color) {
+const QImage& TGraphicManager::GetShip(float scale, QColor color) {
     TShipKey key = {scale, color};
     auto it = ShipCache.find(key);
     if (it == ShipCache.end()) {
@@ -71,12 +72,21 @@ const QImage &TGraphicManager::GetShip(float scale, QColor color) {
         for (size_t i = 0; i < image.width(); ++i) {
             for (size_t j = 0; j < image.height(); ++j) {
                 QRgb p = image.pixel(i, j);
-                QRgb newP = qRgb(cr * qRed(p), cg * qGreen(p), cb * qBlue(p));
+                QRgb newP = qRgba(cr * qRed(p), cg * qGreen(p), cb * qBlue(p), qAlpha(p));
                 image.setPixel(i, j, newP);
             }
         }
 
         it = ShipCache.insert(it, std::pair<TShipKey, QImage>(key, image));
+    }
+    return it->second;
+}
+
+const QImage& TGraphicManager::GetBackground(float scale) {
+    auto it = BackgroundCache.find(scale);
+    if (it == BackgroundCache.end()) {
+        QImage image = Background.scaled(scale * WORLD_WIDTH, scale * WORLD_HEIGHT, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+        it = BackgroundCache.insert(it, std::pair<float, QImage>(scale, image));
     }
     return it->second;
 }

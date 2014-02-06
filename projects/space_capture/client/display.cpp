@@ -40,9 +40,12 @@ void TDisplay::resizeEvent(QResizeEvent* e) {
 }
 
 void TDisplay::RedrawWorld() {
-    Frame = QImage(width(), height(), QImage::Format_ARGB32);
-    Frame.fill(Qt::black);
+    Frame = QImage(width(), height(), QImage::Format_ARGB32_Premultiplied);
     QPainter painter(&Frame);
+
+    const QImage& background = GraphicManager.GetBackground(World->Scale);
+    painter.drawImage(0, 0, background);
+
     painter.setRenderHint(QPainter::Antialiasing);
     for (size_t i = 0; i < World->planets_size(); ++i) {
         DrawPlanet(painter, World->planets(i));

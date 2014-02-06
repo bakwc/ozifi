@@ -6,5 +6,6 @@
         <file>graphics/planet3.png</file>
         <file>graphics/planet4.png</file>
         <file>graphics/ship.png</file>
+        <file>graphics/background.jpeg</file>
     </qresource>
 </RCC>
