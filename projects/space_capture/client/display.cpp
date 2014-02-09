@@ -6,21 +6,20 @@
 
 #include "display.h"
 
-TDisplay::TDisplay(TWorld* world, QWidget *parent)
-    : QWidget(parent)
+TDisplay::TDisplay(TWorld* world, QGLWidget *parent)
+    : QGLWidget( parent)
     , World(world)
     , Frame(WORLD_WIDTH, WORLD_HEIGHT, QImage::Format_ARGB32)
+    , Sphere(1.0, 12, 24)
+    , LittleSphere(1.0, 6, 12)
+    , Ang(0)
 {
     setGeometry(x(), y(), WORLD_WIDTH, WORLD_HEIGHT);
     setMouseTracking(true);
+    setAutoFillBackground(false);
 }
 
 TDisplay::~TDisplay() {
-}
-
-void TDisplay::paintEvent(QPaintEvent *) {
-    QPainter painter(this);
-    painter.drawImage(0, 0, Frame);
 }
 
 void TDisplay::mouseReleaseEvent(QMouseEvent* e) {
@@ -35,26 +34,77 @@ void TDisplay::mouseMoveEvent(QMouseEvent* e) {
     emit OnMouseMove(*e);
 }
 
-void TDisplay::resizeEvent(QResizeEvent* e) {
-    emit OnResized(*e);
+void TDisplay::initializeGL() {
+
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_NORMALIZE);
+
+    glClearDepth(1.0f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+    GLfloat lightAmbient[]= { 0.8f, 0.8f, 0.8f, 1.0f };
+    glLightfv(GL_LIGHT1, GL_AMBIENT, lightAmbient);
+    GLfloat lightDiffuse[]= { 1.0f, 1.0f, 1.0f, 1.0f };
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, lightDiffuse);
+    GLfloat lightPosition[]= { 0.7f, -0.5f, 1.0f, 0.0f };
+    glLightfv(GL_LIGHT1, GL_POSITION, lightPosition);
 }
 
-void TDisplay::RedrawWorld() {
-    Frame = QImage(width(), height(), QImage::Format_ARGB32_Premultiplied);
+void TDisplay::resizeGL(int w, int h) {
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, w, h, 0, -800, 800);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    QResizeEvent e(QSize(w, h), QSize());
+
+    Frame = QImage(w, h, QImage::Format_ARGB32);
+
+    emit OnResized(e);
+}
+
+void TDisplay::paintGL() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
+
+    Frame.fill(qRgba(0, 0, 0, 0));
     QPainter painter(&Frame);
-
-    const QImage& background = GraphicManager.GetBackground(World->Scale);
-    painter.drawImage(0, 0, background);
-
     painter.setRenderHint(QPainter::Antialiasing);
+
     for (size_t i = 0; i < World->planets_size(); ++i) {
         DrawPlanet(painter, World->planets(i));
     }
+
     for (size_t i = 0; i < World->ships_size(); ++i) {
         DrawShip(painter, World->ships(i));
     }
+
     DrawSelection(painter);
-    update();
+
+    glMatrixMode(GL_MODELVIEW);
+
+    glLoadIdentity();
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_LIGHTING);
+
+    QPainter rawPainter(this);
+    rawPainter.setRenderHint(QPainter::Antialiasing);
+    rawPainter.drawImage(0, 0, Frame);
+}
+
+void TDisplay::RedrawWorld() {
+    Ang += 1.0;
+    updateGL();
 }
 
 inline QColor GetQColor(Space::EColor color) {
@@ -69,20 +119,40 @@ inline QColor GetQColor(Space::EColor color) {
     return Qt::gray;
 }
 
-void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
-    int radius = planet.radius() * World->Scale;
-    int x = planet.x() * World->Scale + World->OffsetX;
-    int y = planet.y() * World->Scale + World->OffsetY;
+void TDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) {
+
+    glLoadIdentity();
+
+    float radius = planet.radius() * World->Scale;
+    float x = planet.x() * World->Scale + World->OffsetX;
+    float y = planet.y() * World->Scale + World->OffsetY;
     QColor planetColor = Qt::gray;
     if (planet.playerid() != -1) {
         planetColor = GetQColor(World->IdToPlayer[planet.playerid()]->color());
     }
+
+    glTranslatef(x, y, 300);
+    glScalef(radius, radius, radius);
+
+    glRotatef(Ang, 0, 1, 0);
+    glRotatef(15, 1, 0, 0);
+
+    const TPlanetGraphics& planetGraphics = GraphicManager.GetImage(planet.type(), radius * 10, planetColor);
+
+    glBindTexture(GL_TEXTURE_2D, planetGraphics.TextureId);
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glEnable(GL_TEXTURE_2D);
+    if (radius > 20) {
+        Sphere.draw();
+    } else {
+        LittleSphere.draw();
+    }
+    glDisable(GL_TEXTURE_2D);
+
+
     QPen pen(planetColor);
     pen.setWidth(2);
-    painter.setPen(pen);
-
-    const QImage& currentPlanet = GraphicManager.GetImage(planet.type(), radius * 2, planetColor);
-    painter.drawImage(x - radius, y - radius, currentPlanet);
 
     QString energyString = QString("%1").arg(planet.energy());
     QFontMetrics fm = fontMetrics();
@@ -102,7 +172,7 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
     {
         pen.setColor(planetColor);
         painter.setPen(pen);
-        painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
+        painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
     } else if (World->SelectedTarget.is_initialized() &&
                planet.id() == *World->SelectedTarget)
     {
@@ -111,7 +181,7 @@ void TDisplay::DrawPlanet(QPainter& painter, const Space::TPlanet& planet) {
             planetColor = GetQColor(selfPlayer->color());
             pen.setColor(planetColor);
             painter.setPen(pen);
-            painter.drawEllipse(x  - radius - 4, y  - radius - 4, radius * 2 + 8, radius * 2 + 8);
+            painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
         }
     }
 }

@@ -2,25 +2,25 @@
 
 #include "graphic_manager.h"
 
-size_t TPlanetKeyHash::operator()(const TPlanetKey& key) const {
+size_t TPlanetKey::operator()(const TPlanetKey& key) const {
     return std::hash<size_t>()(key.Type) + std::hash<size_t>()(key.Diameter) +
             std::hash<int>()(key.Color.red()) +
             std::hash<int>()(key.Color.green()) +
             std::hash<int>()(key.Color.blue());
 }
 
-bool TPlanetKeyCompare::operator()(const TPlanetKey& a, const TPlanetKey& b) const {
+bool TPlanetKey::operator()(const TPlanetKey& a, const TPlanetKey& b) const {
     return a.Type == b.Type && a.Color == b.Color && a.Diameter == b.Diameter;
 }
 
-size_t TShipKeyHash::operator ()(const TShipKey& key) const {
+size_t TShipKey::operator ()(const TShipKey& key) const {
     return std::hash<float>()(key.Scale) +
             std::hash<int>()(key.Color.red()) +
             std::hash<int>()(key.Color.green()) +
             std::hash<int>()(key.Color.blue());
 }
 
-bool TShipKeyCompare::operator ()(const TShipKey& a, const TShipKey& b) const {
+bool TShipKey::operator ()(const TShipKey& a, const TShipKey& b) const {
     return a.Color == b.Color && a.Scale == b.Scale;
 }
 
@@ -36,7 +36,7 @@ TGraphicManager::TGraphicManager(QObject *parent) :
     ClearCache();
 }
 
-const QImage& TGraphicManager::GetImage(size_t planetType, size_t diameter, QColor color) {
+const TPlanetGraphics& TGraphicManager::GetImage(size_t planetType, size_t diameter, QColor color) {
     TPlanetKey key = {planetType, diameter, color};
     auto it = PlanetCache.find(key);
     if (it == PlanetCache.end()) {
@@ -54,7 +54,16 @@ const QImage& TGraphicManager::GetImage(size_t planetType, size_t diameter, QCol
             }
         }
 
-        it = PlanetCache.insert(it, std::pair<TPlanetKey, QImage>(key, image));
+        TPlanetGraphics graphics;
+        graphics.Image = QGLWidget::convertToGLFormat(image);
+        glGenTextures(1, &graphics.TextureId);
+        glBindTexture(GL_TEXTURE_2D, graphics.TextureId);
+        glTexImage2D(GL_TEXTURE_2D, 0, 4,
+                     graphics.Image.width(),graphics.Image.height(),
+                     0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     graphics.Image.bits());
+
+        it = PlanetCache.insert(it, std::pair<TPlanetKey, TPlanetGraphics>(key, graphics));
     }
     return it->second;
 }

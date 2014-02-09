@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QMessageBox>
 
 /*      MVC
  * display = view
@@ -22,7 +23,13 @@ int main(int argc, char *argv[])
     QApplication application(argc, argv);
     TWorld world;
     TControl control(&world);
+
+    QGLFormat f = QGLFormat::defaultFormat();
+    f.setSampleBuffers(true);
+    QGLFormat::setDefaultFormat(f);
+
     TDisplay display(&world);
+
     TNetwork network;
 
     network.ConnectToServer(QHostAddress(serverAddr), 9999);

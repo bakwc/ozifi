@@ -13,9 +13,11 @@ add_executable(space_capture_client main.cpp
                                     network.cpp
                                     control.cpp
                                     world.cpp
-                                    graphic_manager.cpp)
+                                    graphic_manager.cpp
+                                    sphere.h)
 
 target_link_libraries(space_capture_client
-                                    space_capture_lib)
+                                    space_capture_lib
+                                    GL)
 
-qt5_use_modules(space_capture_client Widgets Network)
+qt5_use_modules(space_capture_client Widgets Network OpenGL)

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <QWidget>
+#include <QtOpenGL/QGLWidget>
+#include <QtOpenGL/QGLFramebufferObject>
 #include <QImage>
 #include <QMouseEvent>
 #include <QResizeEvent>
@@ -8,18 +9,20 @@
 
 #include "world.h"
 #include "graphic_manager.h"
+#include "sphere.h"
 
-class TDisplay: public QWidget
+class TDisplay: public QGLWidget
 {
     Q_OBJECT
 public:
-    TDisplay(TWorld* world, QWidget *parent = 0);
+    TDisplay(TWorld* world, QGLWidget *parent = 0);
     ~TDisplay();
-    void paintEvent(QPaintEvent*);
     void mouseReleaseEvent(QMouseEvent* e);
     void mousePressEvent(QMouseEvent* e);
     void mouseMoveEvent(QMouseEvent* e);
-    void resizeEvent(QResizeEvent* e);
+    void initializeGL();
+    void resizeGL(int w, int h);
+    void paintGL();
 signals:
     void OnMouseEvent(QMouseEvent event, bool pressed); // pressed or release
     void OnMouseMove(QMouseEvent event);
@@ -34,4 +37,7 @@ private:
     TWorld* World;
     QImage Frame;
     TGraphicManager GraphicManager;
+    SolidSphere Sphere;
+    SolidSphere LittleSphere;
+    float Ang;
 };
