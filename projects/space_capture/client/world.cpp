@@ -10,7 +10,11 @@ TWorld::TWorld()
 }
 
 void TWorld::UpdateWorld(Space::TWorld world) {
-    Space::TWorld::operator =(world);
+    if (world.planets_size() != 0) {
+        Space::TWorld::operator =(world);
+    } else {
+        *mutable_ships() = world.ships();
+    }
     IdToPlayer.clear();
     for (size_t i = 0; i < players_size(); ++i) {
         IdToPlayer[players(i).id()] = mutable_players(i);
@@ -20,7 +24,6 @@ void TWorld::UpdateWorld(Space::TWorld world) {
 
 void TWorld::UpdateSelection(QPointF from, QPointF to) {
     Selection = {from, to};
-    emit OnWorldUpdated();
 }
 
 void TWorld::RemoveSelection() {

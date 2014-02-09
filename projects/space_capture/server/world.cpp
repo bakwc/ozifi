@@ -110,7 +110,7 @@ void TWorld::UpdatePlanetEnergy() {
     }
 }
 
-inline void LimitSpeed(QPointF& speed, float limit = 2.5) {
+inline void LimitSpeed(QPointF& speed, float limit = 3.5) {
     float speedAbs = Distance(QPointF(), speed);
     if (speedAbs > limit) {
         speed = (speed / speedAbs) * limit;
@@ -145,17 +145,27 @@ void TWorld::ProcessShips() {
 
 void TWorld::SendWorld() {
     Space::TWorld world;
-    for (size_t i = 0; i < (size_t)Planets.size(); ++i) {
-        TPlanet* planet = &Planets[i];
-        Space::TPlanet* packetPlanet = world.add_planets();
-        packetPlanet->set_id(planet->Id);
-        packetPlanet->set_playerid(planet->PlayerId);
-        packetPlanet->set_radius(planet->Radius);
-        packetPlanet->set_x(planet->Position.x());
-        packetPlanet->set_y(planet->Position.y());
-        packetPlanet->set_energy(planet->Energy);
-        packetPlanet->set_type(planet->Type);
+    if (Time % 10 == 0) {
+        for (size_t i = 0; i < (size_t)Planets.size(); ++i) {
+            TPlanet* planet = &Planets[i];
+            Space::TPlanet* packetPlanet = world.add_planets();
+            packetPlanet->set_id(planet->Id);
+            packetPlanet->set_playerid(planet->PlayerId);
+            packetPlanet->set_radius(planet->Radius);
+            packetPlanet->set_x(planet->Position.x());
+            packetPlanet->set_y(planet->Position.y());
+            packetPlanet->set_energy(planet->Energy);
+            packetPlanet->set_type(planet->Type);
+        }
+        for (size_t i = 0; i < (size_t)Players.size(); ++i) {
+            TPlayer* player = &Players[i];
+            Space::TPlayer* packetPlayer = world.add_players();
+            packetPlayer->set_id(player->Id);
+            packetPlayer->set_name(player->Name.toStdString());
+            packetPlayer->set_color(player->Color);
+        }
     }
+
     for (size_t i = 0; i < (size_t)Ships.size(); ++i) {
         TShip* ship = &Ships[i];
         Space::TShip* packetShip = world.add_ships();
@@ -163,17 +173,13 @@ void TWorld::SendWorld() {
         packetShip->set_x(ship->Position.x());
         packetShip->set_y(ship->Position.y());
         float angle = atan(ship->Speed.y() / ship->Speed.x());
-        packetShip->set_angle(angle);
+        packetShip->set_angle(angle * 100);
     }
-    for (size_t i = 0; i < (size_t)Players.size(); ++i) {
-        TPlayer* player = &Players[i];
-        Space::TPlayer* packetPlayer = world.add_players();
-        packetPlayer->set_id(player->Id);
-        packetPlayer->set_name(player->Name.toStdString());
-        packetPlayer->set_color(player->Color);
-    }
+
     for (auto& player: Players) {
-        world.set_selfid(player.Id);
+        if (Time % 10 == 0) {
+            world.set_selfid(player.Id);
+        }
         emit SendWorldToPlayer(world, player.Id);
     }
 }
@@ -192,10 +198,10 @@ void TWorld::timerEvent(QTimerEvent *) {
     SendWorld();
 }
 
-void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId) {
+void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId, size_t maxShips) {
     float totalShipsEnergy = from.Energy * energyPercents;
     from.Energy -= totalShipsEnergy;
-    size_t shipsCount = std::min(1 + (int)(totalShipsEnergy / 7.0), 18);
+    size_t shipsCount = std::min(1 + (int)(totalShipsEnergy / 7.0), int(maxShips));
     float energyPerShip = totalShipsEnergy / shipsCount;
     QPointF direction;
     direction.setX(to.Position.x() - from.Position.x());
@@ -286,6 +292,12 @@ void TWorld::OnControl(size_t playerId, Space::TControl control) {
         return;
     }
     TPlayer& player = Players[playerId];
+    if (control.has_attackcommand()) {
+        Attack(player, control.attackcommand());
+    }
+}
+
+void TWorld::Attack(TPlayer& player, Space::TAttackCommand control) {
     std::vector<size_t> planetsFrom;
     planetsFrom.reserve(control.planetfrom_size());
     for (size_t i = 0; i < control.planetfrom_size(); ++i) {
@@ -293,9 +305,6 @@ void TWorld::OnControl(size_t playerId, Space::TControl control) {
     }
 
     size_t planetTo = control.planetto();
-    if (control.has_playername()) {
-        player.Name = QString::fromStdString(control.playername());
-    }
     if (planetsFrom.empty()) {
         return;
     }
@@ -304,6 +313,8 @@ void TWorld::OnControl(size_t playerId, Space::TControl control) {
         return;
     }
     TPlanet& to = Planets[planetTo];
+
+    size_t maxShips = std::min(int(40.0 / planetsFrom.size()), 14);
 
     for (size_t i = 0; i < planetsFrom.size(); ++i) {
         if (Planets.find(planetsFrom[i]) == Planets.end()) {
@@ -315,7 +326,7 @@ void TWorld::OnControl(size_t playerId, Space::TControl control) {
         }
         float energyPercents = 0.01 * control.energypercent();
         if (from.Energy * energyPercents >= 1.0) {
-            SpawnShips(from, to, energyPercents, playerId);
+            SpawnShips(from, to, energyPercents, player.Id, maxShips);
         }
     }
 }
@@ -376,7 +387,7 @@ QPointF TWorld::Rule3(size_t shipNum) {
 
 QPointF TWorld::Rule4(size_t shipNum) {
     QPointF direction = Ships[shipNum].Target - Ships[shipNum].Position;
-    LimitSpeed(direction, 0.65);
+    LimitSpeed(direction, 0.85);
     return direction;
 }
 

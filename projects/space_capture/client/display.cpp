@@ -193,7 +193,7 @@ void TDisplay::DrawShip(QPainter& painter, const Space::TShip& ship) {
     QColor shipColor = GetQColor(World->IdToPlayer[ship.playerid()]->color());
     QImage shipImage = GraphicManager.GetShip(World->Scale, shipColor);
     QTransform transform;
-    transform.rotateRadians(ship.angle() + M_PI_2);
+    transform.rotateRadians(float(ship.angle()) / 100.0 + M_PI_2);
     shipImage = shipImage.transformed(transform);
     painter.drawImage(x - shipImage.width() / 2, y - shipImage.height() / 2, shipImage);
 }

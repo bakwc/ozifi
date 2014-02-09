@@ -77,13 +77,10 @@ void TControl::OnResizeEvent(QResizeEvent event) {
 }
 
 void TControl::timerEvent(QTimerEvent *) {
-    if (LastSendControl.elapsed() < 300) {
+    if (LastSendControl.elapsed() < 1000) {
         return;
     }
     Space::TControl control;
-    control.set_planetto(-1);
-    control.set_playername(World->PlayerName.toStdString());
-    control.set_energypercent(0);
     emit OnControl(control);
     LastSendControl.restart();
 }
@@ -157,12 +154,12 @@ void TControl::SpawnShips() {
     }
 
     Space::TControl control;
+    Space::TAttackCommand& attack = *control.mutable_attackcommand();
     for (auto& planet: World->SelectedPlanets) {
-        control.add_planetfrom(planet);
+        attack.add_planetfrom(planet);
     }
-    control.set_planetto(*World->SelectedTarget);
-    control.set_playername(World->PlayerName.toStdString());
-    control.set_energypercent(50);
+    attack.set_planetto(*World->SelectedTarget);
+    attack.set_energypercent(50);
     emit OnControl(control);
     LastSendControl.restart();
 }

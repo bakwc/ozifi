@@ -1,10 +1,18 @@
 package Space;
 
-message TControl {
+message TAttackCommand {
     repeated int32 PlanetFrom = 1;
     required int32 PlanetTo = 2;
     required int32 EnergyPercent = 3; // 0 - 100
-    required string PlayerName = 4;
+}
+
+message TPlayerInfo {
+    required string Name = 1;
+}
+
+message TControl {
+    optional TAttackCommand AttackCommand = 1;
+    optional TPlayerInfo PlayerInfo = 2;
 }
 
 message TPlanet {
@@ -21,7 +29,7 @@ message TShip {
     required int32 X = 1;
     required int32 Y = 2;
     required int32 PlayerID = 3;
-    required float Angle = 4;
+    required int32 Angle = 4;
 }
 
 enum EColor {
@@ -43,5 +51,5 @@ message TWorld {
     repeated TPlanet Planets = 1;
     repeated TShip Ships = 2;
     repeated TPlayer Players = 3;
-    required uint32 SelfId = 4;
+    optional uint32 SelfId = 4;
 }

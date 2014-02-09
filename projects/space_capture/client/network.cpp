@@ -1,4 +1,7 @@
 #include <QDebug>
+
+#include <projects/vocal/vocal_lib/compress.h>
+
 #include "network.h"
 
 TNetwork::TNetwork() {
@@ -17,7 +20,12 @@ void TNetwork::SendControl(Space::TControl control) {
 }
 
 void TNetwork::OnDataReceived() {
-    QByteArray data = Socket.readAll();
+    std::string data;
+    data.resize(4096);
+    data.resize(Socket.readDatagram(&data[0], data.size()));
+
+    data = NVocal::Decompress(data);
+
     Space::TWorld world;
     if (world.ParseFromArray(data.data(), data.size())) {
         emit OnWorldReceived(world);

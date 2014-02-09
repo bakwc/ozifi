@@ -11,6 +11,7 @@ struct TPlayer {
     QString Name;
     size_t Id;
     Space::EColor Color;
+    bool NeedFullUpdate;
 };
 
 struct TShip {
@@ -56,7 +57,7 @@ public:
     void ProcessShips();
     void SendWorld();
     void timerEvent(QTimerEvent*);
-    void SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId);
+    void SpawnShips(TPlanet& from, TPlanet& to, float energyPercents, size_t playerId, size_t maxShips = 18);
     void ProcessShipSpawn();
     bool ProcessCollision(TShip& ship);
     void CheckRoundEnd();
@@ -65,6 +66,8 @@ signals:
 public slots:
     void OnNewPlayer(size_t playerId);
     void OnControl(size_t playerId, Space::TControl control);
+private:
+    void Attack(TPlayer& player, Space::TAttackCommand control);
 private:
     QPointF Rule1(size_t shipNum);
     QPointF Rule2(size_t shipNum);
@@ -77,5 +80,4 @@ private:
     QVector<TShip> Ships;
     QPointF MassCenter;
     quint64 Time;
-    int Power;
 };

@@ -1,5 +1,7 @@
 #include <QDebug>
 
+#include <projects/vocal/vocal_lib/compress.h>
+
 #include "network.h"
 
 TNetwork::TNetwork()
@@ -48,8 +50,11 @@ void TNetwork::SendWorld(Space::TWorld world, size_t playerId) {
         return;
     }
     TClient* client = cliIt.value();
-    QByteArray data;
+    std::string data;
     data.resize(world.ByteSize());
-    world.SerializeToArray(data.data(), data.size());
-    Socket.writeDatagram(data, client->Address, client->Port);
+    world.SerializeToString(&data);
+
+    data = NVocal::Compress(data);
+
+    Socket.writeDatagram(data.data(), data.size(), client->Address, client->Port);
 }

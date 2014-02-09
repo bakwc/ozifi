@@ -9,4 +9,5 @@ add_library(space_capture_lib space.proto
                               defines.h)
 
 target_link_libraries(space_capture_lib
-                             protobuf)
+                             protobuf
+                             vocal_lib)
