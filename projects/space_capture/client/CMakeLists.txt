@@ -15,9 +15,15 @@ add_executable(space_capture_client main.cpp
                                     world.cpp
                                     graphic_manager.cpp
                                     sphere.h)
-
+IF (WIN32)
+target_link_libraries(space_capture_client
+                                    space_capture_lib
+                                    opengl32)
+ENDIF (WIN32)
+IF (UNIX)
 target_link_libraries(space_capture_client
                                     space_capture_lib
                                     GL)
+ENDIF(UNIX)
 
 qt5_use_modules(space_capture_client Widgets Network OpenGL)
