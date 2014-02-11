@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
     QObject::connect(&display, &TDisplay::OnMouseEvent, &control, &TControl::OnMouseEvent);
     QObject::connect(&display, &TDisplay::OnMouseMove, &control, &TControl::OnMouseMove);
     QObject::connect(&display, &TDisplay::OnResized, &control, &TControl::OnResizeEvent);
+    QObject::connect(&display, &TDisplay::OnWheelEvent, &control, &TControl::OnWheelEvent);
 
     display.show();
 

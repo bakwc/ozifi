@@ -34,6 +34,10 @@ void TDisplay::mouseMoveEvent(QMouseEvent* e) {
     emit OnMouseMove(*e);
 }
 
+void TDisplay::wheelEvent(QWheelEvent* e) {
+    emit OnWheelEvent(*e);
+}
+
 void TDisplay::initializeGL() {
 
     glEnable(GL_MULTISAMPLE);
@@ -87,6 +91,7 @@ void TDisplay::paintGL() {
         DrawShip(painter, World->ships(i));
     }
 
+    DrawPower(painter);
     DrawSelection(painter);
 
     glMatrixMode(GL_MODELVIEW);
@@ -207,4 +212,18 @@ void TDisplay::DrawSelection(QPainter& painter) {
         int h = abs(World->Selection->From.y() - World->Selection->To.y());
         painter.drawRect(x, y, w, h);
     }
+}
+
+void TDisplay::DrawPower(QPainter& painter) {
+    int x = 0.97 * WORLD_WIDTH * World->Scale;
+    int y = 0.78 * WORLD_HEIGHT * World->Scale;
+    int width = 0.012 * WORLD_WIDTH * World->Scale;
+    int height = 0.2 * WORLD_HEIGHT * World->Scale;
+    QPen pen(Qt::white);
+    pen.setWidth(2);
+    painter.setPen(pen);
+    painter.drawRect(x, y, width, height);
+
+    int filled = 0.01 * World->Power * height;
+    painter.fillRect(x, y + height - filled, width, filled, Qt::white);
 }

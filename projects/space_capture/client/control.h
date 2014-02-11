@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QMouseEvent>
 #include <QResizeEvent>
+#include <QWheelEvent>
 #include <QTime>
 #include <QPoint>
 
@@ -22,6 +23,7 @@ public slots:
     void OnMouseEvent(QMouseEvent event, bool mouseDown);
     void OnMouseMove(QMouseEvent event);
     void OnResizeEvent(QResizeEvent event);
+    void OnWheelEvent(QWheelEvent event);
 signals:
     void OnControl(Space::TControl control);
 private:

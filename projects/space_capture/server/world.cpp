@@ -37,10 +37,10 @@ void TWorld::RestartRound() {
 }
 
 bool TWorld::IsPossiblePlanetPosition(const QPointF& position, float radius, float minDistance) {
-    if (position.x() < radius || position.x() > WORLD_WIDTH - radius) {
+    if (position.x() < radius + 0.05 * WORLD_WIDTH || position.x() > WORLD_WIDTH - radius - 0.05 * WORLD_WIDTH) {
         return false;
     }
-    if (position.y() < radius || position.y() > WORLD_HEIGHT - radius) {
+    if (position.y() < radius + 0.05 * WORLD_HEIGHT || position.y() > WORLD_HEIGHT - radius - 0.05 * WORLD_HEIGHT) {
         return false;
     }
     for (size_t i = 0; i < (size_t)Planets.size(); ++i) {

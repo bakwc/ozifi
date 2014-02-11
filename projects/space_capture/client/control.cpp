@@ -1,3 +1,5 @@
+#include <QDebug>
+
 #include "control.h"
 
 TControl::TControl(TWorld *world)
@@ -76,6 +78,16 @@ void TControl::OnResizeEvent(QResizeEvent event) {
     World->OffsetY = (newHeight - realHeight) / 2;
 }
 
+void TControl::OnWheelEvent(QWheelEvent event) {
+    World->Power += 0.06 * event.delta();
+    if (World->Power < 0) {
+        World->Power = 0;
+    }
+    if (World->Power > 100) {
+        World->Power = 100;
+    }
+}
+
 void TControl::timerEvent(QTimerEvent *) {
     if (LastSendControl.elapsed() < 1000) {
         return;
@@ -146,6 +158,10 @@ void TControl::CheckTargetSelection(QPoint position) {
 }
 
 void TControl::SpawnShips() {
+    if (!World->Power) {
+        return;
+    }
+
     if (!World->SelectedTarget.is_initialized()) {
         return;
     }
@@ -159,7 +175,7 @@ void TControl::SpawnShips() {
         attack.add_planetfrom(planet);
     }
     attack.set_planetto(*World->SelectedTarget);
-    attack.set_energypercent(50);
+    attack.set_energypercent(World->Power);
     emit OnControl(control);
     LastSendControl.restart();
 }

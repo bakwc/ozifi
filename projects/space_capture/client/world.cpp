@@ -6,6 +6,7 @@ TWorld::TWorld()
     : Scale(1.0)
     , OffsetX(0)
     , OffsetY(0)
+    , Power(50)
 {
 }
 

@@ -35,4 +35,5 @@ public:
     boost::optional<size_t> SelectedTarget;
     QString PlayerName;
     boost::optional<TSelection> Selection;
+    int Power; // percents
 };
