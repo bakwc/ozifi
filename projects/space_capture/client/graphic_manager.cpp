@@ -102,15 +102,7 @@ const QImage& TGraphicManager::GetBackground(float scale) {
 }
 
 const QImage &TGraphicManager::GetFontBackground(float scale) {
-    auto it = FontBackgroundCache.find(scale);
-    if (it == FontBackgroundCache.end()) {
-        QImage image = FontBackground.scaled(scale * FontBackground.width(),
-                                             scale * FontBackground.height(),
-                                             Qt::KeepAspectRatioByExpanding,
-                                             Qt::SmoothTransformation);
-        it = FontBackgroundCache.insert(it, std::pair<float, QImage>(scale, image));
-    }
-    return it->second;
+    return FontBackground;
 }
 
 void TGraphicManager::ClearCache() {

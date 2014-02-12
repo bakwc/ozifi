@@ -48,6 +48,5 @@ private:
     QImage FontBackground;
     TPlanetCache PlanetCache;
     TScaledCache BackgroundCache;
-    TScaledCache FontBackgroundCache;
     TShipCache ShipCache;
 };

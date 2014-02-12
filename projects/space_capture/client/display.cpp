@@ -217,8 +217,8 @@ void TDisplay::DrawSelection(QPainter& painter) {
 }
 
 void TDisplay::DrawPower(QPainter& painter) {
-    int x = 0.97 * WORLD_WIDTH * World->Scale;
-    int y = 0.78 * WORLD_HEIGHT * World->Scale;
+    int x = 0.97 * WORLD_WIDTH * World->Scale + World->OffsetX;
+    int y = 0.78 * WORLD_HEIGHT * World->Scale + World->OffsetY;
     int width = 0.012 * WORLD_WIDTH * World->Scale;
     int height = 0.2 * WORLD_HEIGHT * World->Scale;
     QPen pen(Qt::white);
