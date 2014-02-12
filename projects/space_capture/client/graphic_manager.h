@@ -29,7 +29,7 @@ struct TShipKey {
 
 typedef std::unordered_map<TPlanetKey, TPlanetGraphics, TPlanetKey, TPlanetKey> TPlanetCache;
 typedef std::unordered_map<TShipKey, QImage, TShipKey, TShipKey> TShipCache;
-typedef std::unordered_map<float, QImage> TBackgroundCache;
+typedef std::unordered_map<float, QImage> TScaledCache;
 
 class TGraphicManager : public QObject
 {
@@ -39,12 +39,15 @@ public:
     const TPlanetGraphics& GetImage(size_t planetType, size_t diameter, QColor color);
     const QImage& GetShip(float scale, QColor color);
     const QImage& GetBackground(float scale);
+    const QImage& GetFontBackground(float scale);
     void ClearCache();
 private:
     std::vector<QImage> PlanetImages;
     QImage Ship;
     QImage Background;
+    QImage FontBackground;
     TPlanetCache PlanetCache;
-    TBackgroundCache BackgroundCache;
+    TScaledCache BackgroundCache;
+    TScaledCache FontBackgroundCache;
     TShipCache ShipCache;
 };

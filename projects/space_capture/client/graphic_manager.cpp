@@ -33,6 +33,7 @@ TGraphicManager::TGraphicManager(QObject *parent) :
     }
     Ship = QImage(":/graphics/ship.png");
     Background = QImage(":/graphics/background.jpeg");
+    FontBackground = QImage(":/graphics/font-bg.png");
     ClearCache();
 }
 
@@ -96,6 +97,18 @@ const QImage& TGraphicManager::GetBackground(float scale) {
     if (it == BackgroundCache.end()) {
         QImage image = Background.scaled(scale * WORLD_WIDTH, scale * WORLD_HEIGHT, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         it = BackgroundCache.insert(it, std::pair<float, QImage>(scale, image));
+    }
+    return it->second;
+}
+
+const QImage &TGraphicManager::GetFontBackground(float scale) {
+    auto it = FontBackgroundCache.find(scale);
+    if (it == FontBackgroundCache.end()) {
+        QImage image = FontBackground.scaled(scale * FontBackground.width(),
+                                             scale * FontBackground.height(),
+                                             Qt::KeepAspectRatioByExpanding,
+                                             Qt::SmoothTransformation);
+        it = FontBackgroundCache.insert(it, std::pair<float, QImage>(scale, image));
     }
     return it->second;
 }

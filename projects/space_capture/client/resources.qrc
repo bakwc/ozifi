@@ -7,5 +7,6 @@
         <file>graphics/planet4.png</file>
         <file>graphics/ship.png</file>
         <file>graphics/background.jpeg</file>
+        <file>graphics/font-bg.png</file>
     </qresource>
 </RCC>

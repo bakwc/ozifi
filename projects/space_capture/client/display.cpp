@@ -167,6 +167,8 @@ void TDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) {
        (planet.playerid() == -1 ||
         planet.playerid() == World->selfid()))
     {
+        const QImage& fontBackground = GraphicManager.GetFontBackground(World->Scale);
+        painter.drawImage(x - fontBackground.width() / 2, y - textHeight + textHeight / 3, fontBackground);
         pen.setColor(Qt::white);
         painter.setPen(pen);
         painter.drawText(x - textWidth / 2, y + textHeight / 3, energyString);
