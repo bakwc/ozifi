@@ -19,6 +19,8 @@ struct TRequest {
     chrono::milliseconds Timeout;
     optional<string> User;
     optional<string> Password;
+    optional<string> PostData;
+    optional<string> Cookie;
 };
 
 struct TResponse {

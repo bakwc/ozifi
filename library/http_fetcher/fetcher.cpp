@@ -50,6 +50,17 @@ public:
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response.Data);
         curl_easy_setopt(curl, CURLOPT_WRITEHEADER, &response.Headers);
+
+        if (request.Cookie.is_initialized()) {
+            curl_easy_setopt(curl, CURLOPT_COOKIESESSION, 1);
+            curl_easy_setopt(curl, CURLOPT_COOKIE, request.Cookie->c_str());
+        }
+
+        if (request.PostData.is_initialized()) {
+            curl_easy_setopt(curl, CURLOPT_POST, 1);
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.PostData->c_str());
+        }
+
         CURLcode result = curl_easy_perform(curl); /* ignores error */
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response.Code);
 
