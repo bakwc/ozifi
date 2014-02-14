@@ -35,6 +35,14 @@ public:
     explicit TMainMenu(QObject *parent = 0);
     void Draw(QPainter& painter);
     void OnResized(QResizeEvent event);
+    void OnMouseMove(QMouseEvent event);
+    void OnMouseEvent(QMouseEvent event, bool pressed);
+signals:
+    void Render();
+    void Exit();
+    void QuickGame();
+private:
+    void timerEvent(QTimerEvent*);
 private:
     std::vector<TMenuElementRef> Elements;
     QSize DisplaySize;

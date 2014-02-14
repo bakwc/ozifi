@@ -23,6 +23,8 @@ public:
     void Init();
 signals:
 public slots:
+    void QuickGame();
+    void Exit();
 private:
     TWorld World;
     TControl Control;
