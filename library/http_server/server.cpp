@@ -93,7 +93,7 @@ int THttpServer::ProcessRequest(struct mg_connection* conn) {
     optional<TResponse> response;
     if (server->Handlers.find(request.URI) != server->Handlers.end()) {
         response = server->Handlers[request.URI](request);
-    } else {
+    } else if (server->DefaultHandler) {
         response = server->DefaultHandler(request);
     }
 
