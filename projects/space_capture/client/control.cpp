@@ -61,7 +61,7 @@ void TControl::OnMouseMove(QMouseEvent event) {
     }
 }
 
-void TControl::OnResizeEvent(QResizeEvent event) {
+void TControl::OnResized(QResizeEvent event) {
     int newWidth = event.size().width();
     int newHeight = event.size().height();
     int realWidth, realHeight;

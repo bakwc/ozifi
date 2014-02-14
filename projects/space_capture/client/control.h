@@ -8,6 +8,7 @@
 #include <QPoint>
 
 #include "world.h"
+#include "display.h"
 
 enum EControlState {
     CS_None,
@@ -15,14 +16,14 @@ enum EControlState {
     CS_TargetSelection
 };
 
-class TControl: public QObject {
+class TControl: public QObject, public IControlable {
     Q_OBJECT
 public:
     explicit TControl(TWorld* world);
 public slots:
     void OnMouseEvent(QMouseEvent event, bool mouseDown);
     void OnMouseMove(QMouseEvent event);
-    void OnResizeEvent(QResizeEvent event);
+    void OnResized(QResizeEvent event);
     void OnWheelEvent(QWheelEvent event);
 signals:
     void OnControl(Space::TControl control);

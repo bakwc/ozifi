@@ -52,4 +52,6 @@ message TWorld {
     repeated TShip Ships = 2;
     repeated TPlayer Players = 3;
     optional uint32 SelfId = 4;
+    optional uint32 RoundStartsAt = 5;
+    optional bool WaitingPlayers = 6;
 }

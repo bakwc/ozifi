@@ -8,15 +8,28 @@
 #include <QWheelEvent>
 #include <QPainter>
 
-#include "world.h"
-#include "graphic_manager.h"
-#include "sphere.h"
+class IDrawable {
+public:
+    virtual void Draw(QPainter& painter) = 0;
+};
+
+class IControlable {
+public:
+    virtual void OnMouseEvent(QMouseEvent event, bool pressed) { // pressed or release
+    }
+    virtual void OnMouseMove(QMouseEvent event) {
+    }
+    virtual void OnResized(QResizeEvent event) {
+    }
+    virtual void OnWheelEvent(QWheelEvent event) {
+    }
+};
 
 class TDisplay: public QGLWidget
 {
     Q_OBJECT
 public:
-    TDisplay(TWorld* world, QGLWidget *parent = 0);
+    TDisplay(QGLWidget* parent = 0);
     ~TDisplay();
     void mouseReleaseEvent(QMouseEvent* e);
     void mousePressEvent(QMouseEvent* e);
@@ -25,23 +38,12 @@ public:
     void initializeGL();
     void resizeGL(int w, int h);
     void paintGL();
-signals:
-    void OnMouseEvent(QMouseEvent event, bool pressed); // pressed or release
-    void OnMouseMove(QMouseEvent event);
-    void OnResized(QResizeEvent event);
-    void OnWheelEvent(QWheelEvent event);
+    void UpdateContol(IControlable* control = nullptr);
+    void UpdateDisplay(IDrawable* draw = nullptr);
 public slots:
-    void RedrawWorld();
+    void Render();
 private:
-    void DrawPlanet(QPainter& painter, const Space::TPlanet& planet);
-    void DrawShip(QPainter& painter, const Space::TShip& ship);
-    void DrawSelection(QPainter& painter);
-    void DrawPower(QPainter& painter);
-private:
-    TWorld* World;
+    IDrawable* CurrentDisplay;
+    IControlable* CurrentControl;
     QImage Frame;
-    TGraphicManager GraphicManager;
-    SolidSphere Sphere;
-    SolidSphere LittleSphere;
-    float Ang;
 };

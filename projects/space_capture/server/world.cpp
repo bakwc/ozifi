@@ -24,12 +24,20 @@ inline float Distance(const QPointF& a, const QPointF& b) {
 TWorld::TWorld(QObject *parent)
     : QObject(parent)
     , Time(0)
+    , RoundStartsAt(-1)
 {
     startTimer(50);
 }
 
 void TWorld::RestartRound() {
-    qDebug() << "Round restarted";
+    Planets.clear();
+    Ships.clear();
+    qDebug() << "New round in" << ROUND_RESTART_TIME << "seconds";
+    RoundStartsAt = ROUND_RESTART_TIME;
+}
+
+void TWorld::DoRestartRound() {
+    qDebug() << "Round launched";
     Planets.clear();
     Ships.clear();
     GeneratePlayerPlanets();
@@ -176,6 +184,14 @@ void TWorld::SendWorld() {
         packetShip->set_angle(angle * 100);
     }
 
+    if (Players.size() < 2) {
+        world.set_waitingplayers(true);
+    }
+
+    if (RoundStartsAt >= 0) {
+        world.set_roundstartsat(RoundStartsAt);
+    }
+
     for (auto& player: Players) {
         if (Time % 10 == 0) {
             world.set_selfid(player.Id);
@@ -186,15 +202,24 @@ void TWorld::SendWorld() {
 
 void TWorld::timerEvent(QTimerEvent *) {
     Time += 1;
-    if (Players.size() < 2) {
-        return; // rount not started yet
+    if (Players.size() >= 2) {
+        if (RoundStartsAt > 0) {
+            if (Time % 20 == 0) {
+                --RoundStartsAt;
+            }
+        } else if (RoundStartsAt == 0) {
+            DoRestartRound();
+            RoundStartsAt = -1;
+        } else {
+            if (Time % 20 == 0) {
+                UpdatePlanetEnergy(); // update energy every second
+            }
+            ProcessShips();
+            ProcessShipSpawn();
+            CheckRoundEnd();
+        }
     }
-    if (Time % 20 == 0) {
-        UpdatePlanetEnergy(); // update energy every second
-    }
-    ProcessShips();
-    ProcessShipSpawn();
-    CheckRoundEnd();
+
     SendWorld();
 }
 
@@ -269,8 +294,7 @@ void TWorld::CheckRoundEnd() {
         }
         playersLeft.insert(Planets[i].PlayerId);
     }
-    if (playersLeft.size() == 1) {
-        // todo: lobby
+    if (playersLeft.size() < 2) {
         RestartRound();
     }
 }

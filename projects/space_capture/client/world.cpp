@@ -11,7 +11,7 @@ TWorld::TWorld()
 }
 
 void TWorld::UpdateWorld(Space::TWorld world) {
-    if (world.planets_size() != 0) {
+    if (world.planets_size() != 0 || world.has_roundstartsat() || world.has_waitingplayers()) {
         Space::TWorld::operator =(world);
     } else {
         *mutable_ships() = world.ships();
