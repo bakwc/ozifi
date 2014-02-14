@@ -4,6 +4,8 @@
 #include <QHash>
 #include <QTime>
 
+#include <utils/types.h>
+
 #include <projects/space_capture/lib/space.pb.h>
 
 struct TClient {
@@ -19,7 +21,7 @@ class TNetwork: public QObject
 {
     Q_OBJECT
 public:
-    TNetwork();
+    TNetwork(ui16 port);
     virtual ~TNetwork();
 signals:
     void OnControlReceived(size_t playerId, Space::TControl control);

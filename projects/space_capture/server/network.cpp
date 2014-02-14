@@ -5,10 +5,10 @@
 
 #include "network.h"
 
-TNetwork::TNetwork()
+TNetwork::TNetwork(ui16 port)
     : QObject(NULL)
 {
-    Socket.bind(9999);
+    Socket.bind(port);
     QObject::connect(&Socket, &QUdpSocket::readyRead, this, &TNetwork::OnDataReceived);
     startTimer(100);
 }

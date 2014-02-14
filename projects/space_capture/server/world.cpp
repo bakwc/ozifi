@@ -298,6 +298,18 @@ void TWorld::CheckRoundEnd() {
     }
 }
 
+size_t TWorld::GetPlayersCount() const {
+    return Players.size();
+}
+
+bool TWorld::Empty() const {
+    return Players.empty();
+}
+
+bool TWorld::Full() const {
+    return Players.size() == MAX_PLAYERS;
+}
+
 void TWorld::OnNewPlayer(size_t playerId) {
     TPlayer player;
     player.Id = playerId;
