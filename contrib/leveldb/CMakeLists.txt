@@ -44,6 +44,11 @@ add_library (leveldb
     include/leveldb/filter_policy.h
     include/leveldb/env.h
     helpers/memenv/memenv.cc)
+
+target_link_libraries(leveldb utils
+                             pthread
+                             ${Boost_LIBRARIES})
+
 ENDIF (WIN32)
 
 IF (UNIX)
@@ -89,8 +94,9 @@ add_library (leveldb
     include/leveldb/filter_policy.h
     include/leveldb/env.h
     helpers/memenv/memenv.cc)
-ENDIF (UNIX)
 
 target_link_libraries(leveldb utils
+                             pthread
                              ${Boost_LIBRARIES})
 
+ENDIF (UNIX)
