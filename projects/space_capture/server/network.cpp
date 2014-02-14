@@ -1,21 +1,22 @@
 #include <QDebug>
 
 #include <projects/vocal/vocal_lib/compress.h>
+#include <projects/space_capture/lib/defines.h>
 
 #include "network.h"
 
 TNetwork::TNetwork()
     : QObject(NULL)
-    , CurrentId(0)
 {
     Socket.bind(9999);
-    QObject::connect(&Socket, &QUdpSocket::readyRead, this, &TNetwork::onDataReceived);
+    QObject::connect(&Socket, &QUdpSocket::readyRead, this, &TNetwork::OnDataReceived);
+    startTimer(100);
 }
 
 TNetwork::~TNetwork() {
 }
 
-void TNetwork::onDataReceived() {
+void TNetwork::OnDataReceived() {
     QByteArray buff;
     buff.resize(512);
     QHostAddress fromAddr;
@@ -29,24 +30,33 @@ void TNetwork::onDataReceived() {
     }
     auto it = Clients.find(senderAddr);
     if (it == Clients.end()) {
+        if (Clients.size() == MAX_PLAYERS) {
+            qDebug() << "server is full";
+            return;
+        }
+        int id = rand() % MAX_PLAYERS;
+        while (ClientsById.find(id) != ClientsById.end()) {
+            id = rand() % MAX_PLAYERS;
+        }
+
         TClient client;
-        client.Id = CurrentId;
+        client.Id = id;
         client.Address = fromAddr;
         client.Port = fromPort;
+        client.LastActivity.start();
         Clients[senderAddr] = client;
         ClientsById[client.Id] = &Clients[senderAddr];
         qDebug() << "Player connected: " << senderAddr;
-        emit onNewPlayerConnected(CurrentId);
-        ++CurrentId;
+        emit OnNewPlayerConnected(id);
     }
     TClient& client = Clients[senderAddr];
-    emit onControlReceived(client.Id, control);
+    client.LastActivity.restart();
+    emit OnControlReceived(client.Id, control);
 }
 
 void TNetwork::SendWorld(Space::TWorld world, size_t playerId) {
     auto cliIt = ClientsById.find(playerId);
     if (cliIt == ClientsById.end()) {
-        qDebug() << "SendWorld(): client with id" << playerId << "not found";
         return;
     }
     TClient* client = cliIt.value();
@@ -57,4 +67,16 @@ void TNetwork::SendWorld(Space::TWorld world, size_t playerId) {
     data = NVocal::Compress(data);
 
     Socket.writeDatagram(data.data(), data.size(), client->Address, client->Port);
+}
+
+void TNetwork::timerEvent(QTimerEvent*) {
+    for (QHash<QString, TClient>::iterator it = Clients.begin(); it != Clients.end();) {
+        if (it.value().LastActivity.elapsed() >= CLIENT_TIMEOUT) {
+            emit OnPlayerDisconnected(it.value().Id);
+            ClientsById.remove(it.value().Id);
+            it = Clients.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
