@@ -8,7 +8,7 @@
 
 TDisplay::TDisplay(QGLWidget* parent)
     : QGLWidget( parent)
-    , Frame(WORLD_WIDTH, WORLD_HEIGHT, QImage::Format_ARGB32)
+    , Frame(800, 600, QImage::Format_ARGB32)
     , CurrentDisplay(nullptr)
     , CurrentControl(nullptr)
 {
@@ -16,7 +16,7 @@ TDisplay::TDisplay(QGLWidget* parent)
     f.setSampleBuffers(true);
     QGLFormat::setDefaultFormat(f);
 
-    setGeometry(x(), y(), WORLD_WIDTH, WORLD_HEIGHT);
+    setGeometry(10, 20, 800, 600);
     setMouseTracking(true);
     setAutoFillBackground(false);
 }
@@ -49,6 +49,10 @@ void TDisplay::wheelEvent(QWheelEvent* e) {
 }
 
 void TDisplay::initializeGL() {
+
+    QGLFormat format;
+    format.setDoubleBuffer(false);
+    setFormat(format);
 
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_LIGHT1);
