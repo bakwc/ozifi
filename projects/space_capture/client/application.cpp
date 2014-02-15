@@ -1,3 +1,6 @@
+#include <utils/cast.h>
+#include <library/http_fetcher/fetcher.h>
+
 #include "application.h"
 
 TApplication::TApplication(int& argc, char **argv)
@@ -25,7 +28,24 @@ void TApplication::QuickGame() {
     disconnect(&MainMenu, &TMainMenu::Render, &Display, &TDisplay::Render);
     Display.UpdateContol(&Control);
     Display.UpdateDisplay(&WorldDisplay);
-    Network.ConnectToServer(QHostAddress("127.0.0.1"), 9999);
+
+    optional<std::string> address;
+    address = NHttpFetcher::FetchUrl("http://" + std::string(CONTROL_SERVER_ADDRESS) +
+                                     ":" + ToString(CONTROL_SERVER_PORT));
+
+    if (!address.is_initialized()) {
+        qDebug() << "Failed to get servers list";
+        return;
+    }
+
+    QString hostPortStr = QString::fromStdString(*address);
+    QStringList hostPort = hostPortStr.split(':');
+    if (!hostPort.size() == 2) {
+        qDebug() << "Wrong address:" << hostPortStr;
+        return;
+    }
+
+    Network.ConnectToServer(QHostAddress(hostPort[0]), FromString(hostPort[1].toStdString()));
 }
 
 void TApplication::Exit() {

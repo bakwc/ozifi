@@ -21,11 +21,13 @@ add_executable(space_capture_client main.cpp
 IF (WIN32)
 target_link_libraries(space_capture_client
                                     space_capture_lib
+                                    http_fetcher
                                     opengl32)
 ENDIF (WIN32)
 IF (UNIX)
 target_link_libraries(space_capture_client
                                     space_capture_lib
+                                    http_fetcher
                                     GL)
 ENDIF(UNIX)
 

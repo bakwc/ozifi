@@ -4,10 +4,13 @@
 
 #include <utils/exception.h>
 #include <utils/cast.h>
+#include <utils/settings.h>
 
 #include <QCoreApplication>
 
 #include <library/http_server/server.h>
+
+#include <projects/space_capture/lib/defines.h>
 
 #include "game_server.h"
 
@@ -50,14 +53,23 @@ private:
 };
 
 int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        std::cerr << "Usage: ./" << argv[0] << " config.ini\n";
+        return 42;
+    }
     try {
         srand(time(NULL));
         QCoreApplication a(argc, argv);
 
-        TServerPool serverPool("127.0.0.1", 9999, 10);
-        NHttpServer::TSettings settings(9999);
-        NHttpServer::THttpServer server(settings);
-        server.HandleAction("/quick", std::bind(&TServerPool::OnQuickRequest, &serverPool, std::placeholders::_1));
+        USettings settings(argv[1]);
+        std::string externalAddress = settings.GetParameter("external_address");
+        ui16 startPort = settings.GetParameter("start_port");
+        size_t serversCount = settings.GetParameter("servers_count");
+
+        TServerPool serverPool(QString::fromStdString(externalAddress), startPort, serversCount);
+        NHttpServer::TSettings httpServerSettings(CONTROL_SERVER_PORT);
+        NHttpServer::THttpServer httpServer(httpServerSettings);
+        httpServer.HandleAction("/quick", std::bind(&TServerPool::OnQuickRequest, &serverPool, std::placeholders::_1));
 
         return a.exec();
     } catch (const std::exception& e) {
