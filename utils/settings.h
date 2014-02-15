@@ -11,6 +11,7 @@ public:
 	typedef std::map<std::string, std::string> TParametersHash;
 public:
     USettings();
+    USettings(const std::string& fname);
     virtual ~USettings() {}
 	void Load(const std::string& fname, const std::string& required = std::string());
 	void Save(const std::string& fname, bool keepOrigin = false);

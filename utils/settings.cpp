@@ -5,9 +5,13 @@
 #include "settings.h"
 #include "exception.h"
 
-USettings::USettings()
-{
+USettings::USettings() {
 }
+
+USettings::USettings(const std::string& fname) {
+    Load(fname);
+}
+
 void USettings::Load(const std::string& fname, const std::string& required) {
 	std::ifstream file(fname);
     if (!file) {
