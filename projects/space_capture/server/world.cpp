@@ -139,8 +139,7 @@ void TWorld::ProcessShips() {
         ship.Speed = ship.Speed + v1 + v2 + v3 + v4 + v5;
         LimitSpeed(ship.Speed);
 
-        ship.Position.setX(ship.Position.x() + ship.Speed.x());
-        ship.Position.setY(ship.Position.y() + ship.Speed.y());
+        ship.Position += ship.Speed;
         if (!ProcessCollision(ship) &&
             ship.Position.x() >= 0 && ship.Position.x() < WORLD_WIDTH &&
             ship.Position.y() >= 0 && ship.Position.y() < WORLD_HEIGHT)
