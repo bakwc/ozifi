@@ -58,15 +58,21 @@ int main(int argc, char* argv[])
         new_image->set_subsystem(image.get_subsystem());
 
 
+        unsigned int image_base;
+        image.get_image_base(image_base);
+
         imported_functions_list imports = get_imported_functions(image);
 
-//        for (size_t i = 0; i < imports.size(); ++i) {
-//            import_library& lib = imports[i];
-//            const import_library::imported_list& imported_funcs = lib.get_imported_functions();
-//            for (size_t j = 0; j < imported_funcs.size(); ++i) {
-//                const imported_function& func = imported_funcs[j];
-//            }
-//        }
+        for (size_t i = 0; i < imports.size(); ++i) {
+            import_library& lib = imports[i];
+            const import_library::imported_list& imported_funcs = lib.get_imported_functions();
+            for (size_t j = 0; j < imported_funcs.size(); ++j) {
+                const imported_function& func = imported_funcs[j];
+
+                cout << "Func: " << func.get_name() << "\n";
+                cout << "Addr: " << std::hex <<  image_base + func.get_iat_va() << "\n";
+            }
+        }
 
         std::cout << "Sections: " << image.get_number_of_sections() << std::endl;
 
@@ -77,7 +83,9 @@ int main(int argc, char* argv[])
             section sec = sections[i];
             cout << sec.get_name() << "\n";
             if (!sec.executable()) {
-                newSections.push_back(sec);
+                if (string(sec.get_name()) != ".idata") {
+                    newSections.push_back(sec);
+                }
                 continue;
             }
 
@@ -86,7 +94,7 @@ int main(int argc, char* argv[])
 
             unsigned int usedInstructionsCount;
             vector<_DecodedInst> instructions;
-            instructions.resize(100000);
+            instructions.resize(500000);
             _DecodeType dt = Decode32Bits;
             distorm_decode(0, (const unsigned char*)&data[0], data.size(), dt, &instructions[0], instructions.size(), &usedInstructionsCount);
             instructions.resize(usedInstructionsCount);
@@ -95,13 +103,15 @@ int main(int argc, char* argv[])
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 newData += data.substr(inst.offset, inst.size);
-//                cout << inst.mnemonic.p << " " << inst.operands.p << "\n";
+                cout << std::hex <<  image_base + sec.get_virtual_address() + inst.offset << "(" <<
+                        sec.get_virtual_address() + inst.offset <<
+                        "): " << inst.mnemonic.p << " " << inst.operands.p << "\n";
 //                newData.push_back(0x90);
             }
 
-            for (size_t i = 0; i < 5000; ++i) {
-                newData.push_back(0x90);
-            }
+//            for (size_t i = 0; i < 800; ++i) {
+//                newData.push_back(0x90);
+//            }
 
             cout << "instructions:   " << instructions.size() << "\n";
             cout << "orig data size: " << data.size() << "\n";
@@ -112,7 +122,6 @@ int main(int argc, char* argv[])
             newData.resize(newSize);
             sec.set_raw_data(newData);
             sec.set_size_of_raw_data(newData.size());
-
 
             newSections.push_back(sec);
         }
@@ -128,9 +137,9 @@ int main(int argc, char* argv[])
         new_imports.readable(true).writeable(true); //Доступна на чтение и запись
         section& attached_section = new_image->add_section(new_imports); //Добавим секцию и получим ссылку на добавленную секцию с просчитанными размерами
 
-//        import_rebuilder_settings settings(true, false); //Модифицируем заголовок PE и не очищаем поле IMAGE_DIRECTORY_ENTRY_IAT
-//        rebuild_imports(image, imports, attached_section, settings); //Пересобираем импорты
-        image_directory dir = rebuild_imports(*new_image, imports, attached_section);
+        import_rebuilder_settings settings(true, false); //Модифицируем заголовок PE и не очищаем поле IMAGE_DIRECTORY_ENTRY_IAT
+        settings.save_iat_and_original_iat_rvas(false, true);
+        rebuild_imports(*new_image, imports, attached_section, settings);
 
         //Пересобираем PE-файл из нового обраща
         rebuild_pe(*new_image, new_pe_file);
