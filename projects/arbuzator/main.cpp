@@ -63,28 +63,33 @@ int main(int argc, char* argv[])
 
         imported_functions_list imports = get_imported_functions(image);
 
-        for (size_t i = 0; i < imports.size(); ++i) {
-            import_library& lib = imports[i];
-            const import_library::imported_list& imported_funcs = lib.get_imported_functions();
-            for (size_t j = 0; j < imported_funcs.size(); ++j) {
-                const imported_function& func = imported_funcs[j];
-
-                cout << "Func: " << func.get_name() << "\n";
-                cout << "Addr: " << std::hex <<  image_base + func.get_iat_va() << "\n";
-            }
-        }
+//        for (size_t i = 0; i < imports.size(); ++i) {
+//            import_library& lib = imports[i];
+//            const import_library::imported_list& imported_funcs = lib.get_imported_functions();
+//            for (size_t j = 0; j < imported_funcs.size(); ++j) {
+//                const imported_function& func = imported_funcs[j];
+//                cout << "Func: " << func.get_name() << "\n";
+//                cout << "Addr: " << std::hex << func.get_iat_va() << "\n";
+//            }
+//        }
 
         std::cout << "Sections: " << image.get_number_of_sections() << std::endl;
 
         section_list& sections = image.get_image_sections();
         section_list newSections;
 
+        pair<size_t, size_t> oldImp;
+        pair<size_t, size_t> newImp;
+
         for (size_t i = 0; i < sections.size(); ++i) {
             section sec = sections[i];
-            cout << sec.get_name() << "\n";
+            cout << std::hex << image_base + sec.get_virtual_address() << ": " << sec.get_name() << "\n";
             if (!sec.executable()) {
                 if (string(sec.get_name()) != ".idata") {
                     newSections.push_back(sec);
+                } else {
+                    oldImp.first = image_base + sec.get_virtual_address();
+                    oldImp.second = sec.get_virtual_size();
                 }
                 continue;
             }
@@ -103,9 +108,13 @@ int main(int argc, char* argv[])
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 newData += data.substr(inst.offset, inst.size);
-                cout << std::hex <<  image_base + sec.get_virtual_address() + inst.offset << "(" <<
-                        sec.get_virtual_address() + inst.offset <<
-                        "): " << inst.mnemonic.p << " " << inst.operands.p << "\n";
+
+                string name = (const char*)inst.mnemonic.p;
+//                if (name == "CALL") {
+//                    cout << std::hex <<  image_base + sec.get_virtual_address() + inst.offset << "(" <<
+//                            inst.offset <<
+//                            "): " << inst.mnemonic.p << " " << inst.operands.p << "\n";
+//                }
 //                newData.push_back(0x90);
             }
 
@@ -140,6 +149,58 @@ int main(int argc, char* argv[])
         import_rebuilder_settings settings(true, false); //Модифицируем заголовок PE и не очищаем поле IMAGE_DIRECTORY_ENTRY_IAT
         settings.save_iat_and_original_iat_rvas(false, true);
         rebuild_imports(*new_image, imports, attached_section, settings);
+
+
+        section_list& sections1 = new_image->get_image_sections();
+
+        for (size_t i = 0; i < sections1.size(); ++i) {
+            section sec = sections1[i];
+            cout << std::hex << image_base + sec.get_virtual_address() << ": " << sec.get_name() << "\n";
+            if (string(sec.get_name()) == "new_imp") {
+                newImp.first = image_base + sec.get_virtual_address();
+                newImp.second = sec.get_virtual_size();
+            }
+        }
+
+
+        for (size_t i = 0; i < sections1.size(); ++i) {
+
+            section& sec = sections1[i];
+            if (!sec.executable()) {
+                continue;
+            }
+            cout << "22\n";
+            std::string data = sec.get_raw_data();
+
+            unsigned int usedInstructionsCount;
+            vector<_DecodedInst> instructions;
+            instructions.resize(500000);
+            _DecodeType dt = Decode32Bits;
+            distorm_decode(0, (const unsigned char*)&data[0], sec.get_virtual_size(), dt, &instructions[0], instructions.size(), &usedInstructionsCount);
+            instructions.resize(usedInstructionsCount);
+
+            string newData;
+
+            for (size_t i = 0; i < instructions.size(); ++i) {
+                _DecodedInst& inst = instructions[i];
+                string instData = data.substr(inst.offset, inst.size);
+                if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15) {
+                    int* addr = (int*)&instData[2];
+                    if (*addr >= oldImp.first &&
+                        *addr < oldImp.first + oldImp.second)
+                    {
+                        cout << std::hex << "olds: " << oldImp.first << "\n";
+                        cout << std::hex << "call " << *addr << "\n";
+                        *addr = *addr - oldImp.first + newImp.first;
+                        cout << std::hex << "ncall " << *addr << "\n";
+                    }
+                }
+                newData += instData;
+            }
+
+            sec.set_raw_data(newData);
+        }
+
 
         //Пересобираем PE-файл из нового обраща
         rebuild_pe(*new_image, new_pe_file);
