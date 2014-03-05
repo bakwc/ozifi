@@ -9,20 +9,23 @@
 
 #include <pe_bliss/pe_bliss.h>
 
+template<typename addr_t>
 struct TImportFunction {
     TImportFunction();
     std::string Name;
-    ui64 OriginalAddress;
-    ui64 NewAddress;
+    addr_t OriginalAddress;
+    addr_t NewAddress;
 };
-typedef std::shared_ptr<TImportFunction> TImportFunctionRef;
 
+template<typename addr_t>
 class TImportFunctionsMapper {
+    typedef TImportFunction<addr_t> TImporFunc;
+    typedef std::shared_ptr<TImporFunc> TImportFunctionRef;
 public:
     void Prepare(const pe_bliss::pe_base& originalImage); // first step - prepare
     void Update(const pe_bliss::pe_base& newImage);       // second step - update
-    boost::optional<ui64> GetNewAddress(ui64 oldAddress); // now you can use it to get new addresses
+    boost::optional<addr_t> GetNewAddress(addr_t oldAddress); // now you can use it to get new addresses
 private:
-    std::unordered_map<ui64, TImportFunctionRef> ImportFunctionsByOriginalAddress;
+    std::unordered_map<addr_t, TImportFunctionRef> ImportFunctionsByOriginalAddress;
     std::unordered_map<std::string, TImportFunctionRef> ImportFunctionsByName;
 };

@@ -3,39 +3,44 @@
 using namespace std;
 using namespace pe_bliss;
 
-TImportFunction::TImportFunction()
+template<typename addr_t>
+TImportFunction<addr_t>::TImportFunction()
     : OriginalAddress(0)
     , NewAddress(0)
 {
 }
 
-void TImportFunctionsMapper::Prepare(const pe_base& originalImage) {
-    ui64 origBase;
+template<typename addr_t>
+void TImportFunctionsMapper<addr_t>::Prepare(const pe_base& originalImage) {
+    addr_t origBase;
     originalImage.get_image_base(origBase);
     imported_functions_list origFunctions = get_imported_functions(originalImage);
 
     for (size_t i = 0; i < origFunctions.size(); ++i) {
         import_library& lib = origFunctions[i];
-        ui64 currentLibOffset = origBase + lib.get_rva_to_iat();
+        addr_t currentLibOffset = origBase + lib.get_rva_to_iat();
         const import_library::imported_list& currentLibFuncs = lib.get_imported_functions();
         for (size_t j = 0; j < currentLibFuncs.size(); ++j) {
             const imported_function& currentFunc = currentLibFuncs[j];
-            TImportFunctionRef func = make_shared<TImportFunction>();
+            TImportFunctionRef func = make_shared<TImporFunc>();
             func->Name = currentFunc.get_name();
-            func->OriginalAddress = currentLibOffset + currentFunc.get_hint();  // todo: check if hint is really func offset
+            //func->OriginalAddress = currentLibOffset + currentFunc.get_hint();  // todo: check if hint is really func offset
+            func->OriginalAddress = currentLibOffset + j * sizeof(addr_t);
             ImportFunctionsByName[func->Name] = func;
+            cout << func->Name << " " << std::hex << func->OriginalAddress << "\n";
         }
     }
 }
 
-void TImportFunctionsMapper::Update(const pe_base& newImage) {
-    ui64 newBase;
+template<typename addr_t>
+void TImportFunctionsMapper<addr_t>::Update(const pe_base& newImage) {
+    addr_t newBase;
     newImage.get_image_base(newBase);
     imported_functions_list newFunctions = get_imported_functions(newImage);
 
     for (size_t i = 0; i < newFunctions.size(); ++i) {
         import_library& lib = newFunctions[i];
-        ui64 currentLibOffset = newBase + lib.get_rva_to_iat();
+        addr_t currentLibOffset = newBase + lib.get_rva_to_iat();
         const import_library::imported_list& currentLibFuncs = lib.get_imported_functions();
         for (size_t j = 0; j < currentLibFuncs.size(); ++j) {
             const imported_function& currentFunc = currentLibFuncs[j];
@@ -47,10 +52,14 @@ void TImportFunctionsMapper::Update(const pe_base& newImage) {
     }
 }
 
-boost::optional<ui64> TImportFunctionsMapper::GetNewAddress(ui64 oldAddress) {
+template<typename addr_t>
+boost::optional<addr_t> TImportFunctionsMapper<addr_t>::GetNewAddress(addr_t oldAddress) {
     auto it = ImportFunctionsByOriginalAddress.find(oldAddress);
     if (it != ImportFunctionsByOriginalAddress.end()) {
         return it->second->NewAddress;
     }
-    return boost::optional<ui64>();
+    return boost::optional<addr_t>();
 }
+
+template class TImportFunctionsMapper<ui32>;
+template class TImportFunctionsMapper<ui64>;

@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         unsigned int image_base;
         image.get_image_base(image_base);
 
-        TImportFunctionsMapper importMapper;
+        TImportFunctionsMapper<ui32> importMapper;
         importMapper.Prepare(image);
 
         imported_functions_list imports = get_imported_functions(image);
@@ -205,7 +205,7 @@ int main(int argc, char* argv[])
                         cout << "REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     } else {
-                        cout << "not remaped :(\n";
+                        cout << "not remaped " << *addr << "\n";
                     }
                 }
                 newData += instData;
