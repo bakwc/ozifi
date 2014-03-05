@@ -1,8 +1,18 @@
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
+#include <memory>
+#include <assert.h>
 
 #include <pe_bliss/pe_bliss.h>
 #include <distorm/distorm.h>
+
+#include <utils/types.h>
+
+#include <boost/optional.hpp>
+
+
+#include "import_remapper.h"
 
 // /home/fippo/Downloads/mingw/bin/i686-w64-mingw32-c++ test.c
 
@@ -26,8 +36,8 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    try
-    {
+//    try
+//    {
         //Создаем экземпляр PE или PE+ класса с помощью фабрики
         pe_base image(pe_factory::create_pe(pe_file));
 
@@ -61,17 +71,10 @@ int main(int argc, char* argv[])
         unsigned int image_base;
         image.get_image_base(image_base);
 
-        imported_functions_list imports = get_imported_functions(image);
+        TImportFunctionsMapper importMapper;
+        importMapper.Prepare(image);
 
-//        for (size_t i = 0; i < imports.size(); ++i) {
-//            import_library& lib = imports[i];
-//            const import_library::imported_list& imported_funcs = lib.get_imported_functions();
-//            for (size_t j = 0; j < imported_funcs.size(); ++j) {
-//                const imported_function& func = imported_funcs[j];
-//                cout << "Func: " << func.get_name() << "\n";
-//                cout << "Addr: " << std::hex << func.get_iat_va() << "\n";
-//            }
-//        }
+        imported_functions_list imports = get_imported_functions(image);
 
         std::cout << "Sections: " << image.get_number_of_sections() << std::endl;
 
@@ -162,6 +165,16 @@ int main(int argc, char* argv[])
             }
         }
 
+        size_t newImageBase;
+        new_image->get_image_base(newImageBase);
+        size_t oldImportOffset = image_base + image.get_directory_rva(pe_win::image_directory_entry_import);
+        size_t newImportOffset = newImageBase + new_image->get_directory_rva(pe_win::image_directory_entry_import);
+
+        cerr << "old import offset:        " << oldImportOffset << "\n";
+        cerr << "imp section offset:       " << oldImp.first << "\n";
+        cerr << "new import offset:        " << newImportOffset << "\n";
+
+        importMapper.Update(*new_image);
 
         for (size_t i = 0; i < sections1.size(); ++i) {
 
@@ -181,18 +194,18 @@ int main(int argc, char* argv[])
 
             string newData;
 
+            cout << std::hex;
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 string instData = data.substr(inst.offset, inst.size);
                 if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15) {
                     int* addr = (int*)&instData[2];
-                    if (*addr >= oldImp.first &&
-                        *addr < oldImp.first + oldImp.second)
-                    {
-                        cout << std::hex << "olds: " << oldImp.first << "\n";
-                        cout << std::hex << "call " << *addr << "\n";
-                        *addr = *addr - oldImp.first + newImp.first;
-                        cout << std::hex << "ncall " << *addr << "\n";
+                    auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (newAddr.is_initialized()) {
+                        cout << "REMAPED from " << *addr << " to " << *newAddr << "\n";
+                        *addr = *newAddr;
+                    } else {
+                        cout << "not remaped :(\n";
                     }
                 }
                 newData += instData;
@@ -205,13 +218,13 @@ int main(int argc, char* argv[])
         //Пересобираем PE-файл из нового обраща
         rebuild_pe(*new_image, new_pe_file);
 
-    }
-    catch(const pe_exception& e)
-    {
-        //Если возникла ошибка
-        std::cout << "Error: " << e.what() << std::endl;
-        return -1;
-    }
+//    }
+//    catch(const pe_exception& e)
+//    {
+//        //Если возникла ошибка
+//        std::cout << "Error: " << e.what() << std::endl;
+//        return -1;
+//    }
 
     return 0;
 }

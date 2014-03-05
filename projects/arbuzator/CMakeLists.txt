@@ -1,5 +1,5 @@
 
-add_executable (arbuzator main.cpp)
+add_executable (arbuzator main.cpp import_remapper.cpp)
 target_link_libraries(arbuzator
                         pe_bliss
                         distorm
