@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "import_remapper.h"
 
 using namespace std;
@@ -45,7 +47,7 @@ void TImportFunctionsMapper<addr_t>::Update(const pe_base& newImage) {
         for (size_t j = 0; j < currentLibFuncs.size(); ++j) {
             const imported_function& currentFunc = currentLibFuncs[j];
             TImportFunctionRef func = ImportFunctionsByName[currentFunc.get_name()];
-            func->NewAddress = currentLibOffset + currentFunc.get_hint();
+            func->NewAddress = currentLibOffset + j * sizeof(addr_t);
             assert(func->OriginalAddress && "original address shoul not be null");
             ImportFunctionsByOriginalAddress[func->OriginalAddress] = func;
         }
@@ -56,6 +58,7 @@ template<typename addr_t>
 boost::optional<addr_t> TImportFunctionsMapper<addr_t>::GetNewAddress(addr_t oldAddress) {
     auto it = ImportFunctionsByOriginalAddress.find(oldAddress);
     if (it != ImportFunctionsByOriginalAddress.end()) {
+        cout << "Remaed func: " << it->second->Name << "\n";
         return it->second->NewAddress;
     }
     return boost::optional<addr_t>();

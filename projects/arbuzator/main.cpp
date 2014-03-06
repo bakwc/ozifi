@@ -74,6 +74,12 @@ int main(int argc, char* argv[])
         TImportFunctionsMapper<ui32> importMapper;
         importMapper.Prepare(image);
 
+
+        //image_directory_entry_bound_import
+        unsigned long current_descriptor_pos = image.get_directory_rva(13);
+        cout << "!!!image_directory_entry_bound_import " << current_descriptor_pos << "\n";
+
+
         imported_functions_list imports = get_imported_functions(image);
 
         std::cout << "Sections: " << image.get_number_of_sections() << std::endl;
@@ -198,7 +204,7 @@ int main(int argc, char* argv[])
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 string instData = data.substr(inst.offset, inst.size);
-                if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15) {
+                if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15 || (unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x25) {
                     int* addr = (int*)&instData[2];
                     auto newAddr = importMapper.GetNewAddress(*addr);
                     if (newAddr.is_initialized()) {
@@ -208,11 +214,18 @@ int main(int argc, char* argv[])
                         cout << "not remaped " << *addr << "\n";
                     }
                 }
+                if ((unsigned char)instData[0] == 0xA1)
+                {
+                    cout << "mov detected\n";
+                }
+
                 newData += instData;
             }
 
             sec.set_raw_data(newData);
         }
+
+
 
 
         //Пересобираем PE-файл из нового обраща
