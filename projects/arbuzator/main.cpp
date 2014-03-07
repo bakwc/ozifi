@@ -208,15 +208,19 @@ int main(int argc, char* argv[])
                     int* addr = (int*)&instData[2];
                     auto newAddr = importMapper.GetNewAddress(*addr);
                     if (newAddr.is_initialized()) {
-                        cout << "REMAPED from " << *addr << " to " << *newAddr << "\n";
+//                        cout << "REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     } else {
-                        cout << "not remaped " << *addr << "\n";
+//                        cout << "not remaped " << *addr << "\n";
                     }
                 }
-                if ((unsigned char)instData[0] == 0xA1)
-                {
-                    cout << "mov detected\n";
+                if ((unsigned char)instData[0] == 0x8B) {
+                    int* addr = (int*)&instData[2];
+                    auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (newAddr.is_initialized()) {
+                        cout << "MOV REMAPED from " << *addr << " to " << *newAddr << "\n";
+                        *addr = *newAddr;
+                    }
                 }
 
                 newData += instData;

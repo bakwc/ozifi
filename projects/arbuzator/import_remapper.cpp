@@ -58,7 +58,7 @@ template<typename addr_t>
 boost::optional<addr_t> TImportFunctionsMapper<addr_t>::GetNewAddress(addr_t oldAddress) {
     auto it = ImportFunctionsByOriginalAddress.find(oldAddress);
     if (it != ImportFunctionsByOriginalAddress.end()) {
-        cout << "Remaed func: " << it->second->Name << "\n";
+//        cout << "Remaed func: " << it->second->Name << "\n";
         return it->second->NewAddress;
     }
     return boost::optional<addr_t>();
