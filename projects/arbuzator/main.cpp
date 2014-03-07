@@ -13,6 +13,7 @@
 
 
 #include "import_remapper.h"
+#include "data_remapper.h"
 
 // /home/fippo/Downloads/mingw/bin/i686-w64-mingw32-c++ test.c
 
@@ -90,12 +91,15 @@ int main(int argc, char* argv[])
         pair<size_t, size_t> oldImp;
         pair<size_t, size_t> newImp;
 
+        TDataRemapper<ui32> dataRemapper;
+
         for (size_t i = 0; i < sections.size(); ++i) {
             section sec = sections[i];
             cout << std::hex << image_base + sec.get_virtual_address() << ": " << sec.get_name() << "\n";
             if (!sec.executable()) {
                 if (string(sec.get_name()) != ".idata") {
                     newSections.push_back(sec);
+                    dataRemapper.AddSection(sec.get_name(), image_base + sec.get_virtual_address(), sec.get_virtual_size());
                 } else {
                     oldImp.first = image_base + sec.get_virtual_address();
                     oldImp.second = sec.get_virtual_size();
@@ -168,6 +172,10 @@ int main(int argc, char* argv[])
             if (string(sec.get_name()) == "new_imp") {
                 newImp.first = image_base + sec.get_virtual_address();
                 newImp.second = sec.get_virtual_size();
+            } else {
+                if (!sec.executable()) {
+                    dataRemapper.AddNewSection(sec.get_name(), image_base + sec.get_virtual_address(), sec.get_virtual_size());
+                }
             }
         }
 
@@ -218,7 +226,15 @@ int main(int argc, char* argv[])
                     int* addr = (int*)&instData[2];
                     auto newAddr = importMapper.GetNewAddress(*addr);
                     if (newAddr.is_initialized()) {
-                        cout << "MOV REMAPED from " << *addr << " to " << *newAddr << "\n";
+//                        cout << "MOV REMAPED from " << *addr << " to " << *newAddr << "\n";
+                        *addr = *newAddr;
+                    }
+                }
+                if ((unsigned char)instData[0] == 0xC7) {
+                    int* addr = (int*)&instData[3];
+                    auto newAddr = dataRemapper.GetNewAddress(*addr);
+                    if (newAddr.is_initialized()) {
+                        cout << "MOV #2 REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     }
                 }

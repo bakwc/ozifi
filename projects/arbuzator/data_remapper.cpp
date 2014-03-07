@@ -45,9 +45,11 @@ boost::optional<addr_t> TDataRemapper<addr_t>::GetNewAddress(addr_t oldAddress) 
     }
     const TRangeRef& range = it->second;
     if (range->Address <= oldAddress && range->Address + range->Length >= oldAddress) {
+        std::cout << "remaping section " << range->Name << "\n";
         addr_t delta = oldAddress - range->Address;
         return range->NewAddress + delta;
     }
+    return boost::optional<addr_t>();
 }
 
 template class TDataRemapper<ui32>;
