@@ -230,11 +230,19 @@ int main(int argc, char* argv[])
                         *addr = *newAddr;
                     }
                 }
+                if ((unsigned char)instData[0] == 0xA1) {
+                    int* addr = (int*)&instData[1];
+                    auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (newAddr.is_initialized()) {
+                        cout << "MOV #3 REMAPED from " << *addr << " to " << *newAddr << "\n";
+                        *addr = *newAddr;
+                    }
+                }
                 if ((unsigned char)instData[0] == 0xC7) {
                     int* addr = (int*)&instData[3];
                     auto newAddr = dataRemapper.GetNewAddress(*addr);
                     if (newAddr.is_initialized()) {
-                        cout << "MOV #2 REMAPED from " << *addr << " to " << *newAddr << "\n";
+//                        cout << "MOV #2 REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     }
                 }
