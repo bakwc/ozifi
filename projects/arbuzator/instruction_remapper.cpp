@@ -54,10 +54,16 @@ string StrToOpcode(const string& opcodeStr) {
 }
 
 void TInstructionRemapper::LoadRules(const string& rulesFile) {
+    cout << "LOADING: " << rulesFile << "\n";
     string data = LoadFile(rulesFile);
+    if (data.empty()) {
+        throw UException("no data to parse");
+    }
     Json::Reader reader;
     Json::Value root;
-    reader.parse(data, root);
+    if (!reader.parse(data, root)) {
+        throw UException("failed to parse json");
+    }
     for (size_t i = 0; i < root.size(); ++i) {
         const Json::Value& ruleVal = root[i];
         TRule rule;

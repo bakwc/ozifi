@@ -11,9 +11,7 @@
 
 #include <boost/optional.hpp>
 
-
-#include "import_remapper.h"
-#include "data_remapper.h"
+#include "instruction_remapper.h"
 
 // /home/fippo/Downloads/mingw/bin/i686-w64-mingw32-c++ test.c
 
@@ -39,6 +37,11 @@ int main(int argc, char* argv[])
 
 //    try
 //    {
+
+        TDataRemapper<ui32> dataRemapper;
+        TImportFunctionsMapper<ui32> importMapper;
+        TInstructionRemapper remapper(dataRemapper, importMapper, "rules.json");
+
         //Создаем экземпляр PE или PE+ класса с помощью фабрики
         pe_base image(pe_factory::create_pe(pe_file));
 
@@ -72,7 +75,6 @@ int main(int argc, char* argv[])
         unsigned int image_base;
         image.get_image_base(image_base);
 
-        TImportFunctionsMapper<ui32> importMapper;
         importMapper.Prepare(image);
 
 
@@ -91,7 +93,7 @@ int main(int argc, char* argv[])
         pair<size_t, size_t> oldImp;
         pair<size_t, size_t> newImp;
 
-        TDataRemapper<ui32> dataRemapper;
+
 
         for (size_t i = 0; i < sections.size(); ++i) {
             section sec = sections[i];
@@ -212,49 +214,7 @@ int main(int argc, char* argv[])
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 string instData = data.substr(inst.offset, inst.size);
-                if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15 ||
-                    (unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x25)
-                {
-                    int* addr = (int*)&instData[2];
-                    auto newAddr = importMapper.GetNewAddress(*addr);
-                    if (!newAddr.is_initialized()) {
-                        newAddr = dataRemapper.GetNewAddress(*addr);
-                    }
-                    if (newAddr.is_initialized()) {
-                        *addr = *newAddr;
-                    }
-                }
-                if ((unsigned char)instData[0] == 0x8B) {
-                    int* addr = (int*)&instData[2];
-                    auto newAddr = importMapper.GetNewAddress(*addr);
-                    if (!newAddr.is_initialized()) {
-                        newAddr = dataRemapper.GetNewAddress(*addr);
-                    }
-                    if (newAddr.is_initialized()) {
-                        *addr = *newAddr;
-                    }
-                }
-                if ((unsigned char)instData[0] == 0xA1) {
-                    int* addr = (int*)&instData[1];
-                    auto newAddr = importMapper.GetNewAddress(*addr);
-                    if (!newAddr.is_initialized()) {
-                        newAddr = dataRemapper.GetNewAddress(*addr);
-                    }
-                    if (newAddr.is_initialized()) {
-                        *addr = *newAddr;
-                    }
-                }
-                if ((unsigned char)instData[0] == 0xC7) {
-                    int* addr = (int*)&instData[3];
-                    auto newAddr = importMapper.GetNewAddress(*addr);
-                    if (!newAddr.is_initialized()) {
-                        newAddr = dataRemapper.GetNewAddress(*addr);
-                    }
-                    if (newAddr.is_initialized()) {
-                        *addr = *newAddr;
-                    }
-                }
-
+                remapper.Remap(instData);
                 newData += instData;
             }
 
