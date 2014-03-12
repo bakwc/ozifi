@@ -212,37 +212,45 @@ int main(int argc, char* argv[])
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 string instData = data.substr(inst.offset, inst.size);
-                if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15 || (unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x25) {
+                if ((unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x15 ||
+                    (unsigned char)instData[0] == 0xFF && (unsigned char)instData[1] == 0x25)
+                {
                     int* addr = (int*)&instData[2];
                     auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (!newAddr.is_initialized()) {
+                        newAddr = dataRemapper.GetNewAddress(*addr);
+                    }
                     if (newAddr.is_initialized()) {
-//                        cout << "REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
-                    } else {
-//                        cout << "not remaped " << *addr << "\n";
                     }
                 }
                 if ((unsigned char)instData[0] == 0x8B) {
                     int* addr = (int*)&instData[2];
                     auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (!newAddr.is_initialized()) {
+                        newAddr = dataRemapper.GetNewAddress(*addr);
+                    }
                     if (newAddr.is_initialized()) {
-//                        cout << "MOV REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     }
                 }
                 if ((unsigned char)instData[0] == 0xA1) {
                     int* addr = (int*)&instData[1];
                     auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (!newAddr.is_initialized()) {
+                        newAddr = dataRemapper.GetNewAddress(*addr);
+                    }
                     if (newAddr.is_initialized()) {
-                        cout << "MOV #3 REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     }
                 }
                 if ((unsigned char)instData[0] == 0xC7) {
                     int* addr = (int*)&instData[3];
-                    auto newAddr = dataRemapper.GetNewAddress(*addr);
+                    auto newAddr = importMapper.GetNewAddress(*addr);
+                    if (!newAddr.is_initialized()) {
+                        newAddr = dataRemapper.GetNewAddress(*addr);
+                    }
                     if (newAddr.is_initialized()) {
-//                        cout << "MOV #2 REMAPED from " << *addr << " to " << *newAddr << "\n";
                         *addr = *newAddr;
                     }
                 }
