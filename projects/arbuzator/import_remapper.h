@@ -24,7 +24,7 @@ class TImportFunctionsMapper {
 public:
     void Prepare(const pe_bliss::pe_base& originalImage); // first step - prepare
     void Update(const pe_bliss::pe_base& newImage);       // second step - update
-    boost::optional<addr_t> GetNewAddress(addr_t oldAddress); // now you can use it to get new addresses
+    boost::optional<addr_t> GetNewAddress(addr_t oldAddress) const; // now you can use it to get new addresses
 private:
     std::unordered_map<addr_t, TImportFunctionRef> ImportFunctionsByOriginalAddress;
     std::unordered_map<std::string, TImportFunctionRef> ImportFunctionsByName;

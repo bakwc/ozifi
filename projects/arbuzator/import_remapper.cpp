@@ -55,7 +55,7 @@ void TImportFunctionsMapper<addr_t>::Update(const pe_base& newImage) {
 }
 
 template<typename addr_t>
-boost::optional<addr_t> TImportFunctionsMapper<addr_t>::GetNewAddress(addr_t oldAddress) {
+boost::optional<addr_t> TImportFunctionsMapper<addr_t>::GetNewAddress(addr_t oldAddress) const {
     auto it = ImportFunctionsByOriginalAddress.find(oldAddress);
     if (it != ImportFunctionsByOriginalAddress.end()) {
 //        cout << "Remaed func: " << it->second->Name << "\n";
