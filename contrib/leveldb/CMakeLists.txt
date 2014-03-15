@@ -92,5 +92,6 @@ add_library (leveldb
 ENDIF (UNIX)
 
 target_link_libraries(leveldb utils
-                             ${Boost_LIBRARIES})
+                       pthread
+                       ${Boost_LIBRARIES})
 
