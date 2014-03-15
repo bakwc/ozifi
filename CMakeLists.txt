@@ -18,6 +18,7 @@ include_directories(${PROJECT_SOURCE_DIR}
                     ${Boost_INCLUDE_DIRS}
                     ${PROJECT_BINARY_DIR}
                     ${Qt5Widgets_INCLUDE_DIRS})
+include_directories(/home/mikhail/Downloads/Dev/Boost/boost_1_55_0/)
 
 link_directories(${PROJECT_BINARY_DIR})
 

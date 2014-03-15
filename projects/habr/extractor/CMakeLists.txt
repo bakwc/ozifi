@@ -4,4 +4,5 @@ target_link_libraries(habr_extractor
                         html_parser
                         kwstorage
                         json
+                        pthread
                         ${Boost_LIBRARIES})
