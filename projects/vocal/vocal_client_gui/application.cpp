@@ -53,10 +53,12 @@ TVocaGuiApp::~TVocaGuiApp() {
 }
 
 QString TVocaGuiApp::SelfLogin() {
+    qDebug() << Q_FUNC_INFO;
     return QString::fromStdString(Client->GetFullLogin());
 }
 
 void TVocaGuiApp::Authorize() {
+    qDebug() << Q_FUNC_INFO;
     try {
         Client->Connect();
     } catch (const UException& e) {
@@ -73,6 +75,7 @@ void TVocaGuiApp::OnCaptcha(const TBuffer& data) {
 }
 
 void TVocaGuiApp::OnRegistered(NVocal::ERegisterResult res) {
+    qDebug() << Q_FUNC_INFO;
     if (res == NVocal::RR_Success) {
         emit RegistrationSuccess();
     } else {
@@ -82,6 +85,7 @@ void TVocaGuiApp::OnRegistered(NVocal::ERegisterResult res) {
 }
 
 void TVocaGuiApp::OnLogined(NVocal::ELoginResult res) {
+    qDebug() << Q_FUNC_INFO;
     if (res == NVocal::LR_Success) {
         emit RegistrationSuccess();
     } else {
@@ -91,6 +95,7 @@ void TVocaGuiApp::OnLogined(NVocal::ELoginResult res) {
 }
 
 void TVocaGuiApp::OnConnected(bool success) {
+    qDebug() << Q_FUNC_INFO;
     if (!success) {
         cout << "failed to authorize\n";
     }
@@ -109,9 +114,8 @@ void TVocaGuiApp::OnMessageReceived(const NVocal::TMessage& message) {
 }
 
 void TVocaGuiApp::Register(const QString& login) {
-    if (Status != ST_None) {
-        return;
-    }
+    qDebug() << Q_FUNC_INFO;
+    assert(Status == ST_None && "Wrong state");
     try {
         Status = ST_Registering;
         Client->Register(login.toStdString());
@@ -123,9 +127,7 @@ void TVocaGuiApp::Register(const QString& login) {
 
 void TVocaGuiApp::Login(const QString& login) {
     qDebug() << Q_FUNC_INFO;
-    if (Status != ST_None) {
-        return;
-    }
+    assert(Status == ST_None && "Wrong state");
     try {
         Status = ST_Logining;
         qDebug() << login;
@@ -137,6 +139,7 @@ void TVocaGuiApp::Login(const QString& login) {
 }
 
 void TVocaGuiApp::DoLogin(const QString& captcha, const QString& password) {
+    qDebug() << Q_FUNC_INFO;
     Client->Login(password.toStdString(), captcha.toStdString());
     // todo: handle exceptions
 }
@@ -145,6 +148,7 @@ void TVocaGuiApp::DoRegister(const QString& captcha,
                              const QString& password,
                              const QString& email)
 {
+    qDebug() << Q_FUNC_INFO;
     Client->Register(password.toStdString(),
                      email.toStdString(),
                      captcha.toStdString());
@@ -157,6 +161,7 @@ void TVocaGuiApp::SendMessage(const QString& frndLogin, const QString& message) 
 }
 
 void TVocaGuiApp::LaunchLogin() {
+    qDebug() << Q_FUNC_INFO;
     LoginWindow.reset(new TLoginWindow());
     connect(LoginWindow.get(), &TLoginWindow::Register,
             this, &TVocaGuiApp::Register);
@@ -175,6 +180,7 @@ void TVocaGuiApp::LaunchLogin() {
 }
 
 void TVocaGuiApp::LaunchMain() {
+    qDebug() << Q_FUNC_INFO;
     FriendListModel.reset(new TFriendListModel(*Client));
     MainWindow.reset(new TMainWindow(&ImageStorage, FriendListModel.get()));
     connect(MainWindow.get(), &TMainWindow::FriendDoubleClicked, ChatWindows.get(), &TChatWindows::ShowChatWindow);

@@ -72,7 +72,7 @@ void TLoginWindow::OnRegisterButtonClicked() {
                         PasswordEdit->text(),
                         "");
         // todo: use email
-    } if (LoginEdit->text().size() != 0) {
+    } else if (LoginEdit->text().size() != 0) {
         emit Register(LoginEdit->text());
     }
 }
