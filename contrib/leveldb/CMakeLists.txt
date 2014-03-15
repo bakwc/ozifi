@@ -96,12 +96,7 @@ add_library (leveldb
     helpers/memenv/memenv.cc)
 
 target_link_libraries(leveldb utils
-<<<<<<< HEAD
                        pthread
                        ${Boost_LIBRARIES})
-=======
-                             pthread
-                             ${Boost_LIBRARIES})
->>>>>>> upstream/master
 
 ENDIF (UNIX)
