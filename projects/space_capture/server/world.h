@@ -63,10 +63,15 @@ public:
     void ProcessShipSpawn();
     bool ProcessCollision(TShip& ship);
     void CheckRoundEnd();
+public:
+    size_t GetPlayersCount() const;
+    bool Empty() const;
+    bool Full() const;
 signals:
     void SendWorldToPlayer(Space::TWorld world, size_t playerId);
 public slots:
     void OnNewPlayer(size_t playerId);
+    void OnPlayerLeft(size_t playerId);
     void OnControl(size_t playerId, Space::TControl control);
 private:
     void Attack(TPlayer& player, Space::TAttackCommand control);

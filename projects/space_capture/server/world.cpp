@@ -69,7 +69,7 @@ inline QPointF RandomPoint() {
 }
 
 void TWorld::GeneratePlayerPlanets() {
-    for (size_t i = 0; i < (size_t)Players.size(); ++i) {
+    for (auto& player: Players) {
         QPointF point = RandomPoint();
         while (!IsPossiblePlanetPosition(point, PLAYER_PLANET_RADIUS, MINIMUM_PLAYER_PLANET_DISTANCE)) {
             point = RandomPoint();
@@ -77,7 +77,7 @@ void TWorld::GeneratePlayerPlanets() {
         TPlanet planet;
         planet.Id = Planets.size();
         planet.Position = point;
-        planet.PlayerId = Players[i].Id;
+        planet.PlayerId = player.Id;
         planet.Energy = PLAYER_PLANET_ENERGY;
         planet.Radius = PLAYER_PLANET_RADIUS;
         planet.Type = rand() % MAX_PLANET_TYPES;
@@ -139,8 +139,7 @@ void TWorld::ProcessShips() {
         ship.Speed = ship.Speed + v1 + v2 + v3 + v4 + v5;
         LimitSpeed(ship.Speed);
 
-        ship.Position.setX(ship.Position.x() + ship.Speed.x());
-        ship.Position.setY(ship.Position.y() + ship.Speed.y());
+        ship.Position += ship.Speed;
         if (!ProcessCollision(ship) &&
             ship.Position.x() >= 0 && ship.Position.x() < WORLD_WIDTH &&
             ship.Position.y() >= 0 && ship.Position.y() < WORLD_HEIGHT)
@@ -165,12 +164,11 @@ void TWorld::SendWorld() {
             packetPlanet->set_energy(planet->Energy);
             packetPlanet->set_type(planet->Type);
         }
-        for (size_t i = 0; i < (size_t)Players.size(); ++i) {
-            TPlayer* player = &Players[i];
+        for (auto& player: Players) {
             Space::TPlayer* packetPlayer = world.add_players();
-            packetPlayer->set_id(player->Id);
-            packetPlayer->set_name(player->Name.toStdString());
-            packetPlayer->set_color(player->Color);
+            packetPlayer->set_id(player.Id);
+            packetPlayer->set_name(player.Name.toStdString());
+            packetPlayer->set_color(player.Color);
         }
     }
 
@@ -299,14 +297,48 @@ void TWorld::CheckRoundEnd() {
     }
 }
 
+size_t TWorld::GetPlayersCount() const {
+    return Players.size();
+}
+
+bool TWorld::Empty() const {
+    return Players.empty();
+}
+
+bool TWorld::Full() const {
+    return Players.size() == MAX_PLAYERS;
+}
+
 void TWorld::OnNewPlayer(size_t playerId) {
     TPlayer player;
     player.Id = playerId;
     player.Name = "noob";
     player.Color = (Space::EColor)(playerId + 1);
     Players[player.Id] = player;
-    if (Players.size() >= 2) {
+    if (Players.size() == 2) {
         RestartRound();
+    }
+}
+
+void TWorld::OnPlayerLeft(size_t playerId) {
+    qDebug() << "disconnected player" << playerId;
+    for (auto& planet: Planets) {
+        if (planet.PlayerId == playerId) {
+            planet.PlayerId = -1;
+            planet.SpawnQueue.clear();
+        }
+    }
+    QVector<TShip> newShips;
+    newShips.reserve(Ships.size());
+    for (auto& ship: Ships) {
+        if (ship.PlayerId != playerId) {
+            newShips.push_back(ship);
+        }
+    }
+    Ships.swap(newShips);
+    Players.remove(playerId);
+    if (Players.size() < 2) {
+        RoundStartsAt = -1;
     }
 }
 

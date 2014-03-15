@@ -1,0 +1,22 @@
+[
+    {
+        "opcode": "FF15",
+        "offset": 2
+    },
+    {
+        "opcode": "FF25",
+        "offset": 2
+    },
+    {
+        "opcode": "8B",
+        "offset": 2
+    },
+    {
+        "opcode": "A1",
+        "offset": 1
+    },
+    {
+        "opcode": "C7",
+        "offset": 3
+    }
+]

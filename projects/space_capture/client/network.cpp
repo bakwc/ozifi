@@ -13,6 +13,9 @@ void TNetwork::ConnectToServer(QHostAddress address, quint16 port) {
 }
 
 void TNetwork::SendControl(Space::TControl control) {
+    if (!Socket.isOpen()) {
+        return;
+    }
     QByteArray data;
     data.resize(control.ByteSize());
     control.SerializeToArray(data.data(), data.size());
