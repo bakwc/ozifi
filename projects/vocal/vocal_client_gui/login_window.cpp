@@ -84,7 +84,7 @@ void TLoginWindow::OnLoginButtonClicked() {
         PasswordEdit->text().size() != 0)
     {
         emit DoLogin(CaptchaEdit->text(), PasswordEdit->text());
-    } if (LoginEdit->text().size() != 0) {
+    } else if (LoginEdit->text().size() != 0) {
         emit Login(LoginEdit->text());
     }
 }
