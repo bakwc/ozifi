@@ -6,6 +6,7 @@
 
 #include <pe_bliss/pe_bliss.h>
 #include <distorm/distorm.h>
+#include <distorm/mnemonics.h>
 
 #include <utils/types.h>
 
@@ -17,6 +18,18 @@
 
 using namespace pe_bliss;
 using namespace std;
+
+size_t GetOpSize(const _Operand& op) {
+    switch (op.type) {
+    case O_NONE:
+    case O_REG:
+        return 0;
+    case O_DISP:
+        return 4;
+    default:
+        return op.size / 8;
+    }
+}
 
 //Пример, показывающий, как получить базовую информацию о PE-файле
 int main(int argc, char* argv[])
@@ -119,12 +132,13 @@ int main(int argc, char* argv[])
             distorm_decode(0, (const unsigned char*)&data[0], data.size(), dt, &instructions[0], instructions.size(), &usedInstructionsCount);
             instructions.resize(usedInstructionsCount);
 
+
             string newData;
             for (size_t i = 0; i < instructions.size(); ++i) {
                 _DecodedInst& inst = instructions[i];
                 newData += data.substr(inst.offset, inst.size);
 
-                string name = (const char*)inst.mnemonic.p;
+//                string name = (const char*)inst.mnemonic.p;
 //                if (name == "CALL") {
 //                    cout << std::hex <<  image_base + sec.get_virtual_address() + inst.offset << "(" <<
 //                            inst.offset <<
@@ -198,8 +212,115 @@ int main(int argc, char* argv[])
             if (!sec.executable()) {
                 continue;
             }
-            cout << "22\n";
+
             std::string data = sec.get_raw_data();
+            data.resize(sec.get_virtual_size());
+
+            {
+                unsigned int usedInstructionsCount;
+                vector<_DecodedInst> instructions;
+                instructions.resize(500000);
+                _DecodeType dt = Decode32Bits;
+                distorm_decode(0, (const unsigned char*)&data[0], data.size(), dt, &instructions[0], instructions.size(), &usedInstructionsCount);
+                instructions.resize(usedInstructionsCount);
+                cout << "inst size: " << instructions.size() << "\n";
+            }
+
+
+            _CodeInfo codesInfo;
+            codesInfo.code = (const unsigned char*)data.data();
+            codesInfo.codeLen = data.size();
+            codesInfo.dt = Decode32Bits;
+            codesInfo.codeOffset = 0;
+            codesInfo.features = DF_NONE;
+
+            vector<_DInst> instructions;
+            instructions.resize(500000);
+            unsigned int usedInstructionsCount = 0;
+            distorm_decompose(&codesInfo, &instructions[0], instructions.size(), &usedInstructionsCount);
+            instructions.resize(usedInstructionsCount);
+            string newData;
+            newData.reserve(data.size());
+
+            cout << "instructions: " << instructions.size() << "\n";
+            for (size_t j = 0; j < instructions.size(); ++j) {
+                _DInst& inst = instructions[j];
+                if (inst.flags == FLAG_NOT_DECODABLE) {
+                    break;
+                }
+
+                size_t opsSize = 0;
+                for (size_t k = 0; k < 4; ++k) {
+                    _Operand& op = inst.ops[k];
+                    opsSize += GetOpSize(op);
+                }
+
+                size_t prefixSize = inst.size - opsSize;
+
+                vector<size_t> dispOffsets;
+                size_t currentOffset = prefixSize;
+
+                for (size_t k = 0; k < 4; ++k) {
+                    _Operand& op = inst.ops[k];
+                    bool matched = false;
+                    if (op.type == O_DISP) {
+                        matched = true;
+                    } else if (op.type == O_IMM && op.size == 32) {
+                        matched = true;
+                    }
+
+                    if (!matched) {
+                        currentOffset += GetOpSize(op);
+                        continue;
+                    }
+                    dispOffsets.push_back(currentOffset);
+                    currentOffset += GetOpSize(op);
+                }
+
+                _DecodedInst decodedInst;
+                distorm_format(&codesInfo, &inst, &decodedInst);
+
+                string instData = data.substr(decodedInst.offset, decodedInst.size);
+
+                if (dispOffsets.empty()) {
+                    newData += instData;
+                    continue;
+                }
+
+                printf("%s %s %s - ", decodedInst.instructionHex.p, decodedInst.mnemonic.p, decodedInst.operands.p);
+                printf("%s", decodedInst.mnemonic.p);
+
+                for (size_t k = 0; k < 4; ++k) {
+                    if (inst.ops[k].type != O_NONE) {
+                        switch(inst.ops[k].type) {
+                            case O_PC: cout << " PC"; break;
+                            case O_SMEM: cout << " SMEM"; break;
+                            case O_MEM: cout << " MEM"; break;
+                            case O_REG: cout << " REG"; break;
+                            case O_DISP: cout << " DISP"; break;
+                            case O_IMM: cout << " IMM"; break;
+                        default:
+                            cout << " " << dec << (unsigned int)inst.ops[k].type;
+                        }
+                        cout << dec << "(" << inst.ops[k].size << ")";
+                        cout << dec << "(" << GetOpSize(inst.ops[k]) << ")";
+                    }
+                }
+                cout << "\n";
+
+                for (size_t k = 0; k < dispOffsets.size(); ++k) {
+                    cout << dispOffsets[k] << " ";
+                }
+                cout << "\n";
+
+                remapper.Remap(instData, dispOffsets);
+                newData += instData;
+
+//                cout << dec << (unsigned int)inst.size << " " << opsSize << "\n";
+            }
+
+
+            /*
 
             unsigned int usedInstructionsCount;
             vector<_DecodedInst> instructions;
@@ -218,6 +339,7 @@ int main(int argc, char* argv[])
                 newData += instData;
             }
 
+            */
             sec.set_raw_data(newData);
         }
 

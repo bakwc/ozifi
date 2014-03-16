@@ -15,6 +15,7 @@ public:
                          const TImportFunctionsMapper<ui32>& importRemapper,
                          const std::string& rulesFile);
     bool Remap(std::string& instruction);
+    bool Remap(std::string& instruction, const std::vector<size_t>& offsets);
 private:
     void LoadRules(const std::string& rulesFile);
 private:

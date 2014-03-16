@@ -38,6 +38,22 @@ bool TInstructionRemapper::Remap(string& instruction) {
     return false;
 }
 
+bool TInstructionRemapper::Remap(string& instruction, const vector<size_t>& offsets) {
+    bool remaped = false;
+    for (size_t i = 0; i < offsets.size(); ++i) {
+        ui32* addr = reinterpret_cast<ui32*>(&instruction[offsets[i]]);
+        auto newAddr = ImportRemapper.GetNewAddress(*addr);
+        if (!newAddr.is_initialized()) {
+            newAddr = DataRemapper.GetNewAddress(*addr);
+        }
+        if (newAddr.is_initialized()) {
+            *addr = *newAddr;
+            remaped = true;
+        }
+    }
+    return remaped;
+}
+
 string StrToOpcode(const string& opcodeStr) {
     if (opcodeStr.empty() || opcodeStr.size() % 2 != 0) {
         throw UException("failed to parse opcode string: " + opcodeStr);
