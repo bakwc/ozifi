@@ -10,7 +10,6 @@
 TLoginWindow::TLoginWindow()
     : QWidget(NULL)
 {
-    qDebug() << Q_FUNC_INFO;
     this->setFixedSize(LOGIN_WINDOW_WIDTH, LOGIN_WINDOW_HEIGHT_NOCAPTCHA);
     this->setGeometry(QDesktopWidget().availableGeometry().center().x() - (this->width() / 2),
                       QDesktopWidget().availableGeometry().center().y() - (this->height() / 2),
@@ -63,7 +62,6 @@ TLoginWindow::~TLoginWindow() {
 }
 
 void TLoginWindow::OnRegisterButtonClicked() {
-    qDebug() << Q_FUNC_INFO;
     if (CaptchaEdit->text().size() != 0 &&
         LoginEdit->text().size() != 0 &&
         PasswordEdit->text().size() != 0)
@@ -72,19 +70,18 @@ void TLoginWindow::OnRegisterButtonClicked() {
                         PasswordEdit->text(),
                         "");
         // todo: use email
-    } if (LoginEdit->text().size() != 0) {
+    } else if (LoginEdit->text().size() != 0) {
         emit Register(LoginEdit->text());
     }
 }
 
 void TLoginWindow::OnLoginButtonClicked() {
-    qDebug() << Q_FUNC_INFO;
     if (CaptchaEdit->text().size() != 0 &&
         LoginEdit->text().size() != 0 &&
         PasswordEdit->text().size() != 0)
     {
         emit DoLogin(CaptchaEdit->text(), PasswordEdit->text());
-    } if (LoginEdit->text().size() != 0) {
+    } else if (LoginEdit->text().size() != 0) {
         emit Login(LoginEdit->text());
     }
 }
@@ -98,13 +95,11 @@ void TLoginWindow::paintEvent(QPaintEvent*) {
 }
 
 void TLoginWindow::OnBadLogin() {
-    qDebug() << Q_FUNC_INFO;
     // todo: show message about bad login
     LoginEdit->setText("");
 }
 
 void TLoginWindow::OnCaptchaAvailable(QImage image) {
-    qDebug() << Q_FUNC_INFO;
     this->setFixedSize(LOGIN_WINDOW_WIDTH, LOGIN_WINDOW_HEIGHT_CAPTCHA);
     CaptchaImageWidget->setFixedSize(NVocal::CAPTCHA_WIDTH, NVocal::CAPTCHA_HEIGHT);
     CaptchaImage = image;
@@ -113,13 +108,11 @@ void TLoginWindow::OnCaptchaAvailable(QImage image) {
 }
 
 void TLoginWindow::OnRegistrationFailed(const QString& message) {
-    qDebug() << Q_FUNC_INFO;
     qDebug() << message;
     // todo: show qmessage
 }
 
 void TLoginWindow::OnLoginFailed(const QString &message) {
-    qDebug() << Q_FUNC_INFO;
     qDebug() << message;
     // todo: show qmessage
 }

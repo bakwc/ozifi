@@ -15,13 +15,11 @@ TChatMessageEdit::TChatMessageEdit() {
 }
 
 void TChatWindow::OnSendMessage(const QString& message) {
-    qDebug() << Q_FUNC_INFO;
     emit SendMessage(FriendLogin, message);
 }
 
 void TChatMessageEdit::keyPressEvent(QKeyEvent* e){
     if (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return) {
-        qDebug() << Q_FUNC_INFO;
         emit SendMessage(this->toPlainText());
         this->clear();
     } else {
@@ -35,7 +33,6 @@ void TChatMessageEdit::keyPressEvent(QKeyEvent* e){
 TChatWindow::TChatWindow(const QString& frndLogin)
     : FriendLogin(frndLogin)
 {
-    qDebug() << Q_FUNC_INFO;
     this->setGeometry(QDesktopWidget().availableGeometry().center().x() - (CHAT_WINDOW_WIDTH / 2),
                       QDesktopWidget().availableGeometry().center().y() - (CHAT_WINDOW_HEIGHT / 2),
                        CHAT_WINDOW_WIDTH, CHAT_WINDOW_HEIGHT);

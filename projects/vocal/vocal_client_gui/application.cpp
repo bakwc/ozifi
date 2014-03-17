@@ -66,7 +66,6 @@ void TVocaGuiApp::Authorize() {
 }
 
 void TVocaGuiApp::OnCaptcha(const TBuffer& data) {
-    qDebug() << Q_FUNC_INFO;
     QImage captchaImage;
     captchaImage.loadFromData((const unsigned char*)data.Data(), data.Size());
     emit CaptchaAvailable(captchaImage);
@@ -98,7 +97,6 @@ void TVocaGuiApp::OnConnected(bool success) {
 }
 
 void TVocaGuiApp::OnMessageReceived(const NVocal::TMessage& message) {
-    qDebug() << Q_FUNC_INFO;
     bool incoming = true;
     if (message.From == Client->GetFullLogin()) { // todo: move to core
         incoming = false;
@@ -109,9 +107,7 @@ void TVocaGuiApp::OnMessageReceived(const NVocal::TMessage& message) {
 }
 
 void TVocaGuiApp::Register(const QString& login) {
-    if (Status != ST_None) {
-        return;
-    }
+    assert(Status == ST_None && "Wrong state");
     try {
         Status = ST_Registering;
         Client->Register(login.toStdString());
@@ -122,10 +118,7 @@ void TVocaGuiApp::Register(const QString& login) {
 }
 
 void TVocaGuiApp::Login(const QString& login) {
-    qDebug() << Q_FUNC_INFO;
-    if (Status != ST_None) {
-        return;
-    }
+    assert(Status == ST_None && "Wrong state");
     try {
         Status = ST_Logining;
         qDebug() << login;
@@ -152,7 +145,6 @@ void TVocaGuiApp::DoRegister(const QString& captcha,
 }
 
 void TVocaGuiApp::SendMessage(const QString& frndLogin, const QString& message) {
-    qDebug() << Q_FUNC_INFO;
     Client->GetFriend(frndLogin.toStdString())->SendMessage(message.toStdString());
 }
 
@@ -182,7 +174,6 @@ void TVocaGuiApp::LaunchMain() {
 }
 
 void TVocaGuiApp::OnSuccesfullyRegistered() {
-    qDebug() << Q_FUNC_INFO;
     Q_ASSERT(Client->HasConnectData() && "no data to connect");
     LoginWindow.reset(nullptr);
     LaunchMain();
@@ -246,14 +237,12 @@ QVariant TFriendListModel::data(const QModelIndex& index, int role) const {
 }
 
 void TFriendListModel::OnFriendAdded(NVocal::TFriendRef frnd) {
-    qDebug() << Q_FUNC_INFO;
     beginInsertRows(QModelIndex(), Friends.size(), Friends.size());
     Friends.push_back(frnd);
     endInsertRows();
 }
 
 void TFriendListModel::OnFriendRemoved(NVocal::TFriendRef frnd) {
-    qDebug() << Q_FUNC_INFO;
     // todo: rewrite using hash
     for (size_t i = 0; i < Friends.size(); ++i) {
         if (frnd == Friends[i]) {
@@ -266,7 +255,6 @@ void TFriendListModel::OnFriendRemoved(NVocal::TFriendRef frnd) {
 }
 
 void TFriendListModel::OnFriendUpdated(NVocal::TFriendRef frnd) {
-    qDebug() << Q_FUNC_INFO;
     // todo: rewrite using hash for quick friend access
     for (size_t i = 0; i < Friends.size(); ++i) {
         if (frnd == Friends[i]) {
