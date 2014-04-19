@@ -4,9 +4,9 @@
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 
 #include <contrib/json/json.h>
-#include <library/kwstorage/leveldb.h>
 #include <library/html_parser/html_parser.h>
 #include <utils/settings.h>
 #include <utils/string.h>
@@ -18,12 +18,17 @@ struct THabrArticle {
     string Title;
     string Content;
     int Score;
+    vector<string> Hubs;
+
     string Serialize() {
         Json::FastWriter writer;
         Json::Value root;
         root["title"] = Title;
         root["content"] = Content;
         root["score"] = Score;
+        for (size_t i = 0; i < Hubs.size(); ++i) {
+            root["hubs"].append(Hubs[i]);
+        }
         return writer.write(root);
     }
     void Parse(const std::string& data) {
@@ -43,16 +48,17 @@ typedef vector<THabrArticle> THabrArticles;
 class THabrExtractor {
 public:
     THabrExtractor(const string& storageDir, const string& extractedDir) {
-        HtmlStorage.reset(NKwStorage::CreateLevelDbStorage(storageDir));
-        ExtractedStorage.reset(NKwStorage::CreateLevelDbStorage(extractedDir));
     }
 
     bool GetFromHtml(const string& key, THabrArticle& article) {
-        boost::optional<string> html = HtmlStorage->Get(key);
-        if (!html.is_initialized()) {
+        string fileName = HtmlDir + "/" + key + ".html";
+        if (!boost::filesystem::exists(fileName)) {
             return false;
         }
-        NHtmlParser::THtmlParser dom(*html);
+
+        string html = LoadFile(fileName);
+
+        NHtmlParser::THtmlParser dom(html);
         string title = dom(".post_title").Text();
         string text = dom(".content").Text();
         if (title.empty() || text.empty()) {
@@ -74,65 +80,53 @@ public:
         article.Title = title;
         article.Content = text;
         article.Score = rate;
-        ExtractedStorage->Put(key, article.Serialize());
+
+        std::vector<NHtmlParser::THtmlNode> hubs = dom["hubs"];
+        for (size_t i = 0; i < hubs.size(); ++i) {
+            article.Hubs.push_back(hubs[i].Text());
+        }
         return true;
     }
 
-    bool GetFromCache(const string& key, THabrArticle& article) {
-        boost::optional<string> data = ExtractedStorage->Get(key);
-        if (!data.is_initialized()) {
-            return false;
-        }
-        article.Parse(*data);
-        return true;
+    bool HasInCache(const string& key) {
+        string fileName = ExtractedDir + "/" + key + ".json";
+        return boost::filesystem::exists(fileName);
     }
 
     void Run(size_t idFrom, size_t idTo) {
         cout << "started\n";
-        float prevPerc = 0;
         for(size_t i = idFrom; i < idTo; ++i) {
             string key = ToString(i);
 
-            THabrArticle article;
-            if (!GetFromCache(key, article) && !GetFromHtml(key, article)) {
+            if (HasInCache(key)) {
                 continue;
             }
 
-            if (article.Score >= 115) {
-                ArticlesPositive.push_back(article);
-            } else if (article.Score < 85) {
-                ArticlesNegative.push_back(article);
+            THabrArticle article;
+            if (!GetFromHtml(key, article)) {
+                continue;
             }
-            float currPerc = 100.0 * (i - idFrom) / (idTo - idFrom);
-            if (currPerc - prevPerc > 1) {
-                cout << currPerc << "% (" << key << ")\n";
-                prevPerc = currPerc;
-            }
+
+            SaveFile(ExtractedDir + "/" + key + ".json", article.Serialize());
         }
-        cout << "positive size: " << ArticlesPositive.size() << "\n";
-        cout << "negative size: " << ArticlesNegative.size() << "\n";
     }
 private:
-    unique_ptr<NKwStorage::TKwStorage> HtmlStorage;
-    unique_ptr<NKwStorage::TKwStorage> ExtractedStorage;
-    THabrArticles ArticlesPositive;
-    THabrArticles ArticlesNegative;
+    string HtmlDir;
+    string ExtractedDir;
 };
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        Cerr << "usage: ./habr_extractor habr_extractor.conf\n";
+    if (argc != 5) {
+        Cerr << "usage: ./habr_extractor html_dir extracted_dir id_from id_to\n";
         return 42;
     }
 
     try {
-        USettings settings;
-        settings.Load(argv[1]);
-        string storageDir = settings.GetParameter("storage_dir");
-		string extractedDir = settings.GetParameter("extracted_dir");
-        size_t idFrom = settings.GetParameter("id_from");
-        size_t idTo = settings.GetParameter("id_to");
-        THabrExtractor extractor(storageDir, extractedDir);
+        string htmlDir = argv[1];
+        string extractedDir = argv[2];
+        size_t idFrom = FromString(argv[3]);
+        size_t idTo = FromString(argv[4]);
+        THabrExtractor extractor(htmlDir, extractedDir);
         extractor.Run(idFrom, idTo);
     } catch (const exception& e) {
         Cerr << "error: " << e.what() << "\n";
