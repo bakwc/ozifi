@@ -2,29 +2,32 @@
 #include <iostream>
 #include <memory>
 
+#include <boost/filesystem.hpp>
+
 #include <library/http_fetcher/fetcher.h>
-#include <library/kwstorage/leveldb.h>
 #include <utils/settings.h>
+#include <utils/string.h>
 
 using namespace std;
 
 class THabrFetcher {
 public:
-    THabrFetcher(const string& storageDir) {
-        Storage.reset(NKwStorage::CreateLevelDbStorage(storageDir));
+    THabrFetcher(const string& storageDir)
+        : StorageDir(storageDir)
+    {
     }
-
     void Run(size_t idFrom, size_t idTo) {
         cout << "started\n";
         for(size_t i = idFrom; i < idTo; ++i) {
             string key = ToString(i);
-            if (Storage->Exists(key)) {
+            string fileName = StorageDir + "/" + key + ".html";
+            if (boost::filesystem::exists(fileName)) {
                 continue;
             }
             string url = "http://habrahabr.ru/post/" + key + "/";
             optional<string> data = NHttpFetcher::FetchUrl(url, chrono::seconds(20));
             if (data.is_initialized()) {
-                Storage->Put(key, *data);
+                SaveFile(fileName, *data);
                 cout << 100.0 * (i - idFrom) / (idTo - idFrom) << "% (" << key << ") - ok\n";
             } else {
                 cout << 100.0 * (i - idFrom) / (idTo - idFrom) << "% (" << key << ") - fail\n";
@@ -33,24 +36,22 @@ public:
         cout << "completed\n";
     }
 private:
-    unique_ptr<NKwStorage::TKwStorage> Storage;
+    string StorageDir;
 };
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        cerr << "usage: ./habr_fetcher habr_fetcher.conf\n";
+    if (argc != 4) {
+        cerr << "usage: ./habr_fetcher storage_dir id_from id_to\n";
         return 42;
     }
 
     try {
-        USettings settings;
-        settings.Load(argv[1]);
-        string storageDir = settings.GetParameter("storage_dir");
-        size_t idFrom = settings.GetParameter("id_from");
-        size_t idTo = settings.GetParameter("id_to");
+        string storageDir = argv[1];
+        size_t idFrom = FromString(argv[2]);
+        size_t idTo = FromString(argv[3]);
         THabrFetcher fetcher(storageDir);
         fetcher.Run(idFrom, idTo);
-    } catch (const exception& e) {
+    } catch (const std::exception& e) {
         cerr << "error: " << e.what() << "\n";
         return 42;
     }
