@@ -1,6 +1,5 @@
 #include <QDesktopWidget>
 #include <QDebug>
-#include <QLabel>
 #include <QGridLayout>
 #include <QImage>
 #include <QPainter>
@@ -9,51 +8,47 @@
 
 TLoginWindow::TLoginWindow()
     : QWidget(NULL)
+    , Screen(LS_None)
 {
     this->setFixedSize(LOGIN_WINDOW_WIDTH, LOGIN_WINDOW_HEIGHT_NOCAPTCHA);
     this->setGeometry(QDesktopWidget().availableGeometry().center().x() - (this->width() / 2),
                       QDesktopWidget().availableGeometry().center().y() - (this->height() / 2),
                        this->width(), this->height());
 
-    QGridLayout* layout = new QGridLayout(this);
+    ErrorLabel = new QLabel(this);
+    ErrorLabel->setStyleSheet("QLabel { color: red; }");
 
-    QLabel* loginLabel = new QLabel(tr("Login:"), this);
-    layout->addWidget(loginLabel, 0, 0);
-
-    QLabel* passwordLabel = new QLabel(tr("Password:"), this);
-    layout->addWidget(passwordLabel, 1, 0);
+    LoginLabel = new QLabel(tr("Login:"), this);
+    PasswordLabel = new QLabel(tr("Password:"), this);
 
     CaptchaImageWidget = new QWidget(this);
 
     CaptchaImageWidget->setFixedSize(0, 0);
-    layout->addWidget(CaptchaImageWidget, 2, 0, 1, 2);
 
-    QLabel* captchaLabel = new QLabel(tr("Captcha:"), this);
-    layout->addWidget(captchaLabel, 3, 0);
+    CaptchaLabel = new QLabel(tr("Captcha:"), this);
 
     LoginEdit = new QLineEdit(this);
-    layout->addWidget(LoginEdit, 0, 1);
-
     PasswordEdit = new QLineEdit(this);
-    layout->addWidget(PasswordEdit, 1, 1);
 
     CaptchaEdit = new QLineEdit(this);
-    layout->addWidget(CaptchaEdit, 3, 1);
-    CaptchaEdit->setEnabled(false);
+
+    WaitAnimation = new QMovie(":/icons/ajax-loader.gif", QByteArray(), this);
+    WaitLabel = new QLabel(this);
+    WaitLabel->setMovie(WaitAnimation);
 
     LoginButton = new QPushButton(tr("Login"), this);
     connect(LoginButton.data(), &QPushButton::clicked, this,
             &TLoginWindow::OnLoginButtonClicked);
-    layout->addWidget(LoginButton, 4, 0);
 
     RegisterButton = new QPushButton(tr("Register"), this);
     connect(RegisterButton.data(), &QPushButton::clicked, this,
             &TLoginWindow::OnRegisterButtonClicked);
-    layout->addWidget(RegisterButton, 4, 1);
 
+    ContinueButton = new QPushButton(tr("Continue"), this);
+    connect(ContinueButton.data(), &QPushButton::clicked, this,
+            &TLoginWindow::OnContinueButtonClicked);
 
-    layout->setColumnMinimumWidth(0, 120);
-    layout->setColumnMinimumWidth(1, 120);
+    SetScreen(LS_Base);
 
     this->show();
 }
@@ -62,27 +57,26 @@ TLoginWindow::~TLoginWindow() {
 }
 
 void TLoginWindow::OnRegisterButtonClicked() {
-    if (CaptchaEdit->text().size() != 0 &&
-        LoginEdit->text().size() != 0 &&
-        PasswordEdit->text().size() != 0)
-    {
-        emit DoRegister(CaptchaEdit->text(),
-                        PasswordEdit->text(),
-                        "");
-        // todo: use email
-    } else if (LoginEdit->text().size() != 0) {
-        emit Register(LoginEdit->text());
-    }
+    SetScreen(LS_Waiting);
+    IsRegistering = true;
+    emit Register(LoginEdit->text());
 }
 
 void TLoginWindow::OnLoginButtonClicked() {
-    if (CaptchaEdit->text().size() != 0 &&
-        LoginEdit->text().size() != 0 &&
-        PasswordEdit->text().size() != 0)
-    {
+    SetScreen(LS_Waiting);
+    IsRegistering = false;
+    emit Login(LoginEdit->text());
+}
+
+void TLoginWindow::OnContinueButtonClicked() {
+    SetScreen(LS_Waiting);
+    CaptchaImage = QImage();
+    if (IsRegistering) {
+        emit DoRegister(CaptchaEdit->text(),
+                        PasswordEdit->text(),
+                        "");
+    } else {
         emit DoLogin(CaptchaEdit->text(), PasswordEdit->text());
-    } else if (LoginEdit->text().size() != 0) {
-        emit Login(LoginEdit->text());
     }
 }
 
@@ -94,25 +88,123 @@ void TLoginWindow::paintEvent(QPaintEvent*) {
     painter.drawImage(CaptchaImageWidget->x(), CaptchaImageWidget->y(), CaptchaImage);
 }
 
-void TLoginWindow::OnBadLogin() {
-    // todo: show message about bad login
-    LoginEdit->setText("");
+void TLoginWindow::SetScreen(ELoginScreen screen) {
+    if (Screen == screen) {
+        return;
+    }
+    HideGuiElements();
+    Screen = screen;
+    switch (Screen) {
+    case LS_Base:
+        ShowBaseScreen();
+        break;
+    case LS_Waiting:
+        ShowWaitingScreen();
+        break;
+    case LS_Captcha:
+        ShowCaptchaScreen();
+        break;
+    default:
+        break;
+    }
+    ErrorMessage.clear();
 }
 
-void TLoginWindow::OnCaptchaAvailable(QImage image) {
-    this->setFixedSize(LOGIN_WINDOW_WIDTH, LOGIN_WINDOW_HEIGHT_CAPTCHA);
-    CaptchaImageWidget->setFixedSize(NVocal::CAPTCHA_WIDTH, NVocal::CAPTCHA_HEIGHT);
-    CaptchaImage = image;
-    CaptchaEdit->setEnabled(true);
+void TLoginWindow::HideGuiElements() {
+    CaptchaLabel->hide();
+    LoginLabel->hide();
+    PasswordLabel->hide();
+    LoginEdit->hide();
+    PasswordEdit->hide();
+    CaptchaEdit->hide();
+    LoginButton->hide();
+    RegisterButton->hide();
+    WaitLabel->hide();
+    ErrorLabel->hide();
+    ContinueButton->hide();
     this->update();
 }
 
+void TLoginWindow::ShowBaseScreen() {
+    int currentOffset = 0;
+    currentOffset += 20;
+
+    if (ErrorMessage.size() != 0) {
+        ErrorLabel->setText(ErrorMessage);
+        ErrorLabel->move(LOGIN_WINDOW_WIDTH / 2 - ErrorLabel->width() / 2, currentOffset);
+        ErrorLabel->show();
+        currentOffset += ErrorLabel->height() + 10;
+    }
+
+    LoginLabel->move(20, currentOffset + 5);
+    LoginLabel->show();
+    LoginEdit->move(LOGIN_WINDOW_WIDTH / 3, currentOffset);
+    LoginEdit->setFixedWidth(LOGIN_WINDOW_WIDTH - LoginEdit->x() - 20);
+    LoginEdit->show();
+    currentOffset += LoginEdit->height() + 10;
+
+    PasswordLabel->move(20, currentOffset + 5);
+    PasswordLabel->show();
+    PasswordEdit->move(LOGIN_WINDOW_WIDTH / 3, currentOffset);
+    PasswordEdit->setFixedWidth(LOGIN_WINDOW_WIDTH - LoginEdit->x() - 20);
+    PasswordEdit->show();
+    currentOffset += PasswordEdit->height() + 10;
+
+    LoginButton->move(LOGIN_WINDOW_WIDTH / 4 - LoginButton->width() / 2, currentOffset);
+    LoginButton->show();
+    RegisterButton->move(LOGIN_WINDOW_WIDTH * 3 / 4 - RegisterButton->width() / 2, currentOffset);
+    RegisterButton->show();
+    currentOffset += RegisterButton->height() + 10;
+
+    this->setFixedHeight(currentOffset);
+    this->update();
+}
+
+void TLoginWindow::ShowWaitingScreen() {
+    WaitAnimation->start();
+    WaitLabel->move(this->width() / 2 - WaitAnimation->currentImage().width() / 2,
+                    this->height() / 2 - WaitAnimation->currentImage().height() / 2);
+    WaitLabel->show();
+    this->update();
+}
+
+void TLoginWindow::ShowCaptchaScreen() {
+    CaptchaImageWidget->setFixedSize(CaptchaImage.width(), CaptchaImage.height());
+    int currentOffset = 0;
+    currentOffset += 20;
+
+    int minWidth = CaptchaImageWidget->width() + 40;
+    if (this->width() < minWidth) {
+        this->setFixedWidth(minWidth);
+    }
+    CaptchaImageWidget->move(this->width() / 2 - CaptchaImageWidget->width() / 2, currentOffset);
+    currentOffset += CaptchaImage.height() + 10;
+
+    CaptchaLabel->move(20, currentOffset + 5);
+    CaptchaLabel->show();
+    CaptchaEdit->move(this->width() / 3, currentOffset);
+    CaptchaEdit->show();
+    currentOffset += CaptchaEdit->height() + 10;
+
+    ContinueButton->move(this->width() / 2 - ContinueButton->width() / 2, currentOffset);
+    ContinueButton->show();
+    currentOffset += ContinueButton->height() + 10;
+
+    this->setFixedHeight(currentOffset);
+    this->update();
+}
+
+void TLoginWindow::OnCaptchaAvailable(QImage image) {
+    CaptchaImage = image;
+    SetScreen(LS_Captcha);
+}
+
 void TLoginWindow::OnRegistrationFailed(const QString& message) {
-    qDebug() << message;
-    // todo: show qmessage
+    ErrorMessage = message;
+    SetScreen(LS_Base);
 }
 
 void TLoginWindow::OnLoginFailed(const QString &message) {
-    qDebug() << message;
-    // todo: show qmessage
+    ErrorMessage = message;
+    SetScreen(LS_Base);
 }

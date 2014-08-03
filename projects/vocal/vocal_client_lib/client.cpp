@@ -539,16 +539,29 @@ void TClient::Login(const std::string& login) { // login@service.com
     if (CurrentState != CS_Disconnected) {
         throw UException("should be disconnected before logining");
     }
-    pair<string, string> loginHost = GetLoginHost(login);
+    pair<string, string> loginHost;
+    try {
+        loginHost = GetLoginHost(login);
+    } catch(const UException&) {
+        Config.LoginResultCallback(LR_WrongUserOrPassword);
+        return;
+    }
     State.set_login(loginHost.first);
     State.set_host(loginHost.second);
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(loginHost.first, loginHost.second);
     if (addresses.size() == 0) {
-        throw UException("no address found for host");
+        Config.LoginResultCallback(LR_ConnectionFail);
+        return;
     }
     // todo: random address selection
     CurrentState = CS_Logining;
-    UdtClient->Connect(*addresses[0], false);
+    try {
+        UdtClient->Connect(*addresses[0], false);
+    } catch(const UException&) {
+        CurrentState = CS_Disconnected;
+        Config.LoginResultCallback(LR_ConnectionFail);
+        return;
+    }
 }
 
 void TClient::Login(const std::string& password,
@@ -575,19 +588,32 @@ void TClient::Register(const std::string& preferedLogin) {
     if (CurrentState != CS_Disconnected) {
         throw UException("should be disconnected before logining");
     }
-    pair<string, string> loginHost = GetLoginHost(preferedLogin);
+    pair<string, string> loginHost;
+    try {
+        loginHost = GetLoginHost(preferedLogin);
+    } catch (const UException&) {
+        Config.RegisterResultCallback(RR_WrongLogin);
+        return;
+    }
     State.set_login(loginHost.first);
     State.set_host(loginHost.second);
     std::vector<TNetworkAddressRef> addresses = GetConnectionAddresses(loginHost.first, loginHost.second);
     if (addresses.size() == 0) {
-        throw UException("no address found for host");
+        Config.RegisterResultCallback(RR_ConnectionFailure);
+        return;
     }
     // todo: random address selection
     CurrentState = CS_Registering;
     pair<string, string> keys = GenerateKeys();
     State.set_publickey(keys.second);
     State.set_privatekey(keys.first);
-    UdtClient->Connect(*addresses[0], false);
+    try {
+        UdtClient->Connect(*addresses[0], false);
+    } catch (const UException&) {
+        CurrentState = CS_Disconnected;
+        Config.RegisterResultCallback(RR_ConnectionFailure);
+        return;
+    }
 }
 
 void TClient::Register(const std::string& preferedPassword,

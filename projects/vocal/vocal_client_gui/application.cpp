@@ -1,6 +1,8 @@
 #include <QDebug>
 #include "application.h"
 
+#include <thread>
+
 using namespace std;
 using namespace std::placeholders;
 
@@ -108,25 +110,18 @@ void TVocaGuiApp::OnMessageReceived(const NVocal::TMessage& message) {
 
 void TVocaGuiApp::Register(const QString& login) {
     assert(Status == ST_None && "Wrong state");
-    try {
-        Status = ST_Registering;
+    Status = ST_Registering;
+    std::thread([this, login]() {
         Client->Register(login.toStdString());
-    } catch (const std::exception&) {
-        Status = ST_None;
-        emit BadLogin();
-    }
+    }).detach();
 }
 
 void TVocaGuiApp::Login(const QString& login) {
     assert(Status == ST_None && "Wrong state");
-    try {
-        Status = ST_Logining;
-        qDebug() << login;
+    Status = ST_Logining;
+    std::thread([this, login]() {
         Client->Login(login.toStdString());
-    } catch (const std::exception&) {
-        Status = ST_None;
-        emit BadLogin();
-    }
+    }).detach();
 }
 
 void TVocaGuiApp::DoLogin(const QString& captcha, const QString& password) {
@@ -154,8 +149,6 @@ void TVocaGuiApp::LaunchLogin() {
             this, &TVocaGuiApp::Register);
     connect(LoginWindow.get(), &TLoginWindow::Login,
             this, &TVocaGuiApp::Login);
-    connect(this, &TVocaGuiApp::BadLogin,
-            LoginWindow.get(), &TLoginWindow::OnBadLogin);
     connect(this, &TVocaGuiApp::CaptchaAvailable,
             LoginWindow.get(), &TLoginWindow::OnCaptchaAvailable);
     connect(LoginWindow.get(), &TLoginWindow::DoLogin,

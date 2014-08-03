@@ -25,7 +25,7 @@ string RegisterResultToString(ERegisterResult res) {
     case RR_WrongLogin: return "Wrong login";
     }
     assert(false && "wrong result");
-    return std::string();
+    return std::string("wrong result");
 }
 
 string LoginResultToString(ELoginResult res) {
@@ -36,7 +36,7 @@ string LoginResultToString(ELoginResult res) {
     case LR_WrongUserOrPassword: return "Wrong login or password";
     }
     assert(false && "wrong result");
-    return std::string();
+    return std::string("wrong result");
 }
 
 } // NVocal
