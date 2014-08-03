@@ -44,6 +44,8 @@
 #include "limits.h"
 #endif
 
+#define HAVE_GETENV 1
+
 /*
  * Include configuration script results or hand-crafted
  * configuration file for platforms which lack config tool.
