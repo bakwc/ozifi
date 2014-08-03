@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iostream>
 
 #include <utils/types.h>
 

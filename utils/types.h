@@ -1,12 +1,13 @@
 #pragma once
 
 #include <cstddef>
+#include <stdint.h>
 
-typedef unsigned char ui8;
-typedef char i8;
-typedef unsigned short ui16;
-typedef short i16;
-typedef unsigned int ui32;
-typedef int i32;
-typedef unsigned long long ui64;
-typedef long long i64;
+typedef uint8_t ui8;
+typedef int8_t i8;
+typedef uint16_t ui16;
+typedef int16_t i16;
+typedef uint32_t ui32;
+typedef int32_t i32;
+typedef uint64_t ui64;
+typedef int64_t i64;
