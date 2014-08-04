@@ -3,6 +3,8 @@
 #include <QWidget>
 #include <QAbstractItemModel>
 #include <QStyledItemDelegate>
+#include <QPushButton>
+#include <QPointer>
 
 const size_t MAIN_WINDOW_WIDTH = 220;
 const size_t MAIN_WINDOW_HEIGHT = 500;
@@ -29,4 +31,7 @@ public:
     explicit TMainWindow(TImageStorage *imageStorage, QAbstractItemModel* friendListModel);
 signals:
     void FriendDoubleClicked(const QString& frndLogin);
+    void AddFriendClicked();
+private:
+    QPointer<QPushButton> AddFriendButton;
 };

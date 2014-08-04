@@ -6,7 +6,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 qt5_wrap_cpp(MOC_SOURCES application.h
                             login_window.h
                             main_window.h
-                            chat_window.h)
+                            chat_window.h
+                            add_friend_window.h)
 
 qt5_add_resources(MOC_RESOURCES statuses.qrc)
 
@@ -16,7 +17,8 @@ add_executable (vocal_client_gui main.cpp
                                 application.cpp
                                 login_window.cpp
                                 main_window.cpp
-                                chat_window.cpp)
+                                chat_window.cpp
+                                add_friend_window.cpp)
 
 target_link_libraries(vocal_client_gui
                         udt4

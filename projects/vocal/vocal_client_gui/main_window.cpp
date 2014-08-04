@@ -10,7 +10,6 @@
 TMainWindow::TMainWindow(TImageStorage* imageStorage, QAbstractItemModel* friendListModel)
     : QWidget(NULL)
 {
-    qDebug() << Q_FUNC_INFO;
     Q_ASSERT(friendListModel && "missing friendListModel");
     this->setGeometry(QDesktopWidget().availableGeometry().center().x() - (MAIN_WINDOW_WIDTH / 2),
                       QDesktopWidget().availableGeometry().center().y() - (MAIN_WINDOW_HEIGHT / 2),
@@ -27,10 +26,14 @@ TMainWindow::TMainWindow(TImageStorage* imageStorage, QAbstractItemModel* friend
     connect(delegate, &TFriendItemDelegate::FriendDoubleClicked, this, &TMainWindow::FriendDoubleClicked);
 
     currentLayout->addWidget(friendListView);
+    AddFriendButton = new QPushButton(tr("Add Friend"), this);
+    connect(AddFriendButton.data(), &QPushButton::clicked,
+            this, &TMainWindow::AddFriendClicked);
+
+    currentLayout->addWidget(AddFriendButton.data());
 
     this->show();
 }
-
 
 TFriendItemDelegate::TFriendItemDelegate(TImageStorage* imageStorage)
     : ImageStorage(imageStorage)
@@ -82,7 +85,6 @@ QSize TFriendItemDelegate::sizeHint(const QStyleOptionViewItem& option, const QM
 }
 
 void TFriendItemDelegate::OnDoubleClick(const QModelIndex& index) const {
-    qDebug() << Q_FUNC_INFO;
     if (!index.data().canConvert<TFriendData>()) {
         return;
     }

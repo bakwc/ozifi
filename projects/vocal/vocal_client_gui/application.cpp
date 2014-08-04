@@ -1,4 +1,6 @@
 #include <QDebug>
+#include <QPoint>
+
 #include "application.h"
 
 #include <thread>
@@ -124,21 +126,6 @@ void TVocaGuiApp::Login(const QString& login) {
     }).detach();
 }
 
-void TVocaGuiApp::DoLogin(const QString& captcha, const QString& password) {
-    Client->Login(password.toStdString(), captcha.toStdString());
-    // todo: handle exceptions
-}
-
-void TVocaGuiApp::DoRegister(const QString& captcha,
-                             const QString& password,
-                             const QString& email)
-{
-    Client->Register(password.toStdString(),
-                     email.toStdString(),
-                     captcha.toStdString());
-    // todo: handle exceptions
-}
-
 void TVocaGuiApp::SendMessage(const QString& frndLogin, const QString& message) {
     Client->GetFriend(frndLogin.toStdString())->SendMessage(message.toStdString());
 }
@@ -152,9 +139,17 @@ void TVocaGuiApp::LaunchLogin() {
     connect(this, &TVocaGuiApp::CaptchaAvailable,
             LoginWindow.get(), &TLoginWindow::OnCaptchaAvailable);
     connect(LoginWindow.get(), &TLoginWindow::DoLogin,
-            this, &TVocaGuiApp::DoLogin);
+            [this] (const QString& password, const QString& captcha)
+    {
+       Client->Login(password.toStdString(), captcha.toStdString());
+    });
     connect(LoginWindow.get(), &TLoginWindow::DoRegister,
-            this, &TVocaGuiApp::DoRegister);
+            [this] (const QString& password, const QString& email, const QString& captcha)
+    {
+        Client->Register(password.toStdString(),
+                         email.toStdString(),
+                         captcha.toStdString());
+    });
     connect(this, &TVocaGuiApp::RegistrationFailed,
             LoginWindow.get(), &TLoginWindow::OnRegistrationFailed);
 }
@@ -163,6 +158,23 @@ void TVocaGuiApp::LaunchMain() {
     FriendListModel.reset(new TFriendListModel(*Client));
     MainWindow.reset(new TMainWindow(&ImageStorage, FriendListModel.get()));
     connect(MainWindow.get(), &TMainWindow::FriendDoubleClicked, ChatWindows.get(), &TChatWindows::ShowChatWindow);
+    connect(MainWindow.get(), &TMainWindow::AddFriendClicked, [this]() {
+        QPoint pos(-1, -1);
+        if (AddFriendWindow) {
+            pos = AddFriendWindow->pos();
+        }
+        AddFriendWindow.reset(new TAddFriendWindow());
+        if (pos.x() != -1) {
+            AddFriendWindow->move(pos);
+        }
+        connect(AddFriendWindow.get(), &TAddFriendWindow::OnAddFriend, [this](const QString& login) {
+            try {
+                Client->AddFriend(login.toStdString());
+            } catch(const UException&) {
+                // todo: handle somehow
+            }
+        });
+    });
     Client->Connect();
 }
 

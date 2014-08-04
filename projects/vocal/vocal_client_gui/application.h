@@ -13,6 +13,7 @@
 #include "main_window.h"
 #include "login_window.h"
 #include "chat_window.h"
+#include "add_friend_window.h"
 
 enum EStatus {
     ST_None,
@@ -78,11 +79,6 @@ signals:
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
-    void DoLogin(const QString& captcha,
-                 const QString& password);
-    void DoRegister(const QString& captcha,
-                    const QString& password,
-                    const QString& email);
     void SendMessage(const QString& frndLogin, const QString& message);
 private:
     void Authorize();
@@ -106,6 +102,7 @@ private:
     std::unique_ptr<TLoginWindow> LoginWindow;
     std::unique_ptr<TMainWindow> MainWindow;
     std::unique_ptr<TChatWindows> ChatWindows;
+    std::unique_ptr<TAddFriendWindow> AddFriendWindow;
     QAudioFormat AudioFormat;
     QAudioDeviceInfo AudioDevice;
     std::unique_ptr<QAudioInput> AudioInput;
