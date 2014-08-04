@@ -39,4 +39,13 @@ string LoginResultToString(ELoginResult res) {
     return std::string("wrong result");
 }
 
+bool GoodLogin(const string& login) {
+    try {
+        GetLoginHost(login);
+    } catch (const UException&) {
+        return false;
+    }
+    return true;
+}
+
 } // NVocal

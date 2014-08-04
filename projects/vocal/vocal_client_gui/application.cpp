@@ -139,12 +139,12 @@ void TVocaGuiApp::LaunchLogin() {
     connect(this, &TVocaGuiApp::CaptchaAvailable,
             LoginWindow.get(), &TLoginWindow::OnCaptchaAvailable);
     connect(LoginWindow.get(), &TLoginWindow::DoLogin,
-            [this] (const QString& password, const QString& captcha)
+            [this] (const QString& captcha, const QString& password)
     {
        Client->Login(password.toStdString(), captcha.toStdString());
     });
     connect(LoginWindow.get(), &TLoginWindow::DoRegister,
-            [this] (const QString& password, const QString& email, const QString& captcha)
+            [this] (const QString& captcha, const QString& password, const QString& email)
     {
         Client->Register(password.toStdString(),
                          email.toStdString(),

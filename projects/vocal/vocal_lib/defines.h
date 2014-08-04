@@ -34,6 +34,7 @@ enum EServerPacket {
     SP_FriendAlreadyExists,
     SP_FriendRequestSended,
     SP_FriendAdded,
+    SP_FriendAddFailed,
     SP_SyncMessages,
     SP_SyncInfo,
     SP_ConnectToFriend

@@ -381,10 +381,15 @@ void TServer::OnDataReceived(const TBuffer& data, const TNetworkAddress& addr) {
                             frnd.NeedOfflineKey = true;
                         }
                     }
-                    SyncClientInfo(client->Info);
                     responseStr.resize(1);
-                    responseStr[0] = (ui8)SP_FriendRequestSended;
-                    SendAddFriendRequest(client->Login, client->Info.PublicKey, request.login());
+                    try {
+                        SendAddFriendRequest(client->Login, client->Info.PublicKey, request.login());
+                        responseStr[0] = (ui8)SP_FriendRequestSended;
+                    } catch (const UException&) {
+                        responseStr[0] = (ui8)SP_FriendAddFailed;
+                        client->Info.Friends.erase(request.login());
+                    }
+                    SyncClientInfo(client->Info);
 
                     responseStr += packetStr;
                 } break;
@@ -458,6 +463,9 @@ void TServer::SendAddFriendRequest(const string& login,
                                    const string& pubKey,
                                    const string& frndLogin)
 {
+    if (login == frndLogin) {
+        throw UException("wrong friend login");
+    }
     pair<string, string> loginHost = GetLoginHost(frndLogin);
     if (loginHost.second == Config.Hostname) {
         OnAddFriendRequest(loginHost.first, login + "@" + Config.Hostname,
@@ -503,8 +511,7 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
     // todo: thread-safe storage access
     boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
     if (!info.is_initialized()) {
-        cerr << "onAddFriendRequest error: client not exists\n";
-        return;
+        throw UException("client not exists");
     }
     TFriendList& friends = info->Friends;
     auto frndIt = friends.find(frndLogin);

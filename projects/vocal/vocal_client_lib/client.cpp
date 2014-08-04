@@ -645,6 +645,9 @@ void TClient::AddFriend(const std::string& friendLogin) {
     if (CurrentState != CS_Connected) {
         throw UException("not connected");
     }
+    if (!GoodLogin(friendLogin) || friendLogin == State.login()) {
+        return;
+    }
     string message(1, (ui8)RT_AddFriend);
     string friendKey = GenerateKey();
     TAddFriendRequest request;

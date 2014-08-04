@@ -7,6 +7,7 @@
 namespace NVocal {
 
 std::pair<std::string, std::string> GetLoginHost(const std::string& login);
+bool GoodLogin(const std::string& login);
 
 std::string RegisterResultToString(ERegisterResult res);
 
