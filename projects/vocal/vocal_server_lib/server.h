@@ -86,6 +86,7 @@ private:
     bool OnClientConnected(const TNetworkAddress& addr);
     void OnClientDisconnected(const TNetworkAddress& addr);
     void OnDataReceived(const TBuffer& data, const TNetworkAddress& addr);
+    void OnPacketReceived(TClientRef client, std::string packetStr);
     void OnServerDataReceived(const TBuffer& data, const std::string& host);
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,

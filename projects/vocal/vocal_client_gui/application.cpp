@@ -1,5 +1,6 @@
 #include <QDebug>
 #include <QPoint>
+#include <QMessageBox>
 
 #include "application.h"
 
@@ -35,6 +36,18 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
+    config.FriendRequestCallback = [this](const std::string& login) {
+        QString question = tr("Accept friend request from <b>%1</b>")
+                              .arg(QString::fromStdString(login));
+        auto reply = QMessageBox::question(nullptr, tr("Friend request"), question,
+                                           QMessageBox::Yes, QMessageBox::No);
+        if (reply == QMessageBox::Yes) {
+            Client->AddFriend(login);
+        } else {
+            Client->RemoveFriend(login);
+        }
+    };
+
     config.AudioInput = std::bind(&TVocaGuiApp::OnAudioInput, this, _1);
     config.StateDir = "data";
     connect(this, &TVocaGuiApp::RegistrationSuccess,

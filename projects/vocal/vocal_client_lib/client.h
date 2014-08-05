@@ -89,6 +89,7 @@ protected:
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
+    void OnPacketReceived(std::string&& packet);
     void OnDisconnected();
     void ForceDisconnect();
     void LoadState();
