@@ -91,6 +91,8 @@ private:
     void SendAddFriendRequest(const std::string& login,
                               const std::string& pubKey,
                               const std::string& frndLogin);
+    void SendRemoveFriendRequest(const std::string& login,
+                                 const std::string& frndLogin);
     void SendSetFriendOfflineKeyRequest(const std::string& login,
                                         const TFriendOfflineKey& offlineKeyPacket);
     void SendOfflineMessage(const std::string& login,
@@ -98,6 +100,7 @@ private:
                             const std::string& message);
     void OnAddFriendRequest(const std::string& login, const string& frndLogin,
                             const string& pubKey, const string& serverPubKey);
+    void OnRemoveFriendRequest(const std::string& login, const std::string& frndLogin);
     void OnFriendOfflineKeyRequest(const string& login, const string& frndLogin,
                                    const string& offlineKey, const string& offlineKeySignature);
     void OnOfflineMessageReceived(const std::string& login,

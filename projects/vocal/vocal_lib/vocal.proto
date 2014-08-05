@@ -75,6 +75,10 @@ message TAddFriendRequest {
     required bytes EncryptedKey = 2;
 }
 
+message TRemoveFriendRequest {
+    required string Login = 1;
+}
+
 message TDirectionedMessage {
     required string Login = 1;
     required bytes Message = 2;

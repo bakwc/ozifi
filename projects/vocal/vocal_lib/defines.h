@@ -11,6 +11,7 @@ enum ERequestType {
     RT_Login,
     RT_Authorize,
     RT_AddFriend,
+    RT_RemoveFriend,
     RT_HelpConnect,
     RT_SetFriendOfflineKey,
     RT_SendMessage,

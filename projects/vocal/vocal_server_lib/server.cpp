@@ -393,6 +393,22 @@ void TServer::OnPacketReceived(TClientRef client, string packetStr) {
 
                 responseStr += packetStr;
             } break;
+            case RT_RemoveFriend: {
+                TRemoveFriendRequest request;
+                if (!request.ParseFromString(packetStr)) {
+                    throw UException("failed to parse addfriendrequest");
+                }
+                auto frndIt = client->Info.Friends.find(request.login());
+                if (frndIt != client->Info.Friends.end()) {
+                    client->Info.Friends.erase(frndIt);
+                }
+
+                SendRemoveFriendRequest(client->Login, request.login());
+
+                SyncClientInfo(client->Info);
+
+                // responseStr
+            } break;
             case RT_SetFriendOfflineKey: {
                 TFriendOfflineKey friendOfflineKey;
                 if (!friendOfflineKey.ParseFromString(packetStr)) {
@@ -479,6 +495,17 @@ void TServer::SendAddFriendRequest(const string& login,
     }
 }
 
+void TServer::SendRemoveFriendRequest(const string& login, const string& frndLogin) {
+    pair<string, string> loginHost = GetLoginHost(frndLogin);
+    if (loginHost.second == Config.Hostname) {
+        OnRemoveFriendRequest(loginHost.first, login + "@" + Config.Hostname);
+    } else {
+        string request;
+        // todo: fill request
+        SendToServer(loginHost.second, request);
+    }
+}
+
 void TServer::SendSetFriendOfflineKeyRequest(const string& login,
                                              const TFriendOfflineKey& offlineKeyPacket)
 {
@@ -532,6 +559,19 @@ void TServer::OnAddFriendRequest(const string& login, const string& frndLogin,
             frnd.ServerPublicKey = serverPubKey;
             frnd.NeedOfflineKey = true;
         }
+    }
+    SyncClientInfo(*info);
+}
+
+void TServer::OnRemoveFriendRequest(const string& login, const string& frndLogin) {
+    boost::optional<TClientInfo> info = ClientInfoStorage->Get(login);
+    if (!info.is_initialized()) {
+        throw UException("client not exists");
+    }
+    TFriendList& friends = info->Friends;
+    auto frndIt = friends.find(frndLogin);
+    if (frndIt != friends.end()) {
+        friends.erase(frndIt);
     }
     SyncClientInfo(*info);
 }

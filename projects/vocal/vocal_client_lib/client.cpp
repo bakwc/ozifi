@@ -654,7 +654,14 @@ void TClient::AddFriend(const std::string& friendLogin) {
 }
 
 void TClient::RemoveFriend(const std::string& friendLogin) {
-    assert(!"remove friend unimplemented");
+    if (!GoodLogin(friendLogin)) {
+        return;
+    }
+    string message(1, (ui8)RT_RemoveFriend);
+    TRemoveFriendRequest request;
+    request.set_login(friendLogin);
+    message += request.SerializeAsString();
+    UdtClient->Send(Serialize(EncryptSymmetrical(State.sessionkey(), Compress(message))));
 }
 
 TFriendRef TClient::GetFriend(const std::string& login) {
