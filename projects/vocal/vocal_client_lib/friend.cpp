@@ -38,6 +38,10 @@ TFriend::TFriend(TClient* client, const string& login, EFriendStatus status)
 {
 }
 
+TFriend::~TFriend() {
+    Status = FS_Offline;
+}
+
 void TFriend::InitUdtClient() {
     NUdt::TClientConfig config;
     config.ConnectionCallback = std::bind(&TFriend::OnConnected, this, _1);
@@ -309,6 +313,7 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                 config.NewConnectionCallback = bind(&TFriend::OnClientConnected, this, _1);
                 config.DataReceivedCallback = bind(&TFriend::OnDataReceived, this, _1);
                 config.ConnectionAcceptedCallback = std::bind(&TFriend::OnConnectionEstablished, this);
+                config.ConnectionLostCallback = std::bind(&TFriend::OnDisconnected, this);
                 config.Port = LocalPort;
                 ConnectionStatus = COS_WaitingFriendConnection;
                 UdtServer.reset(new NUdt::TServer(config));
@@ -393,11 +398,17 @@ void TFriend::OnDataReceived(const TBuffer& data) {
 }
 
 void TFriend::OnDisconnected() {
+    if (Status == FS_Offline) {
+        return;
+    }
+    Status = FS_Offline;
+    ConnectionStatus = COS_Offline;
+    std::cerr << "Discnnected\n";
+    Client->OnFriendStatusChanged(shared_from_this());
 }
 
 void TFriend::ForceDisconnect() {
-    Status = FS_Offline;
-    ConnectionStatus = COS_Offline;
+    OnDisconnected();
     UdtClient->Disconnect();
 }
 

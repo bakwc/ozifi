@@ -73,6 +73,7 @@ class TFriend: public std::enable_shared_from_this<TFriend> {
 public:
     TFriend(TClient* client);
     TFriend(TClient* client, const std::string& login, EFriendStatus status);
+    ~TFriend();
     const std::string& GetLogin();
     const std::string& GetName();
     EFriendStatus GetStatus();
