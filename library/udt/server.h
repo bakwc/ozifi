@@ -32,6 +32,7 @@ public:
     ~TServer();
     void Send(const TBuffer& data, const TNetworkAddress& address);
     void DisconnectClient(const TNetworkAddress& client);
+    ui16 GetPort();
 private:
     std::unique_ptr<TServerImpl> Impl;
 };

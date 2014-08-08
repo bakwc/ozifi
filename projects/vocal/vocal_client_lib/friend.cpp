@@ -253,144 +253,144 @@ void TFriend::OnDataReceived(const TBuffer& data) {
     try {
         Buffer += data.ToString();
         string packetStr;
-        if (!Deserialize(Buffer, packetStr)) {
-            return;
-        }
-
-        switch (ConnectionStatus) {
-        case COS_ConnectingToServer: {
-            packetStr = Decompress(packetStr);
-            TServerAuthorizeRequest packet;
-            if (!packet.ParseFromString(packetStr)) {
-                cerr << "warning: failed to deserialize server authroize request\n";
-                ForceDisconnect();
-                return;
-            }
-            if (!CheckSignature(ServerPublicKey, packet.randomsequence(), packet.signature())) {
-                cerr << "warning: failed to check server signature\n";
-                ForceDisconnect();
-                return;
-            }
-            TClientConnectHelpAuthorizeRequest request;
-            assert(!FullLogin.empty() && "friend has no login");
-            assert(Client != nullptr && "Client is NULL");
-            request.set_login(Client->GetFullLogin());
-            request.set_friendlogin(FullLogin);
-            string hash = Hash(packet.randomsequence());
-            request.set_randomsequencehash(hash);
-            request.set_randomsequencehashsignature(Sign(Client->GetPrivateKey(), hash));
-            request.set_acceptingconnection(AcceptingConnection);
-            if (LocalPort != 0) {
-                TNetworkAddress address = PublicAddress;
-                address.Port = PublicPort;
-                request.set_publicaddress(address.ToString());
-            }
-            string response = Compress(request.SerializeAsString());
-            response = Serialize(EncryptAsymmetrical(ServerPublicKey, response));
-            ConnectionStatus = COS_WaitingFriendAddress;
-            UdtClient->Send(response);
-        } break;
-        case COS_WaitingFriendAddress: {
-            assert(Client != nullptr && "Client is NULL");
-            packetStr = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
-            TServerConnectHelpRequest connectHelp;
-            if (!connectHelp.ParseFromString(packetStr)) {
-                cerr << "error: failed to deserialize connect help request\n";
-                return;
-            }
-            // todo: free nat-pmp port if not used
-            switch (connectHelp.connectiontype()) {
-            case CTP_Offline: {
-                ForceDisconnect();
-                return;
+        while (Deserialize(Buffer, packetStr)) {
+            switch (ConnectionStatus) {
+            case COS_ConnectingToServer: {
+                packetStr = Decompress(packetStr);
+                TServerAuthorizeRequest packet;
+                if (!packet.ParseFromString(packetStr)) {
+                    cerr << "warning: failed to deserialize server authroize request\n";
+                    ForceDisconnect();
+                    return;
+                }
+                if (!CheckSignature(ServerPublicKey, packet.randomsequence(), packet.signature())) {
+                    cerr << "warning: failed to check server signature\n";
+                    ForceDisconnect();
+                    return;
+                }
+                TClientConnectHelpAuthorizeRequest request;
+                assert(!FullLogin.empty() && "friend has no login");
+                assert(Client != nullptr && "Client is NULL");
+                request.set_login(Client->GetFullLogin());
+                request.set_friendlogin(FullLogin);
+                string hash = Hash(packet.randomsequence());
+                request.set_randomsequencehash(hash);
+                request.set_randomsequencehashsignature(Sign(Client->GetPrivateKey(), hash));
+                request.set_acceptingconnection(AcceptingConnection);
+                if (LocalPort != 0) {
+                    TNetworkAddress address = PublicAddress;
+                    address.Port = PublicPort;
+                    request.set_publicaddress(address.ToString());
+                }
+                string response = Compress(request.SerializeAsString());
+                response = Serialize(EncryptAsymmetrical(ServerPublicKey, response));
+                ConnectionStatus = COS_WaitingFriendAddress;
+                UdtClient->Send(response);
             } break;
-            case CTP_NatTraversal: {
-                ConnectThrowNat(TNetworkAddress(connectHelp.address()), LocalPort);
-            } break;
-            case CTP_Listen: {
-                UdtClient->Disconnect();
-                NUdt::TServerConfig config;
-                config.NewConnectionCallback = bind(&TFriend::OnClientConnected, this, _1);
-                config.DataReceivedCallback = bind(&TFriend::OnDataReceived, this, _1);
-                config.ConnectionAcceptedCallback = std::bind(&TFriend::OnConnectionEstablished, this);
-                config.ConnectionLostCallback = std::bind(&TFriend::OnDisconnected, this);
-                config.Port = LocalPort;
-                ConnectionStatus = COS_WaitingFriendConnection;
-                UdtServer.reset(new NUdt::TServer(config));
-            } break;
-            case CTP_Connect: {
-                ConnectionStatus = COS_ConnectingToFriend;
-                UdtClient->Connect(connectHelp.address());
-            } break;
-            }
-        } break;
-        case COS_Connected:
-        case COS_AcceptedConnection: {
-            EFriendPacketType packetType = (EFriendPacketType)packetStr[0];
-            packetStr = packetStr.substr(1);
-            switch (packetType) {
-            case FPT_RandomSequence: {
-                TFriendRandomSequenceConfirm confirm;
-                FriendRandomSequence = packetStr;
-                string randomSeqHash = Hash(FriendRandomSequence + "frnd");
-                confirm.set_randomsequencehash(randomSeqHash);
-                confirm.set_signature(Sign(Client->GetPrivateKey(), randomSeqHash));
-                SelfSessionKey = GenerateKey();
-                confirm.set_sessionkey(SelfSessionKey);
-                SendSerialized(EncryptAsymmetrical(PublicKey, Compress(confirm.SerializeAsString())), FPT_RandomSequenceConfirm);
-            } break;
-            case FPT_RandomSequenceConfirm: {
+            case COS_WaitingFriendAddress: {
+                assert(Client != nullptr && "Client is NULL");
                 packetStr = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
-                TFriendRandomSequenceConfirm confirm;
-                if (!confirm.ParseFromString(packetStr)) {
-                    throw UException("failed to deserialized");
+                TServerConnectHelpRequest connectHelp;
+                if (!connectHelp.ParseFromString(packetStr)) {
+                    cerr << "error: failed to deserialize connect help request\n";
+                    return;
                 }
-                string randomSeqHash = Hash(RandomSequence + "frnd");
-                if (randomSeqHash != confirm.randomsequencehash()) {
-                    throw UException("hash verification failed");
+                // todo: free nat-pmp port if not used
+                switch (connectHelp.connectiontype()) {
+                case CTP_Offline: {
+                    ForceDisconnect();
+                    return;
+                } break;
+                case CTP_NatTraversal: {
+                    ConnectThrowNat(TNetworkAddress(connectHelp.address()), LocalPort);
+                } break;
+                case CTP_Listen: {
+                    UdtClient->Disconnect();
+                    if (!UdtServer || UdtServer->GetPort() != LocalPort) {
+                        NUdt::TServerConfig config;
+                        config.NewConnectionCallback = bind(&TFriend::OnClientConnected, this, _1);
+                        config.DataReceivedCallback = bind(&TFriend::OnDataReceived, this, _1);
+                        config.ConnectionAcceptedCallback = std::bind(&TFriend::OnConnectionEstablished, this);
+                        config.ConnectionLostCallback = std::bind(&TFriend::OnDisconnected, this);
+                        config.Port = LocalPort;
+                        UdtServer.reset(new NUdt::TServer(config));
+                    }
+                    ConnectionStatus = COS_WaitingFriendConnection;
+                } break;
+                case CTP_Connect: {
+                    ConnectionStatus = COS_ConnectingToFriend;
+                    UdtClient->Connect(connectHelp.address());
+                } break;
                 }
-                if (!CheckSignature(PublicKey, randomSeqHash, confirm.signature())) {
-                    throw UException("signature verification failed");
-                }
-                FriendSessionKey = confirm.sessionkey();
-                SendEncrypted("", FPT_Authorized);
-                FriendAuthorized = true;
-                UpdateOnlineStatus();
             } break;
-            case FPT_Encrypted: {
-                packetStr = Decompress(DecryptSymmetrical(SelfSessionKey, packetStr));
-                packetType = static_cast<EFriendPacketType>(packetStr[0]);
+            case COS_Connected:
+            case COS_AcceptedConnection: {
+                EFriendPacketType packetType = (EFriendPacketType)packetStr[0];
                 packetStr = packetStr.substr(1);
                 switch (packetType) {
-                case FPT_Authorized: {
-                    SelfAuthorized = true;
+                case FPT_RandomSequence: {
+                    TFriendRandomSequenceConfirm confirm;
+                    FriendRandomSequence = packetStr;
+                    string randomSeqHash = Hash(FriendRandomSequence + "frnd");
+                    confirm.set_randomsequencehash(randomSeqHash);
+                    confirm.set_signature(Sign(Client->GetPrivateKey(), randomSeqHash));
+                    SelfSessionKey = GenerateKey();
+                    confirm.set_sessionkey(SelfSessionKey);
+                    SendSerialized(EncryptAsymmetrical(PublicKey, Compress(confirm.SerializeAsString())), FPT_RandomSequenceConfirm);
+                } break;
+                case FPT_RandomSequenceConfirm: {
+                    packetStr = Decompress(DecryptAsymmetrical(Client->GetPrivateKey(), packetStr));
+                    TFriendRandomSequenceConfirm confirm;
+                    if (!confirm.ParseFromString(packetStr)) {
+                        throw UException("failed to deserialized");
+                    }
+                    string randomSeqHash = Hash(RandomSequence + "frnd");
+                    if (randomSeqHash != confirm.randomsequencehash()) {
+                        throw UException("hash verification failed");
+                    }
+                    if (!CheckSignature(PublicKey, randomSeqHash, confirm.signature())) {
+                        throw UException("signature verification failed");
+                    }
+                    FriendSessionKey = confirm.sessionkey();
+                    SendEncrypted("", FPT_Authorized);
+                    FriendAuthorized = true;
                     UpdateOnlineStatus();
                 } break;
-                case FPT_Message: {
-                    TMessagePacket messagePacket;
-                    if (!messagePacket.ParseFromString(packetStr)) {
-                        throw UException("failed to parse message");
-                    }
-                    TMessage message;
-                    message.From = messagePacket.from();
-                    message.To = messagePacket.to();
-                    message.Time = TDuration(messagePacket.time());
-                    message.Text = messagePacket.text();
-                    OnMessageReceived(message);
-                } break;
-                case FPT_CallRequest: {
-                    if (CallStatus == CAS_NotCalling) {
-                        // todo: call oncall calback
-                        Client->OnCallReceived(shared_from_this());
-                    } else if (CallStatus == CAS_WaitingFriendConfirm) {
-                        CallStatus = CAS_Established;
-                        cerr << " == CALL ESTABLISHED ==\n";
+                case FPT_Encrypted: {
+                    packetStr = Decompress(DecryptSymmetrical(SelfSessionKey, packetStr));
+                    packetType = static_cast<EFriendPacketType>(packetStr[0]);
+                    packetStr = packetStr.substr(1);
+                    switch (packetType) {
+                    case FPT_Authorized: {
+                        SelfAuthorized = true;
+                        UpdateOnlineStatus();
+                    } break;
+                    case FPT_Message: {
+                        TMessagePacket messagePacket;
+                        if (!messagePacket.ParseFromString(packetStr)) {
+                            throw UException("failed to parse message");
+                        }
+                        TMessage message;
+                        message.From = messagePacket.from();
+                        message.To = messagePacket.to();
+                        message.Time = TDuration(messagePacket.time());
+                        message.Text = messagePacket.text();
+                        OnMessageReceived(message);
+                    } break;
+                    case FPT_CallRequest: {
+                        if (CallStatus == CAS_NotCalling) {
+                            // todo: call oncall calback
+                            Client->OnCallReceived(shared_from_this());
+                        } else if (CallStatus == CAS_WaitingFriendConfirm) {
+                            CallStatus = CAS_Established;
+                            cerr << " == CALL ESTABLISHED ==\n";
+                        }
+                    } break;
                     }
                 } break;
                 }
             } break;
             }
-        } break;
         }
     } catch (const std::exception& e) {
         cerr << "friend data received error: " << e.what() << "\n";
@@ -403,13 +403,13 @@ void TFriend::OnDisconnected() {
     }
     Status = FS_Offline;
     ConnectionStatus = COS_Offline;
-    std::cerr << "Discnnected\n";
     Client->OnFriendStatusChanged(shared_from_this());
 }
 
 void TFriend::ForceDisconnect() {
     OnDisconnected();
     UdtClient->Disconnect();
+    UdtServer.reset(nullptr);
 }
 
 void TFriend::ConnectThrowNat(const TNetworkAddress& address, ui16 localPort) {

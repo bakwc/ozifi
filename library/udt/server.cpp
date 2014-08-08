@@ -113,7 +113,9 @@ public:
         assert(data.Size() == result && "sended not all bytes");
         return true;
     }
-
+    ui16 GetPort() {
+        return Config.Port;
+    }
     void DisconnectClient(const TNetworkAddress& client) {
         // todo: drop client
     }
@@ -206,6 +208,10 @@ void TServer::Send(const TBuffer& data, const TNetworkAddress& address) {
 
 void TServer::DisconnectClient(const TNetworkAddress& client) {
     Impl->DisconnectClient(client);
+}
+
+ui16 TServer::GetPort() {
+    return Impl->GetPort();
 }
 
 TServer::~TServer()
