@@ -14,10 +14,6 @@ TChatMessageEdit::TChatMessageEdit() {
     setReadOnly(false);
 }
 
-void TChatWindow::OnSendMessage(const QString& message) {
-    emit SendMessage(FriendLogin, message);
-}
-
 void TChatMessageEdit::keyPressEvent(QKeyEvent* e){
     if (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return) {
         emit SendMessage(this->toPlainText());
@@ -47,8 +43,19 @@ TChatWindow::TChatWindow(const QString& frndLogin)
     currentLayout->addWidget(CallStatusLabel.data());
     CallStatusLabel->hide();
 
-    CallButton = new QPushButton(tr("Call"), this);
+    CallButton = new QPushButton(this);
     currentLayout->addWidget(CallButton.data());
+    connect(CallButton.data(), &QPushButton::clicked, this, &TChatWindow::OnCallClicked);
+
+    DeclineButton = new QPushButton(this);
+    currentLayout->addWidget(DeclineButton.data());
+    connect(DeclineButton.data(), &QPushButton::clicked, [this] () {
+        CallStatus = CS_None;
+        UpdateCallStatus();
+        emit OnFinishCall(FriendLogin);
+    });
+
+    UpdateCallStatus();
 
     QListView* messagesListView = new QListView();
     messagesListView->setModel(&MessagesModel);
@@ -73,6 +80,53 @@ void TChatWindow::ShowMessage(const QString& message, bool incoming) {
     MessagesModel.setData(index, messageToDisplay);
 }
 
+void TChatWindow::OnSendMessage(const QString& message) {
+    emit SendMessage(FriendLogin, message);
+}
+
+void TChatWindow::OnCallClicked() {
+    if (CallStatus == CS_None) {
+        CallStatus = CS_Connecting;
+        UpdateCallStatus();
+        emit OnStartCall(FriendLogin);
+    } else if (CallStatus == CS_Calling || CallStatus == CS_Connecting) {
+        CallStatus = CS_None;
+        UpdateCallStatus();
+        emit OnFinishCall(FriendLogin);
+    } else if (CallStatus == CS_Incoming) {
+        CallStatus = CS_Calling;
+        UpdateCallStatus();
+        emit OnStartCall(FriendLogin);
+    } else {
+        throw UException("wrong status");
+    }
+}
+
+void TChatWindow::UpdateCallStatus() {
+    CallStatusLabel->hide();
+    DeclineButton->hide();
+    switch (CallStatus) {
+    case CS_None:
+        CallButton->setText(tr("Call"));
+        break;
+    case CS_Connecting:
+        CallStatusLabel->show();
+        CallStatusLabel->setText(tr("Calling..."));
+        CallButton->setText(tr("Drop"));
+        break;
+    case CS_Incoming:
+        CallStatusLabel->show();
+        CallStatusLabel->setText(tr("Incoming call..."));
+        CallButton->setText(tr("Accept"));
+        DeclineButton->setText(tr("Decline"));
+        DeclineButton->show();
+        break;
+    case CS_Calling:
+        CallStatusLabel->show();
+        CallStatusLabel->setText(tr("Call in progress"));
+        CallButton->setText(tr("Drop"));
+    }
+}
 
 // TChatWindows
 

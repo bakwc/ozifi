@@ -29,20 +29,34 @@ private:
 
 class TChatWindow: public QWidget {
     Q_OBJECT
+private:
+    enum ECallStatus {
+        CS_None,
+        CS_Incoming,
+        CS_Connecting,
+        CS_Calling // call established
+    };
 public:
     explicit TChatWindow(const QString& frndLogin);
     void ShowMessage(const QString& message, bool incoming);
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
+    void OnStartCall(const QString& frndLogin);
+    void OnFinishCall(const QString& frndLogin);
 private slots:
     void OnSendMessage(const QString& message);
+private:
+    void OnCallClicked();
+    void UpdateCallStatus();
 private:
     QString FriendLogin;
     QStringList Messages;
     QStringListModel MessagesModel;
     QPointer<TChatMessageEdit> MessageEdit;
     QPointer<QPushButton> CallButton;
+    QPointer<QPushButton> DeclineButton;
     QPointer<QLabel> CallStatusLabel;
+    ECallStatus CallStatus = CS_None;
 };
 
 typedef std::shared_ptr<TChatWindow> TChatWindowRef;
