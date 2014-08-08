@@ -41,6 +41,15 @@ TChatWindow::TChatWindow(const QString& frndLogin)
     MessagesModel.setStringList(Messages);
 
     QVBoxLayout* currentLayout = new QVBoxLayout(this);
+
+    CallStatusLabel = new QLabel(this);
+    CallStatusLabel->setStyleSheet("QLabel { font-size: 12px; font: bold; }");
+    currentLayout->addWidget(CallStatusLabel.data());
+    CallStatusLabel->hide();
+
+    CallButton = new QPushButton(tr("Call"), this);
+    currentLayout->addWidget(CallButton.data());
+
     QListView* messagesListView = new QListView();
     messagesListView->setModel(&MessagesModel);
     currentLayout->addWidget(messagesListView);

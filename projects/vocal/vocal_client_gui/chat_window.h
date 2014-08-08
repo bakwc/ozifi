@@ -5,6 +5,8 @@
 #include <QStringListModel>
 #include <QPointer>
 #include <QTextEdit>
+#include <QPushButton>
+#include <QLabel>
 #include <memory>
 
 #ifdef SendMessage
@@ -39,6 +41,8 @@ private:
     QStringList Messages;
     QStringListModel MessagesModel;
     QPointer<TChatMessageEdit> MessageEdit;
+    QPointer<QPushButton> CallButton;
+    QPointer<QLabel> CallStatusLabel;
 };
 
 typedef std::shared_ptr<TChatWindow> TChatWindowRef;
