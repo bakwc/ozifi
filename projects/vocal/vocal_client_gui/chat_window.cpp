@@ -50,7 +50,7 @@ TChatWindow::TChatWindow(const QString& frndLogin)
     DeclineButton = new QPushButton(this);
     currentLayout->addWidget(DeclineButton.data());
     connect(DeclineButton.data(), &QPushButton::clicked, [this] () {
-        CallStatus = CS_None;
+        CallStatus = NVocal::CAS_NotCalling;
         UpdateCallStatus();
         emit OnFinishCall(FriendLogin);
     });
@@ -80,8 +80,8 @@ void TChatWindow::ShowMessage(const QString& message, bool incoming) {
     MessagesModel.setData(index, messageToDisplay);
 }
 
-void TChatWindow::OnFriendCalled() {
-    CallStatus = CS_Incoming;
+void TChatWindow::OnCallStatusChanged(NVocal::ECallStatus status) {
+    CallStatus = status;
     UpdateCallStatus();
 }
 
@@ -90,16 +90,18 @@ void TChatWindow::OnSendMessage(const QString& message) {
 }
 
 void TChatWindow::OnCallClicked() {
-    if (CallStatus == CS_None) {
-        CallStatus = CS_Connecting;
+    if (CallStatus == NVocal::CAS_NotCalling) {
+        CallStatus = NVocal::CAS_WaitingFriendConfirm;
         UpdateCallStatus();
         emit OnStartCall(FriendLogin);
-    } else if (CallStatus == CS_Calling || CallStatus == CS_Connecting) {
-        CallStatus = CS_None;
+    } else if (CallStatus == NVocal::CAS_Established ||
+               CallStatus == NVocal::CAS_WaitingFriendConfirm)
+    {
+        CallStatus = NVocal::CAS_NotCalling;
         UpdateCallStatus();
         emit OnFinishCall(FriendLogin);
-    } else if (CallStatus == CS_Incoming) {
-        CallStatus = CS_Calling;
+    } else if (CallStatus == NVocal::CAS_WaitingSelfConfirm) {
+        CallStatus = NVocal::CAS_Established;
         UpdateCallStatus();
         emit OnStartCall(FriendLogin);
     } else {
@@ -111,22 +113,22 @@ void TChatWindow::UpdateCallStatus() {
     CallStatusLabel->hide();
     DeclineButton->hide();
     switch (CallStatus) {
-    case CS_None:
+    case NVocal::CAS_NotCalling:
         CallButton->setText(tr("Call"));
         break;
-    case CS_Connecting:
+    case NVocal::CAS_WaitingFriendConfirm:
         CallStatusLabel->show();
         CallStatusLabel->setText(tr("Calling..."));
         CallButton->setText(tr("Drop"));
         break;
-    case CS_Incoming:
+    case NVocal::CAS_WaitingSelfConfirm:
         CallStatusLabel->show();
         CallStatusLabel->setText(tr("Incoming call..."));
         CallButton->setText(tr("Accept"));
         DeclineButton->setText(tr("Decline"));
         DeclineButton->show();
         break;
-    case CS_Calling:
+    case NVocal::CAS_Established:
         CallStatusLabel->show();
         CallStatusLabel->setText(tr("Call in progress"));
         CallButton->setText(tr("Drop"));
@@ -145,9 +147,9 @@ void TChatWindows::ShowMessage(const QString& frndLogin, const QString& message,
     ChatWindows[frndLogin]->ShowMessage(message, incoming);
 }
 
-void TChatWindows::OnFriendCalled(const QString& frndLogin) {
+void TChatWindows::OnFriendCallStatusChanged(const QString& frndLogin, NVocal::ECallStatus status) {
     CreateWindowIfMissing(frndLogin);
-    ChatWindows[frndLogin]->OnFriendCalled();
+    ChatWindows[frndLogin]->OnCallStatusChanged(status);
 }
 
 void TChatWindows::CreateWindowIfMissing(const QString& frndLogin) {

@@ -14,6 +14,8 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     , Status(ST_None)
     , AudioDevice(QAudioDeviceInfo::defaultInputDevice())
 {
+    qRegisterMetaType<NVocal::ECallStatus>("ECallStatus");
+
     AudioFormat.setSampleRate(32000); //set frequency to 8000
     AudioFormat.setChannelCount(1); //set channels to mono
     AudioFormat.setSampleSize(16); //set sample sze to 16 bit
@@ -36,8 +38,9 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
-    config.OnFriendCalled = [this](NVocal::TFriendRef frnd) {
-        emit OnFriendCalled(QString::fromStdString(frnd->GetLogin()));
+    config.OnFriendCallStatusChanged = [this](NVocal::TFriendRef frnd) {
+        emit OnFriendCallStatusChanged(QString::fromStdString(frnd->GetLogin()),
+                                       frnd->GetCallStatus());
     };
 
     config.FriendRequestCallback = [this](const std::string& login) {
@@ -61,14 +64,22 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
             ChatWindows.get(), &TChatWindows::ShowMessage);
     connect(ChatWindows.get(), &TChatWindows::SendMessage,
             this, &TVocaGuiApp::SendMessage);
-    connect(this, &TVocaGuiApp::OnFriendCalled,
-            ChatWindows.get(), &TChatWindows::OnFriendCalled);
+    connect(this, &TVocaGuiApp::OnFriendCallStatusChanged,
+            ChatWindows.get(), &TChatWindows::OnFriendCallStatusChanged);
     connect(ChatWindows.get(), &TChatWindows::OnStartCall, [this](const QString& login) {
         try {
             NVocal::TFriendRef frnd = Client->GetFriend(login.toStdString());
             frnd->StartCall(false);
         } catch (const UException&) {
-            // todo: OnCallFailed
+            emit OnFriendCallStatusChanged(login, NVocal::CAS_NotCalling);
+        }
+    });
+    connect(ChatWindows.get(), &TChatWindows::OnFinishCall, [this](const QString& login) {
+        try {
+            NVocal::TFriendRef frnd = Client->GetFriend(login.toStdString());
+            frnd->FinishCall();
+        } catch (const UException&) {
+            emit OnFriendCallStatusChanged(login, NVocal::CAS_NotCalling);
         }
     });
     Client.reset(new NVocal::TClient(config));

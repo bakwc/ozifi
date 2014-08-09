@@ -9,6 +9,10 @@
 #include <QLabel>
 #include <memory>
 
+#include <projects/vocal/vocal_client_lib/friend.h>
+
+Q_DECLARE_METATYPE(NVocal::ECallStatus)
+
 #ifdef SendMessage
 #undef SendMessage
 #endif
@@ -29,17 +33,10 @@ private:
 
 class TChatWindow: public QWidget {
     Q_OBJECT
-private:
-    enum ECallStatus {
-        CS_None,
-        CS_Incoming,
-        CS_Connecting,
-        CS_Calling // call established
-    };
 public:
     explicit TChatWindow(const QString& frndLogin);
     void ShowMessage(const QString& message, bool incoming);
-    void OnFriendCalled();
+    void OnCallStatusChanged(NVocal::ECallStatus status);
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
     void OnStartCall(const QString& frndLogin);
@@ -57,7 +54,7 @@ private:
     QPointer<QPushButton> CallButton;
     QPointer<QPushButton> DeclineButton;
     QPointer<QLabel> CallStatusLabel;
-    ECallStatus CallStatus = CS_None;
+    NVocal::ECallStatus CallStatus = NVocal::CAS_NotCalling;
 };
 
 typedef std::shared_ptr<TChatWindow> TChatWindowRef;
@@ -68,7 +65,7 @@ public:
     void ShowChatWindow(const QString& frndLogin);
 public slots:
     void ShowMessage(const QString& frndLogin, const QString& message, bool incoming);
-    void OnFriendCalled(const QString& frndLogin);
+    void OnFriendCallStatusChanged(const QString& frndLogin, NVocal::ECallStatus status);
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
     void OnStartCall(const QString& frndLogin);

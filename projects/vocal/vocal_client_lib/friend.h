@@ -61,7 +61,7 @@ enum EFriendPacketType {
     FPT_Authorized,
     FPT_Message,
     FPT_CallRequest,
-    FPT_CallDecline
+    FPT_CallDrop
 };
 
 class TFriend;
@@ -84,6 +84,7 @@ public:
                   size_t size,
                   TDataRequireCallback fileDataCallback);
     void StartCall(bool videoEnabled);
+    ECallStatus GetCallStatus();
     void EnableVideo();
     void DisableVideo();
     void FinishCall();

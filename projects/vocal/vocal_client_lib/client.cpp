@@ -709,9 +709,9 @@ void TClient::OnFriendStatusChanged(TFriendRef frnd) {
     }
 }
 
-void TClient::OnCallReceived(TFriendRef frnd) {
-    if (Config.OnFriendCalled) {
-        Config.OnFriendCalled(frnd);
+void TClient::OnCallStatusChanged(TFriendRef frnd) {
+    if (Config.OnFriendCallStatusChanged) {
+        Config.OnFriendCallStatusChanged(frnd);
     }
 }
 

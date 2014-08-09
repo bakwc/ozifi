@@ -96,7 +96,7 @@ private:
     void SaveState();
     void ConnectWithFriends();
     void OnFriendStatusChanged(TFriendRef frnd);
-    void OnCallReceived(TFriendRef frnd);
+    void OnCallStatusChanged(TFriendRef frnd);
     void OnMessageReceived(const TMessage& message);
     void SendOfflineMessage(const std::string& friendLogin, const TBuffer& data);
 private:

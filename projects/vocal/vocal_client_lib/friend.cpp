@@ -161,10 +161,14 @@ void TFriend::StartCall(bool videoEnabled) {
         CallStatus = CAS_WaitingFriendConfirm;
         VideoEnabled = videoEnabled;
     } else if (CallStatus == CAS_WaitingSelfConfirm) {
-        // todo: start call session
+        SendEncrypted("", FPT_CallRequest);
         CallStatus = CAS_Established;
-        cerr << " == CALL ESTABLISHED ==\n";
+        Client->OnCallStatusChanged(shared_from_this());
     }
+}
+
+ECallStatus TFriend::GetCallStatus() {
+    return CallStatus;
 }
 
 void TFriend::EnableVideo() {
@@ -176,11 +180,10 @@ void TFriend::DisableVideo() {
 }
 
 void TFriend::FinishCall() {
-    if (CallStatus == CAS_WaitingSelfConfirm) {
-        SendEncrypted("", FPT_CallDecline);
+    if (CallStatus != CAS_NotCalling) {
+        SendEncrypted("", FPT_CallDrop);
         CallStatus = CAS_NotCalling;
-    } else if (CallStatus == CAS_Established) {
-        // todo: terminate call
+        Client->OnCallStatusChanged(shared_from_this());
     }
 }
 
@@ -382,13 +385,18 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                         OnMessageReceived(message);
                     } break;
                     case FPT_CallRequest: {
-                        std::cerr << "Call request\n";
                         if (CallStatus == CAS_NotCalling) {
-                            // todo: call oncall calback
-                            Client->OnCallReceived(shared_from_this());
+                            CallStatus = CAS_WaitingSelfConfirm;
+                            Client->OnCallStatusChanged(shared_from_this());
                         } else if (CallStatus == CAS_WaitingFriendConfirm) {
                             CallStatus = CAS_Established;
-                            cerr << " == CALL ESTABLISHED ==\n";
+                            Client->OnCallStatusChanged(shared_from_this());
+                        }
+                    } break;
+                    case FPT_CallDrop: {
+                        if (CallStatus != CAS_NotCalling) {
+                            CallStatus = CAS_NotCalling;
+                            Client->OnCallStatusChanged(shared_from_this());
                         }
                     } break;
                     }
