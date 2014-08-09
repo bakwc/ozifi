@@ -39,6 +39,7 @@ private:
 public:
     explicit TChatWindow(const QString& frndLogin);
     void ShowMessage(const QString& message, bool incoming);
+    void OnFriendCalled();
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
     void OnStartCall(const QString& frndLogin);
@@ -67,8 +68,11 @@ public:
     void ShowChatWindow(const QString& frndLogin);
 public slots:
     void ShowMessage(const QString& frndLogin, const QString& message, bool incoming);
+    void OnFriendCalled(const QString& frndLogin);
 signals:
     void SendMessage(const QString& frndLogin, const QString& message);
+    void OnStartCall(const QString& frndLogin);
+    void OnFinishCall(const QString& frndLogin);
 private:
     void CreateWindowIfMissing(const QString& frndLogin);
 private:

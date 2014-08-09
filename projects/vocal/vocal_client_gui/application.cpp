@@ -36,6 +36,10 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
+    config.OnFriendCalled = [this](NVocal::TFriendRef frnd) {
+        emit OnFriendCalled(QString::fromStdString(frnd->GetLogin()));
+    };
+
     config.FriendRequestCallback = [this](const std::string& login) {
         QString question = tr("Accept friend request from <b>%1</b>")
                               .arg(QString::fromStdString(login));
@@ -57,6 +61,16 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
             ChatWindows.get(), &TChatWindows::ShowMessage);
     connect(ChatWindows.get(), &TChatWindows::SendMessage,
             this, &TVocaGuiApp::SendMessage);
+    connect(this, &TVocaGuiApp::OnFriendCalled,
+            ChatWindows.get(), &TChatWindows::OnFriendCalled);
+    connect(ChatWindows.get(), &TChatWindows::OnStartCall, [this](const QString& login) {
+        try {
+            NVocal::TFriendRef frnd = Client->GetFriend(login.toStdString());
+            frnd->StartCall(false);
+        } catch (const UException&) {
+            // todo: OnCallFailed
+        }
+    });
     Client.reset(new NVocal::TClient(config));
     if (Client->HasConnectData()) {
         LaunchMain();

@@ -80,6 +80,11 @@ void TChatWindow::ShowMessage(const QString& message, bool incoming) {
     MessagesModel.setData(index, messageToDisplay);
 }
 
+void TChatWindow::OnFriendCalled() {
+    CallStatus = CS_Incoming;
+    UpdateCallStatus();
+}
+
 void TChatWindow::OnSendMessage(const QString& message) {
     emit SendMessage(FriendLogin, message);
 }
@@ -140,10 +145,17 @@ void TChatWindows::ShowMessage(const QString& frndLogin, const QString& message,
     ChatWindows[frndLogin]->ShowMessage(message, incoming);
 }
 
+void TChatWindows::OnFriendCalled(const QString& frndLogin) {
+    CreateWindowIfMissing(frndLogin);
+    ChatWindows[frndLogin]->OnFriendCalled();
+}
+
 void TChatWindows::CreateWindowIfMissing(const QString& frndLogin) {
     if (ChatWindows.find(frndLogin) == ChatWindows.end()) {
         TChatWindowRef chatWindow = std::make_shared<TChatWindow>(frndLogin);
         connect(chatWindow.get(), &TChatWindow::SendMessage, this, &TChatWindows::SendMessage);
+        connect(chatWindow.get(), &TChatWindow::OnStartCall, this, &TChatWindows::OnStartCall);
+        connect(chatWindow.get(), &TChatWindow::OnFinishCall, this, &TChatWindows::OnFinishCall);
         ChatWindows.insert(frndLogin, chatWindow);
     }
 }

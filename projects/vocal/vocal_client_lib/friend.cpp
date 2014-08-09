@@ -153,7 +153,7 @@ void TFriend::SendFile(const std::string& name,
 }
 
 void TFriend::StartCall(bool videoEnabled) {
-    if (ConnectionStatus != COS_Connected) {
+    if (!Connected()) {
         throw UException("trying to call when not connected");
     }
     if (CallStatus == CAS_NotCalling) {
@@ -182,6 +182,10 @@ void TFriend::FinishCall() {
     } else if (CallStatus == CAS_Established) {
         // todo: terminate call
     }
+}
+
+bool TFriend::Connected() {
+    return ConnectionStatus == COS_Connected || ConnectionStatus == COS_AcceptedConnection;
 }
 
 // todo: don't try to connect very often
@@ -378,6 +382,7 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                         OnMessageReceived(message);
                     } break;
                     case FPT_CallRequest: {
+                        std::cerr << "Call request\n";
                         if (CallStatus == CAS_NotCalling) {
                             // todo: call oncall calback
                             Client->OnCallReceived(shared_from_this());

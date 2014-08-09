@@ -76,6 +76,7 @@ signals:
     void CaptchaAvailable(QImage image);
     void RegistrationFailed(const QString& message);
     void MessageReceived(const QString& frndLogin, const QString& message, bool incoming);
+    void OnFriendCalled(const QString& frndLogin);
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);

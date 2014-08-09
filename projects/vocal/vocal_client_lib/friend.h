@@ -87,6 +87,7 @@ public:
     void EnableVideo();
     void DisableVideo();
     void FinishCall();
+    bool Connected();
 protected:
     /** connect to friend server and ask him to help to establish connection
      * and then connect to friend */
