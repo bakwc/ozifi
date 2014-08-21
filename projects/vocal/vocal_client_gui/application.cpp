@@ -12,22 +12,8 @@ using namespace std::placeholders;
 TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     : QApplication(argc, argv)
     , Status(ST_None)
-    , AudioDevice(QAudioDeviceInfo::defaultInputDevice())
 {
     qRegisterMetaType<NVocal::ECallStatus>("ECallStatus");
-
-    AudioFormat.setSampleRate(32000); //set frequency to 8000
-    AudioFormat.setChannelCount(1); //set channels to mono
-    AudioFormat.setSampleSize(16); //set sample sze to 16 bit
-    AudioFormat.setSampleType(QAudioFormat::UnSignedInt ); //Sample type as usigned integer sample
-    AudioFormat.setByteOrder(QAudioFormat::LittleEndian); //Byte order
-    AudioFormat.setCodec("audio/pcm"); //set codec as simple audio/pcm
-    if (!AudioDevice.isFormatSupported(AudioFormat)) {
-
-        qWarning() << "Default format not supported, trying to use the nearest.";
-        AudioFormat = AudioDevice.nearestFormat(AudioFormat);
-    }
-    AudioInput.reset(new QAudioInput(AudioDevice,AudioFormat));
 
     NVocal::TClientConfig config;
     config.CaptchaAvailableCallback = std::bind(&TVocaGuiApp::OnCaptcha, this, _1);
@@ -88,6 +74,7 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     } else {
         LaunchLogin();
     }
+    Audio.reset(new TAudio());
 }
 
 TVocaGuiApp::~TVocaGuiApp() {

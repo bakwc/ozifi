@@ -8,12 +8,12 @@
 #include <utils/string.h>
 #include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
-#include <QtMultimedia/QtMultimedia>
 
 #include "main_window.h"
 #include "login_window.h"
 #include "chat_window.h"
 #include "add_friend_window.h"
+#include "audio.h"
 
 enum EStatus {
     ST_None,
@@ -104,9 +104,7 @@ private:
     std::unique_ptr<TMainWindow> MainWindow;
     std::unique_ptr<TChatWindows> ChatWindows;
     std::unique_ptr<TAddFriendWindow> AddFriendWindow;
-    QAudioFormat AudioFormat;
-    QAudioDeviceInfo AudioDevice;
-    std::unique_ptr<QAudioInput> AudioInput;
+    std::unique_ptr<TAudio> Audio;
     EStatus Status;
 };
 
