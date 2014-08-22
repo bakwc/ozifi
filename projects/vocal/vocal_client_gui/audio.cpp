@@ -1,9 +1,11 @@
 #include "audio.h"
+#include "application.h"
 
 
-TAudio::TAudio()
+TAudio::TAudio(TVocaGuiApp* app)
     : InputAudioDevice(QAudioDeviceInfo::availableDevices(QAudio::AudioInput)[1])
     , OutputDeviceInfo(QAudioDeviceInfo::defaultOutputDevice())
+    , App(app)
 {
     qDebug() << "IO Devices:" << InputAudioDevice.deviceName() << OutputDeviceInfo.deviceName();
 
@@ -18,27 +20,22 @@ TAudio::TAudio()
         AudioFormat = InputAudioDevice.nearestFormat(AudioFormat);
     }
     AudioInput.reset(new QAudioInput(InputAudioDevice,AudioFormat));
+    AudioInput->setNotifyInterval(1);
     AudioOutput.reset(new QAudioOutput(OutputDeviceInfo, AudioFormat));
-
-
-    QTimer *timer = new QTimer(this);
-    timer->setSingleShot(true);
-    connect(timer, &QTimer::timeout, [this] {
-        qDebug() << "recorded\n";
-        AudioInput->stop();
-//        qDebug() << Buffer.pos();
-//        Buffer.seek(0);
-//        qDebug() << Buffer.pos();
-        AudioOutput->start(this);
-    });
-    qDebug() << "started";
-    timer->start(5000);
-//    Buffer.open(QIODevice::ReadWrite);
     this->open(QIODevice::ReadWrite);
-    AudioInput->start(this);
 }
 
 TAudio::~TAudio() {
+}
+
+void TAudio::OnCallStarted() {
+    AudioInput->start(this);
+    AudioOutput->start(this);
+}
+
+void TAudio::OnCallFinished() {
+    AudioInput->stop();
+    AudioOutput->stop();
 }
 
 bool TAudio::open(QIODevice::OpenMode mode) {
@@ -50,15 +47,25 @@ void TAudio::close() {
 }
 
 qint64 TAudio::writeData(const char *data, qint64 len) {
-    qDebug() << "write" << len;
+    App->Client->ProvideAudioData(TBuffer(data, len));
     return len;
 }
 
 qint64 TAudio::readData(char *data, qint64 maxlen) {
-    qDebug() << "read" << maxlen;
-    return -1;
+    if (maxlen == 0) {
+        return 0;
+    }
+    maxlen = std::min((int)maxlen, 640);
+    std::lock_guard<std::mutex> guard(Lock);
+    AudioQueue.Get(data, maxlen);
+    return maxlen;
 }
 
 bool TAudio::isSequential() const {
     return true;
+}
+
+void TAudio::OnDataReceived(TBuffer data) {
+    std::lock_guard<std::mutex> guard(Lock);
+    AudioQueue.Add(data);
 }

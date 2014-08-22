@@ -65,6 +65,7 @@ private:
 
 class TVocaGuiApp: public QApplication {
     Q_OBJECT
+    friend class TAudio;
 public:
     TVocaGuiApp(int& argc, char **argv);
     ~TVocaGuiApp();
@@ -77,6 +78,8 @@ signals:
     void RegistrationFailed(const QString& message);
     void MessageReceived(const QString& frndLogin, const QString& message, bool incoming);
     void OnFriendCallStatusChanged(const QString& frndLogin, NVocal::ECallStatus status);
+    void OnCallStarted();
+    void OnCallFinished();
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
@@ -95,7 +98,6 @@ private:
     void OnFriendRemoved(NVocal::TFriendRef frnd);
     void OnFriendUpdated(NVocal::TFriendRef frnd);
     void OnCallReceived(NVocal::TFriendRef frnd);
-    std::string OnAudioInput(size_t size);
 private:
     TImageStorage ImageStorage;
     std::unique_ptr<TFriendListModel> FriendListModel;

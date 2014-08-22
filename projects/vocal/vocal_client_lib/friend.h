@@ -61,7 +61,8 @@ enum EFriendPacketType {
     FPT_Authorized,
     FPT_Message,
     FPT_CallRequest,
-    FPT_CallDrop
+    FPT_CallDrop,
+    FPT_AudioData
 };
 
 class TFriend;
@@ -103,6 +104,7 @@ protected:
     void ConnectThrowNat(const TNetworkAddress& address, ui16 localPort = 0);
     void OnOfflineMessageReceived(const TBuffer& data, bool isIncoming);
     void OnMessageReceived(const TMessage& message);
+    void SendAudioData(const TBuffer& data);
 private:
     void InitUdtClient();
     bool OnClientConnected(const TNetworkAddress& addr);

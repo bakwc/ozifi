@@ -164,6 +164,7 @@ void TFriend::StartCall(bool videoEnabled) {
         SendEncrypted("", FPT_CallRequest);
         CallStatus = CAS_Established;
         Client->OnCallStatusChanged(shared_from_this());
+        Client->SetFriendCalling(shared_from_this());
     }
 }
 
@@ -184,6 +185,7 @@ void TFriend::FinishCall() {
         SendEncrypted("", FPT_CallDrop);
         CallStatus = CAS_NotCalling;
         Client->OnCallStatusChanged(shared_from_this());
+        Client->SetFriendCalling(nullptr);
     }
 }
 
@@ -391,14 +393,22 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                         } else if (CallStatus == CAS_WaitingFriendConfirm) {
                             CallStatus = CAS_Established;
                             Client->OnCallStatusChanged(shared_from_this());
+                            Client->SetFriendCalling(shared_from_this());
                         }
                     } break;
                     case FPT_CallDrop: {
                         if (CallStatus != CAS_NotCalling) {
                             CallStatus = CAS_NotCalling;
                             Client->OnCallStatusChanged(shared_from_this());
+                            Client->SetFriendCalling(nullptr);
                         }
                     } break;
+                    case FPT_AudioData: {
+                        if (CallStatus != CAS_Established) {
+                            break;
+                        }
+                        Client->OnAudioDataReceived(TBuffer(packetStr));
+                    }
                     }
                 } break;
                 }
@@ -459,6 +469,14 @@ void TFriend::OnMessageReceived(const TMessage& message) {
     }
     PrevMessages.insert(signature);
     Client->OnMessageReceived(message);
+}
+
+void TFriend::SendAudioData(const TBuffer& data) {
+    if (CallStatus != CAS_Established) {
+        return;
+    }
+    // todo: encode using opus
+    SendEncrypted(data, FPT_AudioData);
 }
 
 } // NVocal

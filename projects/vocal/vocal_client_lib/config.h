@@ -28,10 +28,8 @@ struct TClientConfig {
     TFriendCallback OnFriendUpdated;            // on friend info updated
     TFriendCallback OnFriendCallStatusChanged;             // on incoming call
     TOnCallResult OnCallResult;                 // on friend accepted / declined call
-    TDataRequireCallback VideoInput;            // callback that provide a video frame
-    TDataRequireCallback AudioInput;            // callback that provide audio data
     TFriendDataCallback OnVideoAvailable;       // on video available
-    TFriendDataCallback OnAudioReceived;        // on audio data available
+    TDataCallback OnAudioReceived;              // on audio data available
 };
 
 } // NVocal

@@ -458,6 +458,12 @@ string TClient::GetFullLogin() {
     return GetLogin() + "@" + GetHost();
 }
 
+void TClient::ProvideAudioData(const TBuffer& data) {
+    if (CallingFriend != nullptr) {
+        CallingFriend->SendAudioData(data);
+    }
+}
+
 string TClient::GetPublicKey() {
     if (!State.has_publickey()) {
         throw UException("login not found");
@@ -490,6 +496,10 @@ TNatPmp &TClient::GetNatPmp() {
 
 TDuration TClient::GetTime() {
     return Now(); // todo: return synced time
+}
+
+void TClient::SetFriendCalling(TFriendRef frnd) {
+    CallingFriend = frnd;
 }
 
 // connection
@@ -733,6 +743,12 @@ void TClient::SendOfflineMessage(const string& friendLogin, const TBuffer& data)
     response += offlineMessage.SerializeAsString();
     response = EncryptSymmetrical(State.sessionkey(), Compress(response));
     UdtClient->Send(Serialize(response));
+}
+
+void TClient::OnAudioDataReceived(const TBuffer& data) {
+    if (Config.OnAudioReceived) {
+        Config.OnAudioReceived(data);
+    }
 }
 
 }

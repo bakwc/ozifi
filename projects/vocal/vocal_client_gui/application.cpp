@@ -25,8 +25,16 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
     config.OnFriendCallStatusChanged = [this](NVocal::TFriendRef frnd) {
+        if (frnd->GetCallStatus() == NVocal::CAS_Established) {
+            emit OnCallStarted();
+        } else if (frnd->GetCallStatus() == NVocal::CAS_NotCalling) {
+            emit OnCallFinished();
+        }
         emit OnFriendCallStatusChanged(QString::fromStdString(frnd->GetLogin()),
                                        frnd->GetCallStatus());
+    };
+    config.OnAudioReceived = [this](TBuffer buffer) {
+        Audio->OnDataReceived(buffer);
     };
 
     config.FriendRequestCallback = [this](const std::string& login) {
@@ -41,7 +49,6 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
         }
     };
 
-    config.AudioInput = std::bind(&TVocaGuiApp::OnAudioInput, this, _1);
     config.StateDir = "data";
     connect(this, &TVocaGuiApp::RegistrationSuccess,
             this, &TVocaGuiApp::OnSuccesfullyRegistered);
@@ -69,12 +76,14 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
         }
     });
     Client.reset(new NVocal::TClient(config));
+    Audio.reset(new TAudio(this));
+    connect(this, &TVocaGuiApp::OnCallStarted, Audio.get(), &TAudio::OnCallStarted);
+    connect(this, &TVocaGuiApp::OnCallFinished, Audio.get(), &TAudio::OnCallFinished);
     if (Client->HasConnectData()) {
         LaunchMain();
     } else {
         LaunchLogin();
     }
-    Audio.reset(new TAudio());
 }
 
 TVocaGuiApp::~TVocaGuiApp() {
@@ -225,12 +234,6 @@ void TVocaGuiApp::OnFriendUpdated(NVocal::TFriendRef frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendUpdated(frnd);
     }
-}
-
-string TVocaGuiApp::OnAudioInput(size_t size) {
-    string data;
-    data.resize(size);
-    return data;
 }
 
 TFriendListModel::TFriendListModel(NVocal::TClient& vocalClient)
