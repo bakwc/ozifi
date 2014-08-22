@@ -6,14 +6,15 @@
 #include <QImage>
 #include <QAbstractListModel>
 #include <utils/string.h>
+#include <utils/settings.h>
 #include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
-#include <QtMultimedia/QtMultimedia>
 
 #include "main_window.h"
 #include "login_window.h"
 #include "chat_window.h"
 #include "add_friend_window.h"
+#include "audio.h"
 
 enum EStatus {
     ST_None,
@@ -65,6 +66,7 @@ private:
 
 class TVocaGuiApp: public QApplication {
     Q_OBJECT
+    friend class TAudio;
 public:
     TVocaGuiApp(int& argc, char **argv);
     ~TVocaGuiApp();
@@ -76,6 +78,9 @@ signals:
     void CaptchaAvailable(QImage image);
     void RegistrationFailed(const QString& message);
     void MessageReceived(const QString& frndLogin, const QString& message, bool incoming);
+    void OnFriendCallStatusChanged(const QString& frndLogin, NVocal::ECallStatus status);
+    void OnCallStarted();
+    void OnCallFinished();
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
@@ -94,7 +99,6 @@ private:
     void OnFriendRemoved(NVocal::TFriendRef frnd);
     void OnFriendUpdated(NVocal::TFriendRef frnd);
     void OnCallReceived(NVocal::TFriendRef frnd);
-    std::string OnAudioInput(size_t size);
 private:
     TImageStorage ImageStorage;
     std::unique_ptr<TFriendListModel> FriendListModel;
@@ -103,9 +107,8 @@ private:
     std::unique_ptr<TMainWindow> MainWindow;
     std::unique_ptr<TChatWindows> ChatWindows;
     std::unique_ptr<TAddFriendWindow> AddFriendWindow;
-    QAudioFormat AudioFormat;
-    QAudioDeviceInfo AudioDevice;
-    std::unique_ptr<QAudioInput> AudioInput;
+    std::unique_ptr<TAudio> Audio;
+    USettings Settings;
     EStatus Status;
 };
 

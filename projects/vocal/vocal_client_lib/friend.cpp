@@ -153,7 +153,7 @@ void TFriend::SendFile(const std::string& name,
 }
 
 void TFriend::StartCall(bool videoEnabled) {
-    if (ConnectionStatus != COS_Connected) {
+    if (!Connected()) {
         throw UException("trying to call when not connected");
     }
     if (CallStatus == CAS_NotCalling) {
@@ -161,10 +161,15 @@ void TFriend::StartCall(bool videoEnabled) {
         CallStatus = CAS_WaitingFriendConfirm;
         VideoEnabled = videoEnabled;
     } else if (CallStatus == CAS_WaitingSelfConfirm) {
-        // todo: start call session
+        SendEncrypted("", FPT_CallRequest);
         CallStatus = CAS_Established;
-        cerr << " == CALL ESTABLISHED ==\n";
+        Client->OnCallStatusChanged(shared_from_this());
+        Client->SetFriendCalling(shared_from_this());
     }
+}
+
+ECallStatus TFriend::GetCallStatus() {
+    return CallStatus;
 }
 
 void TFriend::EnableVideo() {
@@ -176,12 +181,16 @@ void TFriend::DisableVideo() {
 }
 
 void TFriend::FinishCall() {
-    if (CallStatus == CAS_WaitingSelfConfirm) {
-        SendEncrypted("", FPT_CallDecline);
+    if (CallStatus != CAS_NotCalling) {
+        SendEncrypted("", FPT_CallDrop);
         CallStatus = CAS_NotCalling;
-    } else if (CallStatus == CAS_Established) {
-        // todo: terminate call
+        Client->OnCallStatusChanged(shared_from_this());
+        Client->SetFriendCalling(nullptr);
     }
+}
+
+bool TFriend::Connected() {
+    return ConnectionStatus == COS_Connected || ConnectionStatus == COS_AcceptedConnection;
 }
 
 // todo: don't try to connect very often
@@ -379,13 +388,27 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                     } break;
                     case FPT_CallRequest: {
                         if (CallStatus == CAS_NotCalling) {
-                            // todo: call oncall calback
-                            Client->OnCallReceived(shared_from_this());
+                            CallStatus = CAS_WaitingSelfConfirm;
+                            Client->OnCallStatusChanged(shared_from_this());
                         } else if (CallStatus == CAS_WaitingFriendConfirm) {
                             CallStatus = CAS_Established;
-                            cerr << " == CALL ESTABLISHED ==\n";
+                            Client->OnCallStatusChanged(shared_from_this());
+                            Client->SetFriendCalling(shared_from_this());
                         }
                     } break;
+                    case FPT_CallDrop: {
+                        if (CallStatus != CAS_NotCalling) {
+                            CallStatus = CAS_NotCalling;
+                            Client->OnCallStatusChanged(shared_from_this());
+                            Client->SetFriendCalling(nullptr);
+                        }
+                    } break;
+                    case FPT_AudioData: {
+                        if (CallStatus != CAS_Established) {
+                            break;
+                        }
+                        Client->OnAudioDataReceived(TBuffer(packetStr));
+                    }
                     }
                 } break;
                 }
@@ -446,6 +469,14 @@ void TFriend::OnMessageReceived(const TMessage& message) {
     }
     PrevMessages.insert(signature);
     Client->OnMessageReceived(message);
+}
+
+void TFriend::SendAudioData(const TBuffer& data) {
+    if (CallStatus != CAS_Established) {
+        return;
+    }
+    // todo: encode using opus
+    SendEncrypted(data, FPT_AudioData);
 }
 
 } // NVocal

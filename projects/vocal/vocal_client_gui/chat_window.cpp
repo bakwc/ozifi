@@ -14,10 +14,6 @@ TChatMessageEdit::TChatMessageEdit() {
     setReadOnly(false);
 }
 
-void TChatWindow::OnSendMessage(const QString& message) {
-    emit SendMessage(FriendLogin, message);
-}
-
 void TChatMessageEdit::keyPressEvent(QKeyEvent* e){
     if (e->key() == Qt::Key_Enter || e->key() == Qt::Key_Return) {
         emit SendMessage(this->toPlainText());
@@ -41,6 +37,26 @@ TChatWindow::TChatWindow(const QString& frndLogin)
     MessagesModel.setStringList(Messages);
 
     QVBoxLayout* currentLayout = new QVBoxLayout(this);
+
+    CallStatusLabel = new QLabel(this);
+    CallStatusLabel->setStyleSheet("QLabel { font-size: 12px; font: bold; }");
+    currentLayout->addWidget(CallStatusLabel.data());
+    CallStatusLabel->hide();
+
+    CallButton = new QPushButton(this);
+    currentLayout->addWidget(CallButton.data());
+    connect(CallButton.data(), &QPushButton::clicked, this, &TChatWindow::OnCallClicked);
+
+    DeclineButton = new QPushButton(this);
+    currentLayout->addWidget(DeclineButton.data());
+    connect(DeclineButton.data(), &QPushButton::clicked, [this] () {
+        CallStatus = NVocal::CAS_NotCalling;
+        UpdateCallStatus();
+        emit OnFinishCall(FriendLogin);
+    });
+
+    UpdateCallStatus();
+
     QListView* messagesListView = new QListView();
     messagesListView->setModel(&MessagesModel);
     currentLayout->addWidget(messagesListView);
@@ -64,6 +80,60 @@ void TChatWindow::ShowMessage(const QString& message, bool incoming) {
     MessagesModel.setData(index, messageToDisplay);
 }
 
+void TChatWindow::OnCallStatusChanged(NVocal::ECallStatus status) {
+    CallStatus = status;
+    UpdateCallStatus();
+}
+
+void TChatWindow::OnSendMessage(const QString& message) {
+    emit SendMessage(FriendLogin, message);
+}
+
+void TChatWindow::OnCallClicked() {
+    if (CallStatus == NVocal::CAS_NotCalling) {
+        CallStatus = NVocal::CAS_WaitingFriendConfirm;
+        UpdateCallStatus();
+        emit OnStartCall(FriendLogin);
+    } else if (CallStatus == NVocal::CAS_Established ||
+               CallStatus == NVocal::CAS_WaitingFriendConfirm)
+    {
+        CallStatus = NVocal::CAS_NotCalling;
+        UpdateCallStatus();
+        emit OnFinishCall(FriendLogin);
+    } else if (CallStatus == NVocal::CAS_WaitingSelfConfirm) {
+        CallStatus = NVocal::CAS_Established;
+        UpdateCallStatus();
+        emit OnStartCall(FriendLogin);
+    } else {
+        throw UException("wrong status");
+    }
+}
+
+void TChatWindow::UpdateCallStatus() {
+    CallStatusLabel->hide();
+    DeclineButton->hide();
+    switch (CallStatus) {
+    case NVocal::CAS_NotCalling:
+        CallButton->setText(tr("Call"));
+        break;
+    case NVocal::CAS_WaitingFriendConfirm:
+        CallStatusLabel->show();
+        CallStatusLabel->setText(tr("Calling..."));
+        CallButton->setText(tr("Drop"));
+        break;
+    case NVocal::CAS_WaitingSelfConfirm:
+        CallStatusLabel->show();
+        CallStatusLabel->setText(tr("Incoming call..."));
+        CallButton->setText(tr("Accept"));
+        DeclineButton->setText(tr("Decline"));
+        DeclineButton->show();
+        break;
+    case NVocal::CAS_Established:
+        CallStatusLabel->show();
+        CallStatusLabel->setText(tr("Call in progress"));
+        CallButton->setText(tr("Drop"));
+    }
+}
 
 // TChatWindows
 
@@ -77,10 +147,17 @@ void TChatWindows::ShowMessage(const QString& frndLogin, const QString& message,
     ChatWindows[frndLogin]->ShowMessage(message, incoming);
 }
 
+void TChatWindows::OnFriendCallStatusChanged(const QString& frndLogin, NVocal::ECallStatus status) {
+    CreateWindowIfMissing(frndLogin);
+    ChatWindows[frndLogin]->OnCallStatusChanged(status);
+}
+
 void TChatWindows::CreateWindowIfMissing(const QString& frndLogin) {
     if (ChatWindows.find(frndLogin) == ChatWindows.end()) {
         TChatWindowRef chatWindow = std::make_shared<TChatWindow>(frndLogin);
         connect(chatWindow.get(), &TChatWindow::SendMessage, this, &TChatWindows::SendMessage);
+        connect(chatWindow.get(), &TChatWindow::OnStartCall, this, &TChatWindows::OnStartCall);
+        connect(chatWindow.get(), &TChatWindow::OnFinishCall, this, &TChatWindows::OnFinishCall);
         ChatWindows.insert(frndLogin, chatWindow);
     }
 }

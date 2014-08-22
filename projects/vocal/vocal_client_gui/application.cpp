@@ -12,20 +12,15 @@ using namespace std::placeholders;
 TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     : QApplication(argc, argv)
     , Status(ST_None)
-    , AudioDevice(QAudioDeviceInfo::defaultInputDevice())
 {
-    AudioFormat.setSampleRate(32000); //set frequency to 8000
-    AudioFormat.setChannelCount(1); //set channels to mono
-    AudioFormat.setSampleSize(16); //set sample sze to 16 bit
-    AudioFormat.setSampleType(QAudioFormat::UnSignedInt ); //Sample type as usigned integer sample
-    AudioFormat.setByteOrder(QAudioFormat::LittleEndian); //Byte order
-    AudioFormat.setCodec("audio/pcm"); //set codec as simple audio/pcm
-    if (!AudioDevice.isFormatSupported(AudioFormat)) {
+    qRegisterMetaType<NVocal::ECallStatus>("ECallStatus");
 
-        qWarning() << "Default format not supported, trying to use the nearest.";
-        AudioFormat = AudioDevice.nearestFormat(AudioFormat);
+    try {
+        Settings.Load("settings.ini");
+    } catch (const UException& e) {
+        qDebug() << "failed to read config:" << e.what();
     }
-    AudioInput.reset(new QAudioInput(AudioDevice,AudioFormat));
+
 
     NVocal::TClientConfig config;
     config.CaptchaAvailableCallback = std::bind(&TVocaGuiApp::OnCaptcha, this, _1);
@@ -36,6 +31,19 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     config.OnFriendRemoved = std::bind(&TVocaGuiApp::OnFriendRemoved, this, _1);
     config.OnFriendUpdated = std::bind(&TVocaGuiApp::OnFriendUpdated, this, _1);
     config.OnMessageReceived = std::bind(&TVocaGuiApp::OnMessageReceived, this, _1);
+    config.OnFriendCallStatusChanged = [this](NVocal::TFriendRef frnd) {
+        if (frnd->GetCallStatus() == NVocal::CAS_Established) {
+            emit OnCallStarted();
+        } else if (frnd->GetCallStatus() == NVocal::CAS_NotCalling) {
+            emit OnCallFinished();
+        }
+        emit OnFriendCallStatusChanged(QString::fromStdString(frnd->GetLogin()),
+                                       frnd->GetCallStatus());
+    };
+    config.OnAudioReceived = [this](TBuffer buffer) {
+        Audio->OnDataReceived(buffer);
+    };
+
     config.FriendRequestCallback = [this](const std::string& login) {
         QString question = tr("Accept friend request from <b>%1</b>")
                               .arg(QString::fromStdString(login));
@@ -48,7 +56,6 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
         }
     };
 
-    config.AudioInput = std::bind(&TVocaGuiApp::OnAudioInput, this, _1);
     config.StateDir = "data";
     connect(this, &TVocaGuiApp::RegistrationSuccess,
             this, &TVocaGuiApp::OnSuccesfullyRegistered);
@@ -57,7 +64,29 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
             ChatWindows.get(), &TChatWindows::ShowMessage);
     connect(ChatWindows.get(), &TChatWindows::SendMessage,
             this, &TVocaGuiApp::SendMessage);
+    connect(this, &TVocaGuiApp::OnFriendCallStatusChanged,
+            ChatWindows.get(), &TChatWindows::OnFriendCallStatusChanged);
+    connect(ChatWindows.get(), &TChatWindows::OnStartCall, [this](const QString& login) {
+        try {
+            NVocal::TFriendRef frnd = Client->GetFriend(login.toStdString());
+            frnd->StartCall(false);
+        } catch (const UException&) {
+            emit OnFriendCallStatusChanged(login, NVocal::CAS_NotCalling);
+        }
+    });
+    connect(ChatWindows.get(), &TChatWindows::OnFinishCall, [this](const QString& login) {
+        try {
+            NVocal::TFriendRef frnd = Client->GetFriend(login.toStdString());
+            frnd->FinishCall();
+        } catch (const UException&) {
+            emit OnFriendCallStatusChanged(login, NVocal::CAS_NotCalling);
+        }
+    });
     Client.reset(new NVocal::TClient(config));
+    Audio.reset(new TAudio(this));
+    connect(this, &TVocaGuiApp::OnCallStarted, Audio.get(), &TAudio::OnCallStarted);
+    connect(this, &TVocaGuiApp::OnCallFinished, Audio.get(), &TAudio::OnCallFinished);
+
     if (Client->HasConnectData()) {
         LaunchMain();
     } else {
@@ -66,7 +95,7 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
 }
 
 TVocaGuiApp::~TVocaGuiApp() {
-    qApp;
+    Settings.Save("settings.ini");
 }
 
 QString TVocaGuiApp::SelfLogin() {
@@ -213,12 +242,6 @@ void TVocaGuiApp::OnFriendUpdated(NVocal::TFriendRef frnd) {
     if (FriendListModel) {
         FriendListModel->OnFriendUpdated(frnd);
     }
-}
-
-string TVocaGuiApp::OnAudioInput(size_t size) {
-    string data;
-    data.resize(size);
-    return data;
 }
 
 TFriendListModel::TFriendListModel(NVocal::TClient& vocalClient)

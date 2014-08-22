@@ -61,7 +61,8 @@ enum EFriendPacketType {
     FPT_Authorized,
     FPT_Message,
     FPT_CallRequest,
-    FPT_CallDecline
+    FPT_CallDrop,
+    FPT_AudioData
 };
 
 class TFriend;
@@ -84,9 +85,11 @@ public:
                   size_t size,
                   TDataRequireCallback fileDataCallback);
     void StartCall(bool videoEnabled);
+    ECallStatus GetCallStatus();
     void EnableVideo();
     void DisableVideo();
     void FinishCall();
+    bool Connected();
 protected:
     /** connect to friend server and ask him to help to establish connection
      * and then connect to friend */
@@ -101,6 +104,7 @@ protected:
     void ConnectThrowNat(const TNetworkAddress& address, ui16 localPort = 0);
     void OnOfflineMessageReceived(const TBuffer& data, bool isIncoming);
     void OnMessageReceived(const TMessage& message);
+    void SendAudioData(const TBuffer& data);
 private:
     void InitUdtClient();
     bool OnClientConnected(const TNetworkAddress& addr);

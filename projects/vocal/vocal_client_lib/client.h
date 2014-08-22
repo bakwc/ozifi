@@ -77,7 +77,7 @@ public:
     // other stuff
     std::string GetFullLogin();                         // Returns full client login, eg. login@exaple.com
 
-
+    void ProvideAudioData(const TBuffer& data);         // On call - send raw audio data here
 protected:
     std::string GetLogin();
     std::string GetPublicKey();
@@ -86,6 +86,7 @@ protected:
     bool HasNatPmp();
     TNatPmp& GetNatPmp();
     TDuration GetTime();
+    void SetFriendCalling(TFriendRef frnd);
 private:
     void OnConnected(bool success);
     void OnDataReceived(const TBuffer& data);
@@ -96,14 +97,16 @@ private:
     void SaveState();
     void ConnectWithFriends();
     void OnFriendStatusChanged(TFriendRef frnd);
-    void OnCallReceived(TFriendRef frnd);
+    void OnCallStatusChanged(TFriendRef frnd);
     void OnMessageReceived(const TMessage& message);
     void SendOfflineMessage(const std::string& friendLogin, const TBuffer& data);
+    void OnAudioDataReceived(const TBuffer& data);
 private:
     EClientState CurrentState;
     std::string StateDir;
     TClientConfig Config;
     TFriends Friends;
+    TFriendRef CallingFriend;
     TConferences Conferences;
     std::unique_ptr<NUdt::TClient> UdtClient;
     std::unique_ptr<TNatPmp> NatPmp;
