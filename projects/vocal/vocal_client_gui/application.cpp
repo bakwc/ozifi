@@ -15,6 +15,13 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
 {
     qRegisterMetaType<NVocal::ECallStatus>("ECallStatus");
 
+    try {
+        Settings.Load("settings.ini");
+    } catch (const UException& e) {
+        qDebug() << "failed to read config:" << e.what();
+    }
+
+
     NVocal::TClientConfig config;
     config.CaptchaAvailableCallback = std::bind(&TVocaGuiApp::OnCaptcha, this, _1);
     config.RegisterResultCallback = std::bind(&TVocaGuiApp::OnRegistered, this, _1);
@@ -79,6 +86,7 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
     Audio.reset(new TAudio(this));
     connect(this, &TVocaGuiApp::OnCallStarted, Audio.get(), &TAudio::OnCallStarted);
     connect(this, &TVocaGuiApp::OnCallFinished, Audio.get(), &TAudio::OnCallFinished);
+
     if (Client->HasConnectData()) {
         LaunchMain();
     } else {
@@ -87,7 +95,7 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
 }
 
 TVocaGuiApp::~TVocaGuiApp() {
-    qApp;
+    Settings.Save("settings.ini");
 }
 
 QString TVocaGuiApp::SelfLogin() {

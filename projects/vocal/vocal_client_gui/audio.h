@@ -42,7 +42,7 @@ public:
 private:
     QAudioFormat AudioFormat;
     QAudioDeviceInfo InputAudioDevice;
-    QAudioDeviceInfo OutputDeviceInfo;
+    QAudioDeviceInfo OutputAudioDevice;
     TVocaGuiApp* App;
     TAudioQueue AudioQueue;
     std::mutex Lock;

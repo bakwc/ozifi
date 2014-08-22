@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QAbstractListModel>
 #include <utils/string.h>
+#include <utils/settings.h>
 #include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
 
@@ -107,6 +108,7 @@ private:
     std::unique_ptr<TChatWindows> ChatWindows;
     std::unique_ptr<TAddFriendWindow> AddFriendWindow;
     std::unique_ptr<TAudio> Audio;
+    USettings Settings;
     EStatus Status;
 };
 

@@ -18,6 +18,7 @@ void USettings::Load(const std::string& fname, const std::string& required) {
         throw UException("Error opening file " + fname);
     }
 	std::string line = "";
+    std::cerr << "Reading..\n";
     while (!file.eof()) {
 		file >> line;
 
@@ -49,7 +50,7 @@ void USettings::Load(const std::string& fname, const std::string& required) {
 
 UFromStringFormat USettings::GetParameter(const std::string& parameter) {
     if (Parameters.find(parameter) == Parameters.end()) {
-        throw UException(std::string("Parameter " + parameter + "not found in config"));
+        throw UException(std::string("Parameter '" + parameter + "' not found in config"));
     }
     return FromString(Parameters[parameter]);
 }
