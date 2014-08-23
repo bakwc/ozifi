@@ -479,10 +479,10 @@ void TFriend::SendAudioData(const TBuffer& data) {
     }
     // todo: encode using opus
     AudioQueue.Add(data);
-    if (AudioQueue.Has(160)) {
+    while (AudioQueue.Has(480)) {
         string encoded;
         string base;
-        base.resize(160);
+        base.resize(480);
         AudioQueue.Get(&base[0], base.size());
         Client->Opus.Encode(TBuffer(base), encoded);
         SendEncrypted(encoded, FPT_AudioData);

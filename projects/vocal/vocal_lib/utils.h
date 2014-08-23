@@ -5,6 +5,7 @@
 #include <queue>
 #include "defines.h"
 #include <utils/buffer.h>
+#include <iostream>
 
 namespace NVocal {
 
@@ -17,6 +18,7 @@ public:
 
     void Get(char *array, size_t bytesToRead) {
         if (Data.size() < bytesToRead) {
+            std::cerr << "filling with zeros\n";
             Data.insert(Data.end(), bytesToRead - Data.size(), 0);
         }
         std::copy(Data.begin(), Data.begin() + bytesToRead, array);
@@ -25,6 +27,10 @@ public:
 
     bool Has(size_t bytesToRead) {
         return Data.size() >= bytesToRead;
+    }
+
+    size_t Size() {
+        return Data.size();
     }
 };
 

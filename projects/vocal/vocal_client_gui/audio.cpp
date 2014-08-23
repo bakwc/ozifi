@@ -47,7 +47,7 @@ TAudio::TAudio(TVocaGuiApp* app)
     qDebug() << "input audio device selected  #" << audioInputDevice << InputAudioDevice.deviceName();
     qDebug() << "output audio device selected #" << audioOutputDevice << OutputAudioDevice.deviceName();
 
-    AudioFormat.setSampleRate(8000); //set frequency to 8000
+    AudioFormat.setSampleRate(48000); //set frequency to 8000
     AudioFormat.setChannelCount(1); //set channels to mono
     AudioFormat.setSampleSize(16); //set sample sze to 16 bit
     AudioFormat.setSampleType(QAudioFormat::UnSignedInt ); //Sample type as usigned integer sample
@@ -103,6 +103,7 @@ bool TAudio::isSequential() const {
 }
 
 void TAudio::OnDataReceived(TBuffer data) {
+    qDebug() << "buff size: " << AudioQueue.Size();
     std::lock_guard<std::mutex> guard(Lock);
     AudioQueue.Add(data);
 }

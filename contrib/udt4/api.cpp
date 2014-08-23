@@ -53,6 +53,8 @@ written by
 #include <cstring>
 #include "api.h"
 #include "core.h"
+#include <thread>
+#include <chrono>
 
 using namespace std;
 
@@ -1499,6 +1501,7 @@ void CUDTUnited::updateMux(CUDTSocket* s, const CUDTSocket* ls)
       #else
          WaitForSingleObject(self->m_GCStopCond, 1000);
       #endif
+     std::this_thread::sleep_for(std::chrono::milliseconds(1));
    }
 
    // remove all sockets and multiplexers
