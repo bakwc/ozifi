@@ -18,7 +18,6 @@ public:
 
     void Get(char *array, size_t bytesToRead) {
         if (Data.size() < bytesToRead) {
-            std::cerr << "filling with zeros\n";
             Data.insert(Data.end(), bytesToRead - Data.size(), 0);
         }
         std::copy(Data.begin(), Data.begin() + bytesToRead, array);

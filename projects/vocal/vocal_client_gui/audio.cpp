@@ -54,10 +54,12 @@ TAudio::TAudio(TVocaGuiApp* app)
     AudioFormat.setByteOrder(QAudioFormat::LittleEndian); //Byte order
     AudioFormat.setCodec("audio/pcm"); //set codec as simple audio/pcm
     if (!InputAudioDevice.isFormatSupported(AudioFormat)) {
-        throw UException("audio device does not support required format");
+        throw UException("input audio device does not support required format");
+    }
+    if (!OutputAudioDevice.isFormatSupported(AudioFormat)) {
+        throw UException("ouput audio device does not support required format");
     }
     AudioInput.reset(new QAudioInput(InputAudioDevice,AudioFormat));
-    //AudioInput->setNotifyInterval(1);
     AudioOutput.reset(new QAudioOutput(OutputAudioDevice, AudioFormat));
     this->open(QIODevice::ReadWrite);
 }
@@ -92,7 +94,6 @@ qint64 TAudio::readData(char *data, qint64 maxlen) {
     if (maxlen == 0) {
         return 0;
     }
-    maxlen = std::min((int)maxlen, 640);
     std::lock_guard<std::mutex> guard(Lock);
     AudioQueue.Get(data, maxlen);
     return maxlen;
@@ -103,7 +104,6 @@ bool TAudio::isSequential() const {
 }
 
 void TAudio::OnDataReceived(TBuffer data) {
-    qDebug() << "buff size: " << AudioQueue.Size();
     std::lock_guard<std::mutex> guard(Lock);
     AudioQueue.Add(data);
 }

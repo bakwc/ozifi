@@ -18,7 +18,6 @@ void USettings::Load(const std::string& fname, const std::string& required) {
         throw UException("Error opening file " + fname);
     }
 	std::string line = "";
-    std::cerr << "Reading..\n";
     while (!file.eof()) {
 		file >> line;
 
