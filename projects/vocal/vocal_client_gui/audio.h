@@ -2,26 +2,11 @@
 
 #include <QObject>
 #include <memory>
-#include <deque>
 #include <QtMultimedia/QtMultimedia>
 #include <utils/buffer.h>
+#include <projects/vocal/vocal_lib/utils.h>
 #include <mutex>
 
-class TAudioQueue {
-      std::deque<char> Data;
-public:
-    void Add(TBuffer buff) {
-        Data.insert(Data.end(), buff.Data(), buff.Data() + buff.Size());
-    }
-
-    void Get(char *array, size_t bytesToRead) {
-        if (Data.size() < bytesToRead) {
-            Data.insert(Data.end(), bytesToRead - Data.size(), 0);
-        }
-        std::copy(Data.begin(), Data.begin() + bytesToRead, array);
-        Data.erase(Data.begin(), Data.begin()+bytesToRead);
-    }
-};
 
 class TVocaGuiApp;
 class TAudio: public QIODevice {
@@ -44,7 +29,7 @@ private:
     QAudioDeviceInfo InputAudioDevice;
     QAudioDeviceInfo OutputAudioDevice;
     TVocaGuiApp* App;
-    TAudioQueue AudioQueue;
+    NVocal::TAudioQueue AudioQueue;
     std::mutex Lock;
     std::unique_ptr<QAudioInput> AudioInput;
     std::unique_ptr<QAudioOutput> AudioOutput;

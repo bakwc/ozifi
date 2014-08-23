@@ -478,9 +478,15 @@ void TFriend::SendAudioData(const TBuffer& data) {
         return;
     }
     // todo: encode using opus
-    string encoded;
-    Client->Opus.Encode(data, encoded);
-    SendEncrypted(encoded, FPT_AudioData);
+    AudioQueue.Add(data);
+    if (AudioQueue.Has(160)) {
+        string encoded;
+        string base;
+        base.resize(160);
+        AudioQueue.Get(&base[0], base.size());
+        Client->Opus.Encode(TBuffer(base), encoded);
+        SendEncrypted(encoded, FPT_AudioData);
+    }
 }
 
 } // NVocal

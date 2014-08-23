@@ -8,6 +8,7 @@
 #include <boost/optional.hpp>
 #include <library/udt/client.h>
 #include <library/udt/server.h>
+#include <projects/vocal/vocal_lib/utils.h>
 
 #include "message.h"
 #include "callback.h"
@@ -143,6 +144,7 @@ protected:
     std::unordered_set<std::string> PrevMessages;
     ECallStatus CallStatus;
     bool VideoEnabled;
+    TAudioQueue AudioQueue;
 };
 
 typedef std::unordered_map<std::string, TFriendRef> TFriends;

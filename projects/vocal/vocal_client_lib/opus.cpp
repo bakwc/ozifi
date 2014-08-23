@@ -14,7 +14,6 @@ void TOpus::Encode(TBuffer data, std::string& out) {
     out.resize(size);
 }
 
-
 void TOpus::Decode(TBuffer data, std::string& out) {
     out.resize(1024);
     int size = opus_decode(Decoder, (const unsigned char*)data.Data(), data.Size(), (opus_int16*)&out[0], out.size() / 2, 0);
