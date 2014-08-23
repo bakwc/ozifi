@@ -407,7 +407,9 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                         if (CallStatus != CAS_Established) {
                             break;
                         }
-                        Client->OnAudioDataReceived(TBuffer(packetStr));
+                        string decoded;
+                        Client->Opus.Decode(TBuffer(packetStr), decoded);
+                        Client->OnAudioDataReceived(TBuffer(decoded));
                     }
                     }
                 } break;
@@ -476,7 +478,9 @@ void TFriend::SendAudioData(const TBuffer& data) {
         return;
     }
     // todo: encode using opus
-    SendEncrypted(data, FPT_AudioData);
+    string encoded;
+    Client->Opus.Encode(data, encoded);
+    SendEncrypted(encoded, FPT_AudioData);
 }
 
 } // NVocal

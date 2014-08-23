@@ -47,7 +47,7 @@ TAudio::TAudio(TVocaGuiApp* app)
     qDebug() << "input audio device selected  #" << audioInputDevice << InputAudioDevice.deviceName();
     qDebug() << "output audio device selected #" << audioOutputDevice << OutputAudioDevice.deviceName();
 
-    AudioFormat.setSampleRate(22050); //set frequency to 8000
+    AudioFormat.setSampleRate(8000); //set frequency to 8000
     AudioFormat.setChannelCount(1); //set channels to mono
     AudioFormat.setSampleSize(16); //set sample sze to 16 bit
     AudioFormat.setSampleType(QAudioFormat::UnSignedInt ); //Sample type as usigned integer sample

@@ -17,6 +17,7 @@
 #include "friend.h"
 #include "conference.h"
 #include "state.h"
+#include "opus.h"
 
 /** This is a main interface that should be used
  * to communicate with core in client applications. */
@@ -114,6 +115,7 @@ private:
     std::string Buffer;
     std::mutex Lock;
     std::string Password;
+    TOpus Opus;
 };
 
 } // NVocal

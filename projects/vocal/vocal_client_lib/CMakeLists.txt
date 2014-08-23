@@ -12,10 +12,13 @@ add_library (vocal_client_lib client.cpp
                                 config.h
                                 state.h
                                 state.proto
-                                state.pb.cc)
+                                state.pb.cc
+                                opus.cpp
+)
 
 target_link_libraries(vocal_client_lib utils
                              udtlib
                              vocal_lib
                              protobuf
+                             opus
                              ${Boost_LIBRARIES})
