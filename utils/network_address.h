@@ -1,8 +1,8 @@
 #pragma once
 
+#include <boost/asio/ip/address.hpp>
 #include <string>
 #include <memory>
-#include <boost/asio/ip/address.hpp>
 #include <boost/algorithm/string.hpp>
 #include <utils/cast.h>
 

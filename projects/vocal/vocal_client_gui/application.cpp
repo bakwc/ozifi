@@ -44,16 +44,10 @@ TVocaGuiApp::TVocaGuiApp(int &argc, char** argv)
         Audio->OnDataReceived(buffer);
     };
 
+    connect(this, &TVocaGuiApp::OnFriendRequest, this, &TVocaGuiApp::OnFriendRequestSlot);
+
     config.FriendRequestCallback = [this](const std::string& login) {
-        QString question = tr("Accept friend request from <b>%1</b>")
-                              .arg(QString::fromStdString(login));
-        auto reply = QMessageBox::question(nullptr, tr("Friend request"), question,
-                                           QMessageBox::Yes, QMessageBox::No);
-        if (reply == QMessageBox::Yes) {
-            Client->AddFriend(login);
-        } else {
-            Client->RemoveFriend(login);
-        }
+        emit OnFriendRequest(QString::fromStdString(login));
     };
 
     config.StateDir = "data";
@@ -166,6 +160,18 @@ void TVocaGuiApp::Login(const QString& login) {
     std::thread([this, login]() {
         Client->Login(login.toStdString());
     }).detach();
+}
+
+void TVocaGuiApp::OnFriendRequestSlot(const QString &login) {
+    QString question = tr("Accept friend request from <b>%1</b>")
+                          .arg(login);
+    auto reply = QMessageBox::question(nullptr, tr("Friend request"), question,
+                                       QMessageBox::Yes, QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        Client->AddFriend(login.toStdString());
+    } else {
+        Client->RemoveFriend(login.toStdString());
+    }
 }
 
 void TVocaGuiApp::SendMessage(const QString& frndLogin, const QString& message) {

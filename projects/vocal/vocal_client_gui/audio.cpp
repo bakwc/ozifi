@@ -1,5 +1,6 @@
-#include "audio.h"
 #include "application.h"
+#include "audio.h"
+
 
 
 TAudio::TAudio(TVocaGuiApp* app)
@@ -46,7 +47,7 @@ TAudio::TAudio(TVocaGuiApp* app)
     qDebug() << "input audio device selected  #" << audioInputDevice << InputAudioDevice.deviceName();
     qDebug() << "output audio device selected #" << audioOutputDevice << OutputAudioDevice.deviceName();
 
-    AudioFormat.setSampleRate(32000); //set frequency to 8000
+    AudioFormat.setSampleRate(22050); //set frequency to 8000
     AudioFormat.setChannelCount(1); //set channels to mono
     AudioFormat.setSampleSize(16); //set sample sze to 16 bit
     AudioFormat.setSampleType(QAudioFormat::UnSignedInt ); //Sample type as usigned integer sample
@@ -56,7 +57,7 @@ TAudio::TAudio(TVocaGuiApp* app)
         throw UException("audio device does not support required format");
     }
     AudioInput.reset(new QAudioInput(InputAudioDevice,AudioFormat));
-    AudioInput->setNotifyInterval(1);
+    //AudioInput->setNotifyInterval(1);
     AudioOutput.reset(new QAudioOutput(OutputAudioDevice, AudioFormat));
     this->open(QIODevice::ReadWrite);
 }

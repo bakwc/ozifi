@@ -1,5 +1,6 @@
 #pragma once
 
+#include <projects/vocal/vocal_client_lib/client.h>
 #include <memory>
 #include <unordered_map>
 #include <QApplication>
@@ -7,7 +8,6 @@
 #include <QAbstractListModel>
 #include <utils/string.h>
 #include <utils/settings.h>
-#include <projects/vocal/vocal_client_lib/client.h>
 #include <projects/vocal/vocal_lib/utils.h>
 
 #include "main_window.h"
@@ -81,10 +81,12 @@ signals:
     void OnFriendCallStatusChanged(const QString& frndLogin, NVocal::ECallStatus status);
     void OnCallStarted();
     void OnCallFinished();
+    void OnFriendRequest(const QString& login);
 private slots:
     void Register(const QString& login);
     void Login(const QString& login);
     void SendMessage(const QString& frndLogin, const QString& message);
+    void OnFriendRequestSlot(const QString& login);
 private:
     void Authorize();
     void OnCaptcha(const TBuffer& data);

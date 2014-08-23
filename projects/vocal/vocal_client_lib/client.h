@@ -1,5 +1,6 @@
 #pragma once
 
+#include <library/udt/client.h>
 #include <string>
 #include <functional>
 #include <unordered_map>
@@ -8,7 +9,6 @@
 #include <mutex>
 #include <boost/optional.hpp>
 #include <utils/buffer.h>
-#include <library/udt/client.h>
 #include <projects/vocal/vocal_client_lib/state.pb.h>
 
 #include "callback.h"
