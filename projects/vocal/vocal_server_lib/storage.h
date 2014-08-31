@@ -12,16 +12,20 @@
 
 namespace NVocal {
 
-class TClientInfoStorage {
+template<typename T>
+class TInfoStorage {
 public:
-    TClientInfoStorage(const std::string& storageDir);
-    ~TClientInfoStorage();
-    void Put(const TClientInfo& clientInfo);
+    TInfoStorage(const std::string& storageDir);
+    ~TInfoStorage();
+    void Put(const T& clientInfo);
     bool Exists(const std::string& login);
-    boost::optional<TClientInfo> Get(const std::string& login);
+    boost::optional<T> Get(const std::string& login);
 private:
     std::unique_ptr<NKwStorage::TKwStorage> Storage;
 };
+
+using TClientInfoStorage = TInfoStorage<TClientInfo>;
+using TConferenceInfoStorage = TInfoStorage<TConferenceInfo>;
 
 class TMessageStorage {
 public:

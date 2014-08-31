@@ -11,15 +11,18 @@ namespace NVocal {
 
 // TClientInfoStorage
 
-TClientInfoStorage::TClientInfoStorage(const std::string& storageDir)
+template<typename T>
+TInfoStorage<T>::TInfoStorage(const std::string& storageDir)
     : Storage(NKwStorage::CreateLevelDbStorage(storageDir))
 {
 }
 
-TClientInfoStorage::~TClientInfoStorage() {
+template<typename T>
+TInfoStorage<T>::~TInfoStorage() {
 }
 
-void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
+template<>
+void TInfoStorage<TClientInfo>::Put(const TClientInfo& clientInfo) {
     TClientInfoData data;
     data.set_login(clientInfo.Login);
     data.set_encryptedprivatekey(clientInfo.EncryptedPrivateKey);
@@ -42,11 +45,25 @@ void TClientInfoStorage::Put(const TClientInfo& clientInfo) {
     Storage->Put(clientInfo.Login, Compress(data.SerializeAsString()));
 }
 
-bool TClientInfoStorage::Exists(const std::string& login) {
+template<>
+void TInfoStorage<TConferenceInfo>::Put(const TConferenceInfo& conferenceInfo) {
+    TConferenceInfoData data;
+    data.set_name(conferenceInfo.ConferenceName);
+    data.set_subject(conferenceInfo.Subject);
+    for (auto& user: conferenceInfo.Users) {
+        *data.add_users() = user;
+    }
+    data.set_passwordhash(conferenceInfo.PasswordHash);
+    Storage->Put(conferenceInfo.ConferenceName, Compress(data.SerializeAsString()));
+}
+
+template<typename T>
+bool TInfoStorage<T>::Exists(const std::string& login) {
     return Storage->Exists(login);
 }
 
-boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
+template<>
+boost::optional<TClientInfo> TInfoStorage<TClientInfo>::Get(const std::string& login) {
     boost::optional<string> strData = Storage->Get(login);
     if (!strData.is_initialized()) {
         return boost::optional<TClientInfo>();
@@ -75,6 +92,28 @@ boost::optional<TClientInfo> TClientInfoStorage::Get(const std::string& login) {
             friendInfo.OfflineKeySignature = frnd.offlinekeysignature();
         }
     }
+    return result;
+}
+
+template<>
+boost::optional<TConferenceInfo> TInfoStorage<TConferenceInfo>::Get(const std::string& login) {
+    boost::optional<string> strData = Storage->Get(login);
+    if (!strData.is_initialized()) {
+        return boost::optional<TConferenceInfo>();
+    }
+    TConferenceInfoData data;
+    if (!data.ParseFromString(Decompress(*strData))) {
+        throw UException("failed to parse storage data");
+    }
+    TConferenceInfo result;
+    // todo: load
+    result.ConferenceName = data.name();
+    result.PasswordHash = data.passwordhash();
+    result.Subject = data.subject();
+    for (size_t i = 0; i < data.users_size(); ++i) {
+        result.Users.push_back(data.users(i));
+    }
+
     return result;
 }
 
@@ -167,5 +206,8 @@ string TSelfStorage::GetPrivateKey() {
     }
     return *privKey;
 }
+
+template class TInfoStorage<TClientInfo>;
+template class TInfoStorage<TConferenceInfo>;
 
 } // NVocal

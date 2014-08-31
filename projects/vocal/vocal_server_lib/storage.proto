@@ -24,6 +24,13 @@ message TClientInfoData {
     required bytes LoginPasswordHash = 5;
 }
 
+message TConferenceInfoData {
+    required string Name = 1;
+    repeated string Users = 2;
+    required string Subject = 3;
+    required string PasswordHash = 4;
+}
+
 message TMessageData {
     required string Login = 1;
     required uint64 Date = 2;

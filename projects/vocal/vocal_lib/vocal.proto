@@ -128,6 +128,16 @@ message TSyncMessagesRequest {
     required uint64 To = 2;
 }
 
+message TConferenceCreateRequest {
+    required string Name = 1;
+    required string PassHash = 2;
+}
+
+message TConferenceCreateResponse {
+    required bool Success = 1;
+    optional string  Error = 2;
+}
+
 message TMessagePacket {
     required string From = 1;
     required string To = 2;

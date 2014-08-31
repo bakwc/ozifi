@@ -15,7 +15,8 @@ enum ERequestType {
     RT_HelpConnect,
     RT_SetFriendOfflineKey,
     RT_SendMessage,
-    RT_SyncMessages
+    RT_SyncMessages,
+    RT_CreateConference
 };
 
 enum ERegisterResult {

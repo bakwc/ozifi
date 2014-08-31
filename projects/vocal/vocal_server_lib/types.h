@@ -36,4 +36,11 @@ struct TClientInfo {
     std::string LoginPasswordHash;
 };
 
+struct TConferenceInfo {
+    std::string ConferenceName;
+    std::vector<std::string> Users;
+    std::string Subject;
+    std::string PasswordHash;
+};
+
 } // NVocal

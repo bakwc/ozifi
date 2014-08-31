@@ -115,6 +115,7 @@ private:
      unique_ptr<NUdt::TServer> Server;
      unique_ptr<NHttpServer::THttpServer> HttpServer;
      unique_ptr<TClientInfoStorage> ClientInfoStorage;
+     unique_ptr<TConferenceInfoStorage> ConferenceInfoStorage;
      unique_ptr<TSelfStorage> SelfStorage;
      unique_ptr<TMessageStorage> MessageStorage;
      unordered_map<TNetworkAddress, TClientRef> Clients;

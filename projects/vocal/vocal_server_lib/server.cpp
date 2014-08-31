@@ -445,6 +445,27 @@ void TServer::OnPacketReceived(TClientRef client, string packetStr) {
                 TDuration to(syncRequest.to());
                 SyncMessages(client->Login, from, to);
             } break;
+            case RT_CreateConference: {
+               TConferenceCreateRequest createRequest;
+               TConferenceCreateResponse createResponse;
+               if (!createRequest.ParseFromString(packetStr)) {
+                   throw UException("failed to createRequest");
+               }
+               createResponse.set_success(true);
+               if (ConferenceInfoStorage->Exists(createRequest.name())) {
+                   createResponse.set_success(false);
+                   createResponse.set_error("conference exists");
+               } else {
+                   TConferenceInfo confInfo;
+                   confInfo.ConferenceName = createRequest.name();
+                   confInfo.PasswordHash = createRequest.passhash();
+                   confInfo.Users.push_back(client->Login + "@" + Config.Hostname);
+                   ConferenceInfoStorage->Put(confInfo);
+               }
+               responseStr = createResponse.SerializeAsString();
+            } break;
+
+
             default:
                 throw UException("unknown request type");
             }
