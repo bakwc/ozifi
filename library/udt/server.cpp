@@ -12,6 +12,7 @@
 #include <utils/exception.h>
 
 #include "server.h"
+#include "event_queue.h"
 
 using namespace std;
 using namespace std::placeholders;
@@ -120,21 +121,25 @@ public:
         // todo: drop client
     }
     void WorkerThread() {
-        boost::asio::detail::array<char, 1024> buff;
+        string buff;
+        buff.resize(1024);
         while (!Done) {
             set<UDTSOCKET> eventedSockets;
             UDT::epoll_wait(MainEid, &eventedSockets, NULL, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
-                int result = UDT::recv(*it, buff.data(), 1024, 0);
+                int result = UDT::recv(*it, &buff[0], buff.size(), 0);
                 TNetworkAddress clientAddr;
                 {
                     lock_guard<mutex> guard(Lock);
                     clientAddr = Clients.Get(*it)->Address;
                 }
                 if (UDT::ERROR != result) {
-
-                    if (Config.DataReceivedCallback) {
-                        Config.DataReceivedCallback(TBuffer(buff.data(), result), clientAddr);
+                    buff.resize(result);
+                    auto callback = Config.DataReceivedCallback;
+                    if (callback) {
+                        TEventQueue::Add([callback, buff, clientAddr] {
+                            callback(TBuffer(buff), clientAddr);
+                        });
                     } else {
                         cerr << "warning: data callback missing\n";
                     }
@@ -144,8 +149,11 @@ public:
                     {
                         UDT::epoll_remove_usock(MainEid, *it);
                         UDT::close(*it);
-                        if (Config.ConnectionLostCallback) {
-                            Config.ConnectionLostCallback(clientAddr);
+                        auto callback = Config.ConnectionLostCallback;
+                        if (callback) {
+                            TEventQueue::Add([callback, clientAddr] {
+                                callback(clientAddr);
+                            });
                         } else {
                             cerr << "warning: connection lost callback missing\n";
                         }
@@ -174,8 +182,11 @@ public:
                             Clients.Insert(make_shared<TClient>(clientSocket, addr));
                         }
                         UDT::epoll_add_usock(MainEid, clientSocket);
-                        if (Config.ConnectionAcceptedCallback) {
-                            Config.ConnectionAcceptedCallback(addr);
+                        auto callback = Config.ConnectionAcceptedCallback;
+                        if (callback) {
+                            TEventQueue::Add([callback, addr] {
+                                callback(addr);
+                            });
                         }
                     } else {
                         UDT::close(clientSocket);

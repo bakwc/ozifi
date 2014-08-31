@@ -6,6 +6,7 @@
 #include <contrib/udt4/udt.h>
 #include <utils/exception.h>
 
+#include "event_queue.h"
 
 using namespace std;
 
@@ -82,18 +83,12 @@ public:
             throw UException(string("connect error: ") + UDT::getlasterror().getErrorMessage());
         }
         Done = true;
+        while (WorkerThreadActive) {
+            this_thread::sleep_for(chrono::milliseconds(50));
+        }
         if (WorkerThreadHolder && WorkerThreadHolder->joinable()) {
-            try {
-                WorkerThreadHolder->join();
-                WorkerThreadHolder.reset(nullptr);
-            } catch (const std::system_error& e) {
-                if (e.code().value() == EDEADLK) { // not joining to ourselves
-                    WorkerThreadHolder->detach();
-                    WorkerThreadHolder.reset(nullptr);
-                } else {
-                    throw;
-                }
-            }
+            WorkerThreadHolder->join();
+            WorkerThreadHolder.reset(nullptr);
         }
         if (!WorkerThreadHolder) {
             WorkerThreadHolder.reset(new thread(std::bind(&TClientImpl::WorkerThread, this)));
@@ -141,21 +136,30 @@ private:
     }
 
     void WorkerThread() {
-        boost::asio::detail::array<char, 1024> buff;
+        WorkerThreadActive = true;
+        std::string buff;
         while (!Done) {
             std::set<UDTSOCKET> eventedSockets;
             // when connecting = waiting for write events too
             std::set<UDTSOCKET>* writeEvents = Status == CS_Connecting ? &eventedSockets : 0;
-            UDT::epoll_wait(MainEid, &eventedSockets, writeEvents, 5000);
+            UDT::epoll_wait(MainEid, &eventedSockets, writeEvents, 100);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
                 if (*it == Socket && Status == CS_Connecting) {
                     Status = CS_Connected;
                     // todo: get and store local address
-                    Config.ConnectionCallback(true);
+                    auto callback = Config.ConnectionCallback;
+                    TEventQueue::Add([callback]() {
+                        callback(true);
+                    });
                 } else {
-                    int result = UDT::recv(*it, buff.data(), 1024, 0);
+                    buff.resize(1024);
+                    int result = UDT::recv(*it, &buff[0], buff.size(), 0);
                     if (UDT::ERROR != result) {
-                        Config.DataReceivedCallback(TBuffer(buff.data(), result));
+                        auto callback = Config.DataReceivedCallback;
+                        buff.resize(result);
+                        TEventQueue::Add([callback, buff]() {
+                            callback(TBuffer(buff));
+                        });
                     } else {
                         if (UDT::getlasterror().getErrorCode() == 5004 ||
                             UDT::getlasterror().getErrorCode() == 2001)
@@ -173,11 +177,15 @@ private:
                 chrono::milliseconds currentTime = chrono::duration_cast<chrono::milliseconds>(duration);
                 if (currentTime - LastActive > Config.Timeout) {
                     Disconnect(false);
-                    Config.ConnectionCallback(false);
+                    auto callback = Config.ConnectionCallback;
+                    TEventQueue::Add([callback] {
+                        callback(false);
+                    });
                     return;
                 }
             }
         }
+        WorkerThreadActive = false;
     }
 
 private:
@@ -186,7 +194,8 @@ private:
     UDTSOCKET Socket;
     unique_ptr<thread> WorkerThreadHolder;
     mutex Lock;
-    bool Done;
+    bool Done = false;
+    bool WorkerThreadActive = false;
     EClientStatus Status;
     chrono::milliseconds LastActive;
     int MainEid;
