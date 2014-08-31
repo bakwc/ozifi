@@ -95,6 +95,10 @@ qint64 TAudio::readData(char *data, qint64 maxlen) {
         return 0;
     }
     std::lock_guard<std::mutex> guard(Lock);
+    // todo:
+    //   - enlarge speed instead of crop
+    //   - autodetect max buffer size
+    AudioQueue.Crop(96 * 250);
     AudioQueue.Get(data, maxlen);
     return maxlen;
 }

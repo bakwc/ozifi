@@ -28,6 +28,13 @@ public:
         return Data.size() >= bytesToRead;
     }
 
+    void Crop(size_t bytesToCrop) {
+        if (bytesToCrop >= Data.size()) {
+            return;
+        }
+        Data.erase(Data.begin(), Data.begin() + Data.size() - bytesToCrop);
+    }
+
     size_t Size() {
         return Data.size();
     }
