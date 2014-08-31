@@ -152,7 +152,7 @@ private:
                         callback(true);
                     });
                 } else {
-                    buff.resize(1024);
+                    buff.resize(4096);
                     int result = UDT::recv(*it, &buff[0], buff.size(), 0);
                     if (UDT::ERROR != result) {
                         auto callback = Config.DataReceivedCallback;

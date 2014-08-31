@@ -122,11 +122,11 @@ public:
     }
     void WorkerThread() {
         string buff;
-        buff.resize(1024);
         while (!Done) {
             set<UDTSOCKET> eventedSockets;
             UDT::epoll_wait(MainEid, &eventedSockets, NULL, 200);
             for (set<UDTSOCKET>::iterator it = eventedSockets.begin(); it != eventedSockets.end(); ++it) {
+                buff.resize(4096);
                 int result = UDT::recv(*it, &buff[0], buff.size(), 0);
                 TNetworkAddress clientAddr;
                 {
@@ -157,7 +157,7 @@ public:
                         } else {
                             cerr << "warning: connection lost callback missing\n";
                         }
-                    } else {
+                    } else if (UDT::getlasterror().getErrorCode() != CUDTException::EASYNCRCV) {
                         cerr << "error: " << UDT::getlasterror().getErrorMessage() << "\n";
                     }
                 }
