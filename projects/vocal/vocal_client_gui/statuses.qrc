@@ -5,5 +5,6 @@
         <file>icons/user-extended-away.png</file>
         <file>icons/user-offline.png</file>
         <file>icons/ajax-loader.gif</file>
+        <file>sounds/ring.wav</file>
     </qresource>
 </RCC>

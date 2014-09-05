@@ -7,6 +7,7 @@
 #include <QTextEdit>
 #include <QPushButton>
 #include <QLabel>
+#include <QSound>
 #include <memory>
 
 #include <projects/vocal/vocal_client_lib/friend.h>
@@ -54,6 +55,7 @@ private:
     QPointer<QPushButton> CallButton;
     QPointer<QPushButton> DeclineButton;
     QPointer<QLabel> CallStatusLabel;
+    QPointer<QSound> CallSound;
     NVocal::ECallStatus CallStatus = NVocal::CAS_NotCalling;
 };
 
