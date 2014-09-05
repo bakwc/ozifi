@@ -6,5 +6,6 @@
         <file>icons/user-offline.png</file>
         <file>icons/ajax-loader.gif</file>
         <file>sounds/ring.wav</file>
+        <file>sounds/call.wav</file>
     </qresource>
 </RCC>

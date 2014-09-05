@@ -66,7 +66,10 @@ TChatWindow::TChatWindow(const QString& frndLogin)
     MessageEdit->setFixedHeight(CHAT_MESSAGE_HEIGHT);
     currentLayout->addWidget(MessageEdit);
 
-    CallSound = new QSound(":/sounds/ring.wav");
+    RingSound = new QSound(":/sounds/ring.wav");
+    RingSound->setLoops(-1);
+
+    CallSound = new QSound(":/sounds/call.wav");
     CallSound->setLoops(-1);
 
     this->show();
@@ -119,6 +122,9 @@ void TChatWindow::UpdateCallStatus() {
     switch (CallStatus) {
     case NVocal::CAS_NotCalling:
         CallButton->setText(tr("Call"));
+        if (RingSound && !RingSound->isFinished()) {
+            RingSound->stop();
+        }
         if (CallSound && !CallSound->isFinished()) {
             CallSound->stop();
         }
@@ -127,6 +133,9 @@ void TChatWindow::UpdateCallStatus() {
         CallStatusLabel->show();
         CallStatusLabel->setText(tr("Calling..."));
         CallButton->setText(tr("Drop"));
+        if (CallSound && CallSound->isFinished()) {
+            CallSound->play();
+        }
         break;
     case NVocal::CAS_WaitingSelfConfirm:
         CallStatusLabel->show();
@@ -134,14 +143,17 @@ void TChatWindow::UpdateCallStatus() {
         CallButton->setText(tr("Accept"));
         DeclineButton->setText(tr("Decline"));
         DeclineButton->show();
-        if (CallSound && CallSound->isFinished()) {
-            CallSound->play();
+        if (RingSound && RingSound->isFinished()) {
+            RingSound->play();
         }
         break;
     case NVocal::CAS_Established:
         CallStatusLabel->show();
         CallStatusLabel->setText(tr("Call in progress"));
         CallButton->setText(tr("Drop"));
+        if (RingSound && !RingSound->isFinished()) {
+            RingSound->stop();
+        }
         if (CallSound && !CallSound->isFinished()) {
             CallSound->stop();
         }

@@ -55,6 +55,7 @@ private:
     QPointer<QPushButton> CallButton;
     QPointer<QPushButton> DeclineButton;
     QPointer<QLabel> CallStatusLabel;
+    QPointer<QSound> RingSound;
     QPointer<QSound> CallSound;
     NVocal::ECallStatus CallStatus = NVocal::CAS_NotCalling;
 };
