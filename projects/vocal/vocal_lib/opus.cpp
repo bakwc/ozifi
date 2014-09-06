@@ -1,7 +1,18 @@
 #include <contrib/opus/opus.h>
 
-#include "opus.h"
+#include "compress.h"
 
+namespace NVocal {
+
+class TOpus: public TCodec {
+public:
+    TOpus();
+    void Encode(TBuffer data, std::string& out);
+    void Decode(TBuffer data, std::string& out);
+private:
+    OpusEncoder* Encoder;
+    OpusDecoder* Decoder;
+};
 
 TOpus::TOpus() {
     Encoder = opus_encoder_create(48000, 1, OPUS_APPLICATION_VOIP, nullptr);
@@ -21,3 +32,8 @@ void TOpus::Decode(TBuffer data, std::string& out) {
     assert(size < 1024 && "not all data decoded");
 }
 
+TCodec* CreateOpusCodec() {
+    return new TOpus();
+}
+
+}

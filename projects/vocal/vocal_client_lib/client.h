@@ -10,6 +10,7 @@
 #include <boost/optional.hpp>
 #include <utils/buffer.h>
 #include <projects/vocal/vocal_client_lib/state.pb.h>
+#include <projects/vocal/vocal_lib/compress.h>
 
 #include "callback.h"
 #include "message.h"
@@ -17,7 +18,6 @@
 #include "friend.h"
 #include "conference.h"
 #include "state.h"
-#include "opus.h"
 
 /** This is a main interface that should be used
  * to communicate with core in client applications. */
@@ -115,7 +115,7 @@ private:
     std::string Buffer;
     std::mutex Lock;
     std::string Password;
-    TOpus Opus;
+    std::unique_ptr<TCodec> AudioCodec;
 };
 
 } // NVocal

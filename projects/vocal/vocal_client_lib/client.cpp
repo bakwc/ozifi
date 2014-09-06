@@ -29,6 +29,7 @@ TClient::TClient(const TClientConfig& config)
     udtConfig.DataReceivedCallback = std::bind(&TClient::OnDataReceived, this, _1);
     udtConfig.ConnectionLostCallback = std::bind(&TClient::OnDisconnected, this);
     UdtClient.reset(new NUdt::TClient(udtConfig));
+    AudioCodec.reset(CreateOpusCodec());
     try {
         LoadState();
     } catch (const UException&) {

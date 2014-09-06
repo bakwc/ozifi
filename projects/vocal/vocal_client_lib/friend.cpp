@@ -408,7 +408,7 @@ void TFriend::OnDataReceived(const TBuffer& data) {
                             break;
                         }
                         string decoded;
-                        Client->Opus.Decode(TBuffer(packetStr), decoded);
+                        Client->AudioCodec->Decode(TBuffer(packetStr), decoded);
                         Client->OnAudioDataReceived(TBuffer(decoded));
                     }
                     }
@@ -484,7 +484,7 @@ void TFriend::SendAudioData(const TBuffer& data) {
         string base;
         base.resize(480);
         AudioQueue.Get(&base[0], base.size());
-        Client->Opus.Encode(TBuffer(base), encoded);
+        Client->AudioCodec->Encode(TBuffer(base), encoded);
         SendEncrypted(encoded, FPT_AudioData);
     }
 }
