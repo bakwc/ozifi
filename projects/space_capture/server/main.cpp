@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
 
         TServerPool serverPool(QString::fromStdString(externalAddress), startPort, serversCount);
         NHttpServer::TSettings httpServerSettings(CONTROL_SERVER_PORT);
+        httpServerSettings.StackSize = 128000;
         NHttpServer::THttpServer httpServer(httpServerSettings);
         httpServer.HandleAction("/quick", std::bind(&TServerPool::OnQuickRequest, &serverPool, std::placeholders::_1));
 

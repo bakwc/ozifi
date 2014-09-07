@@ -12,7 +12,9 @@ add_library (utils
                 network_address.h
                 date_time.cpp
                 buffer.h
-                pack.h)
+                pack.h
+                saveload.h
+                saveload.cpp)
 
 IF (WIN32)
 target_link_libraries(utils iconv html_entities

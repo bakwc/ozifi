@@ -13,44 +13,44 @@ TWorldDisplay::TWorldDisplay(TWorld *world)
 void TWorldDisplay::Draw(QPainter& painter) {
     Ang += 1.0;
 
-    if (World->has_roundstartsat()) {
-        DrawRoundRestart(painter, World->roundstartsat());
-    } else if (World->has_waitingplayers()) {
+    if (World->RoundStartsAt != uint8_t(-1)) {
+        DrawRoundRestart(painter, World->RoundStartsAt);
+    } else if (World->WaitingPlayers) {
         DrawWaitingPlayers(painter);
     } else {
-        for (size_t i = 0; i < World->planets_size(); ++i) {
-            DrawPlanet(painter, World->planets(i));
+        for (size_t i = 0; i < World->Planets.size(); ++i) {
+            DrawPlanet(painter, World->Planets[i]);
         }
-        for (size_t i = 0; i < World->ships_size(); ++i) {
-            DrawShip(painter, World->ships(i));
+        for (size_t i = 0; i < World->Ships.size(); ++i) {
+            DrawShip(painter, World->Ships[i]);
         }
         DrawPower(painter);
         DrawSelection(painter);
     }
 }
 
-inline QColor GetQColor(Space::EColor color) {
+inline QColor GetQColor(NSpace::EColor color) {
     switch (color) {
-        case Space::CR_Cyan: return Qt::cyan;
-        case Space::CR_Blue: return Qt::blue;
-        case Space::CR_Green: return Qt::green;
-        case Space::CR_Red: return Qt::red;
-        case Space::CR_White: return Qt::white;
-        case Space::CR_Yellow: return Qt::yellow;
+        case NSpace::CR_Cyan: return Qt::cyan;
+        case NSpace::CR_Blue: return Qt::blue;
+        case NSpace::CR_Green: return Qt::green;
+        case NSpace::CR_Red: return Qt::red;
+        case NSpace::CR_White: return Qt::white;
+        case NSpace::CR_Yellow: return Qt::yellow;
     }
     return Qt::gray;
 }
 
-void TWorldDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) {
+void TWorldDisplay::DrawPlanet(QPainter &painter, const NSpace::TPlanet& planet) {
 
     glLoadIdentity();
 
-    float radius = planet.radius() * World->Scale;
-    float x = planet.x() * World->Scale + World->OffsetX;
-    float y = planet.y() * World->Scale + World->OffsetY;
+    float radius = planet.Radius * World->Scale;
+    float x = planet.X * World->Scale + World->OffsetX;
+    float y = planet.Y * World->Scale + World->OffsetY;
     QColor planetColor = Qt::gray;
-    if (planet.playerid() != -1) {
-        planetColor = GetQColor(World->IdToPlayer[planet.playerid()]->color());
+    if (planet.PlayerId != -1) {
+        planetColor = GetQColor(World->IdToPlayer[planet.PlayerId]->Color);
     }
 
     glTranslatef(x, y, 300);
@@ -59,7 +59,7 @@ void TWorldDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) 
     glRotatef(Ang, 0, 1, 0);
     glRotatef(15, 1, 0, 0);
 
-    const TPlanetGraphics& planetGraphics = GraphicManager.GetImage(planet.type(), radius * 10, planetColor);
+    const TPlanetGraphics& planetGraphics = GraphicManager.GetImage(planet.Type, radius * 10, planetColor);
 
     glBindTexture(GL_TEXTURE_2D, planetGraphics.TextureId);
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
@@ -76,13 +76,13 @@ void TWorldDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) 
     QPen pen(planetColor);
     pen.setWidth(2);
 
-    QString energyString = QString("%1").arg(planet.energy());
+    QString energyString = QString("%1").arg(planet.Energy);
     QFontMetrics fm(painter.font());
     int textHeight = fm.height();
     int textWidth = fm.width(energyString);
-    if (planet.energy() != -1 &&
-       (planet.playerid() == -1 ||
-        planet.playerid() == World->selfid()))
+    if (planet.Energy != -1 &&
+       (planet.PlayerId == -1 ||
+        planet.PlayerId == World->SelfId))
     {
         const QImage& fontBackground = GraphicManager.GetFontBackground(World->Scale);
         painter.drawImage(x - fontBackground.width() / 2, y - textHeight + textHeight / 3, fontBackground);
@@ -91,18 +91,18 @@ void TWorldDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) 
         painter.drawText(x - textWidth / 2, y + textHeight / 3, energyString);
     }
 
-    if (planet.playerid() == World->selfid() &&
-        World->SelectedPlanets.find(planet.id()) != World->SelectedPlanets.end())
+    if (planet.PlayerId == World->SelfId &&
+        World->SelectedPlanets.find(planet.ID) != World->SelectedPlanets.end())
     {
         pen.setColor(planetColor);
         painter.setPen(pen);
         painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
     } else if (World->SelectedTarget.is_initialized() &&
-               planet.id() == *World->SelectedTarget)
+               planet.ID == *World->SelectedTarget)
     {
-        Space::TPlayer* selfPlayer = World->SelfPlayer();
+        NSpace::TPlayer* selfPlayer = World->SelfPlayer();
         if (selfPlayer != nullptr) {
-            planetColor = GetQColor(selfPlayer->color());
+            planetColor = GetQColor(selfPlayer->Color);
             pen.setColor(planetColor);
             painter.setPen(pen);
             painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
@@ -110,14 +110,14 @@ void TWorldDisplay::DrawPlanet(QPainter &painter, const Space::TPlanet& planet) 
     }
 }
 
-void TWorldDisplay::DrawShip(QPainter& painter, const Space::TShip& ship) {
-    int x = ship.x() * World->Scale + World->OffsetX;
-    int y = ship.y() * World->Scale + World->OffsetY;
+void TWorldDisplay::DrawShip(QPainter& painter, const NSpace::TShip& ship) {
+    int x = ship.X * World->Scale + World->OffsetX;
+    int y = ship.Y * World->Scale + World->OffsetY;
 
-    QColor shipColor = GetQColor(World->IdToPlayer[ship.playerid()]->color());
+    QColor shipColor = GetQColor(World->IdToPlayer[ship.PlayerID]->Color);
     QImage shipImage = GraphicManager.GetShip(World->Scale, shipColor);
     QTransform transform;
-    transform.rotateRadians(float(ship.angle()) / 100.0 + M_PI_2);
+    transform.rotateRadians(float(ship.Angle) / 100.0 + M_PI_2);
     shipImage = shipImage.transformed(transform);
     painter.drawImage(x - shipImage.width() / 2, y - shipImage.height() / 2, shipImage);
 }

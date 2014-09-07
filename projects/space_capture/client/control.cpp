@@ -92,7 +92,7 @@ void TControl::timerEvent(QTimerEvent *) {
     if (LastSendControl.elapsed() < 1000) {
         return;
     }
-    Space::TControl control;
+    NSpace::TAttackCommand control;
     emit OnControl(control);
     LastSendControl.restart();
 }
@@ -123,17 +123,17 @@ void TControl::CheckSelection(QPoint from, QPoint to) {
     int ay1 = from.y();
     int ax2 = to.x();
     int ay2 = to.y();
-    for (size_t i = 0; i < World->planets_size(); ++i) {
-        if (World->planets(i).playerid() != World->selfid()) {
+    for (size_t i = 0; i < World->Planets.size(); ++i) {
+        if (World->Planets[i].PlayerId != World->SelfId) {
             continue;
         }
-        float r = World->planets(i).radius() * World->Scale;
-        int bx1 = World->planets(i).x() * World->Scale + World->OffsetX - r;
-        int bx2 = World->planets(i).x() * World->Scale + World->OffsetX + r;
-        int by1 = World->planets(i).y() * World->Scale + World->OffsetY - r;
-        int by2 = World->planets(i).y() * World->Scale + World->OffsetY + r;
+        float r = World->Planets[i].Radius * World->Scale;
+        int bx1 = World->Planets[i].X * World->Scale + World->OffsetX - r;
+        int bx2 = World->Planets[i].X * World->Scale + World->OffsetX + r;
+        int by1 = World->Planets[i].Y * World->Scale + World->OffsetY - r;
+        int by2 = World->Planets[i].Y * World->Scale + World->OffsetY + r;
         if (Intersects(ax1, ax2, ay1, ay2, bx1, bx2, by1, by2)) {
-            World->SelectedPlanets.insert(World->planets(i).id());
+            World->SelectedPlanets.insert(World->Planets[i].ID);
         }
     }
 }
@@ -143,12 +143,12 @@ void TControl::CheckTargetSelection(QPoint position) {
     int ax2 = position.x();
     int ay1 = position.y();
     int ay2 = position.y();
-    for (size_t i = 0; i < World->planets_size(); ++i) {
-        float r = World->planets(i).radius() * World->Scale;
-        int bx1 = World->planets(i).x() * World->Scale + World->OffsetX - r;
-        int bx2 = World->planets(i).x() * World->Scale + World->OffsetX + r;
-        int by1 = World->planets(i).y() * World->Scale + World->OffsetY - r;
-        int by2 = World->planets(i).y() * World->Scale + World->OffsetY + r;
+    for (size_t i = 0; i < World->Planets.size(); ++i) {
+        float r = World->Planets[i].Radius * World->Scale;
+        int bx1 = World->Planets[i].X * World->Scale + World->OffsetX - r;
+        int bx2 = World->Planets[i].X * World->Scale + World->OffsetX + r;
+        int by1 = World->Planets[i].Y * World->Scale + World->OffsetY - r;
+        int by2 = World->Planets[i].Y * World->Scale + World->OffsetY + r;
         if (Intersects(ax1, ax2, ay1, ay2, bx1, bx2, by1, by2)) {
             World->SelectedTarget = i;
             return;
@@ -169,13 +169,12 @@ void TControl::SpawnShips() {
         return;
     }
 
-    Space::TControl control;
-    Space::TAttackCommand& attack = *control.mutable_attackcommand();
+    NSpace::TAttackCommand attack;
     for (auto& planet: World->SelectedPlanets) {
-        attack.add_planetfrom(planet);
+        attack.PlanetFrom.push_back(planet);
     }
-    attack.set_planetto(*World->SelectedTarget);
-    attack.set_energypercent(World->Power);
-    emit OnControl(control);
+    attack.PlanetTo = *World->SelectedTarget;
+    attack.EnergyPercent = World->Power;
+    emit OnControl(attack);
     LastSendControl.restart();
 }

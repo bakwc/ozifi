@@ -18,6 +18,7 @@ struct TSettings {
     TSettings(unsigned short port);
     vector<unsigned short> Ports;
     size_t Threads;
+    size_t StackSize;
     const char** PrepareSettings();
 private:
     vector<string> Options;

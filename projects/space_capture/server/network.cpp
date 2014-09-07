@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include <QDebug>
 
 #include <projects/vocal/vocal_lib/compress.h>
@@ -24,10 +26,9 @@ void TNetwork::OnDataReceived() {
     qint64 received = Socket.readDatagram(buff.data(), buff.size(), &fromAddr, &fromPort);
     buff.resize(received);
     QString senderAddr = fromAddr.toString() + ":" + QString("%1").arg(fromPort);
-    Space::TControl control;
-    if (!control.ParseFromArray(buff.data(), buff.size())) {
-        qDebug() << "failed to parse packet from client " << senderAddr;
-    }
+    NSpace::TAttackCommand command;
+    imemstream in(buff.data(), buff.size());
+    ::Load(in, command);
     auto it = Clients.find(senderAddr);
     if (it == Clients.end()) {
         if (Clients.size() == MAX_PLAYERS) {
@@ -51,20 +52,21 @@ void TNetwork::OnDataReceived() {
     }
     TClient& client = Clients[senderAddr];
     client.LastActivity.restart();
-    emit OnControlReceived(client.Id, control);
+    emit OnControlReceived(client.Id, command);
 }
 
-void TNetwork::SendWorld(Space::TWorld world, size_t playerId) {
+void TNetwork::SendWorld(NSpace::TWorld world, size_t playerId) {
     auto cliIt = ClientsById.find(playerId);
     if (cliIt == ClientsById.end()) {
         return;
     }
     TClient* client = cliIt.value();
-    std::string data;
-    data.resize(world.ByteSize());
-    world.SerializeToString(&data);
 
-    data = NVocal::Compress(data);
+    std::stringstream out;
+    ::Save(out, world);
+    std::string data = out.str();
+
+    // todo: compress data
 
     Socket.writeDatagram(data.data(), data.size(), client->Address, client->Port);
 }

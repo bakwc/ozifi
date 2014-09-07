@@ -26,7 +26,7 @@ public slots:
     void OnResized(QResizeEvent event);
     void OnWheelEvent(QWheelEvent event);
 signals:
-    void OnControl(Space::TControl control);
+    void OnControl(NSpace::TAttackCommand control);
 private:
     void timerEvent(QTimerEvent *);
     void CheckSelection(QPoint from, QPoint to);

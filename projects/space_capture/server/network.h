@@ -6,7 +6,7 @@
 
 #include <utils/types.h>
 
-#include <projects/space_capture/lib/space.pb.h>
+#include <projects/space_capture/lib/space.h>
 
 struct TClient {
     size_t Id;
@@ -24,12 +24,12 @@ public:
     TNetwork(ui16 port);
     virtual ~TNetwork();
 signals:
-    void OnControlReceived(size_t playerId, Space::TControl control);
+    void OnControlReceived(size_t playerId, NSpace::TAttackCommand command);
     void OnNewPlayerConnected(size_t playerId);
     void OnPlayerDisconnected(size_t playerId);
 public slots:
     void OnDataReceived();
-    void SendWorld(Space::TWorld world, size_t playerId);
+    void SendWorld(NSpace::TWorld world, size_t playerId);
 private:
     void timerEvent(QTimerEvent*);
 private:

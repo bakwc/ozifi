@@ -5,12 +5,12 @@
 #include <QHash>
 #include <QPointF>
 
-#include <projects/space_capture/lib/space.pb.h>
+#include <projects/space_capture/lib/space.h>
 
 struct TPlayer {
     QString Name;
     size_t Id;
-    Space::EColor Color;
+    NSpace::EColor Color;
     bool NeedFullUpdate;
 };
 
@@ -68,13 +68,13 @@ public:
     bool Empty() const;
     bool Full() const;
 signals:
-    void SendWorldToPlayer(Space::TWorld world, size_t playerId);
+    void SendWorldToPlayer(NSpace::TWorld world, size_t playerId);
 public slots:
     void OnNewPlayer(size_t playerId);
     void OnPlayerLeft(size_t playerId);
-    void OnControl(size_t playerId, Space::TControl control);
+    void OnControl(size_t playerId, NSpace::TAttackCommand control);
 private:
-    void Attack(TPlayer& player, Space::TAttackCommand control);
+    void Attack(TPlayer& player, NSpace::TAttackCommand control);
 private:
     QPointF Rule1(size_t shipNum);
     QPointF Rule2(size_t shipNum);

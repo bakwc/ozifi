@@ -151,48 +151,52 @@ void TWorld::ProcessShips() {
 }
 
 void TWorld::SendWorld() {
-    Space::TWorld world;
+    NSpace::TWorld world;
     if (Time % 10 == 0) {
         for (size_t i = 0; i < (size_t)Planets.size(); ++i) {
             TPlanet* planet = &Planets[i];
-            Space::TPlanet* packetPlanet = world.add_planets();
-            packetPlanet->set_id(planet->Id);
-            packetPlanet->set_playerid(planet->PlayerId);
-            packetPlanet->set_radius(planet->Radius);
-            packetPlanet->set_x(planet->Position.x());
-            packetPlanet->set_y(planet->Position.y());
-            packetPlanet->set_energy(planet->Energy);
-            packetPlanet->set_type(planet->Type);
+            NSpace::TPlanet packetPlanet;
+            packetPlanet.ID = planet->Id;
+            packetPlanet.PlayerId = planet->PlayerId;
+            packetPlanet.Radius = planet->Radius;
+            packetPlanet.X = planet->Position.x();
+            packetPlanet.Y = planet->Position.y();
+            packetPlanet.Energy = planet->Energy;
+            packetPlanet.Type = planet->Type;
+            world.Planets.push_back(packetPlanet);
         }
         for (auto& player: Players) {
-            Space::TPlayer* packetPlayer = world.add_players();
-            packetPlayer->set_id(player.Id);
-            packetPlayer->set_name(player.Name.toStdString());
-            packetPlayer->set_color(player.Color);
+            NSpace::TPlayer packetPlayer;
+            packetPlayer.ID = player.Id;
+            packetPlayer.Name = player.Name.toStdString();
+            packetPlayer.Color = player.Color;
+            world.Players.push_back(packetPlayer);
         }
     }
 
     for (size_t i = 0; i < (size_t)Ships.size(); ++i) {
         TShip* ship = &Ships[i];
-        Space::TShip* packetShip = world.add_ships();
-        packetShip->set_playerid(ship->PlayerId);
-        packetShip->set_x(ship->Position.x());
-        packetShip->set_y(ship->Position.y());
+        NSpace::TShip packetShip;
+        packetShip.PlayerID = ship->PlayerId;
+        packetShip.X = ship->Position.x();
+        packetShip.Y = ship->Position.y();
         float angle = atan(ship->Speed.y() / ship->Speed.x());
-        packetShip->set_angle(angle * 100);
+        packetShip.Angle = angle * 100;
+
+        world.Ships.push_back(packetShip);
     }
 
     if (Players.size() < 2) {
-        world.set_waitingplayers(true);
+        world.WaitingPlayers = true;
     }
 
     if (RoundStartsAt >= 0) {
-        world.set_roundstartsat(RoundStartsAt);
+        world.RoundStartsAt = RoundStartsAt;
     }
 
     for (auto& player: Players) {
         if (Time % 10 == 0) {
-            world.set_selfid(player.Id);
+            world.SelfId = player.Id;
         }
         emit SendWorldToPlayer(world, player.Id);
     }
@@ -313,7 +317,7 @@ void TWorld::OnNewPlayer(size_t playerId) {
     TPlayer player;
     player.Id = playerId;
     player.Name = "noob";
-    player.Color = (Space::EColor)(playerId + 1);
+    player.Color = (NSpace::EColor)(playerId + 1);
     Players[player.Id] = player;
     if (Players.size() == 2) {
         RestartRound();
@@ -342,25 +346,25 @@ void TWorld::OnPlayerLeft(size_t playerId) {
     }
 }
 
-void TWorld::OnControl(size_t playerId, Space::TControl control) {
+void TWorld::OnControl(size_t playerId, NSpace::TAttackCommand control) {
     if (Players.find(playerId) == Players.end()) {
         qDebug() << "error: player not found, id: " << playerId;
         return;
     }
     TPlayer& player = Players[playerId];
-    if (control.has_attackcommand()) {
-        Attack(player, control.attackcommand());
+    if (control.PlanetTo != uint8_t(-1)) {
+        Attack(player, control);
     }
 }
 
-void TWorld::Attack(TPlayer& player, Space::TAttackCommand control) {
+void TWorld::Attack(TPlayer& player, NSpace::TAttackCommand control) {
     std::vector<size_t> planetsFrom;
-    planetsFrom.reserve(control.planetfrom_size());
-    for (size_t i = 0; i < control.planetfrom_size(); ++i) {
-        planetsFrom.push_back(control.planetfrom(i));
+    planetsFrom.reserve(control.PlanetFrom.size());
+    for (size_t i = 0; i < control.PlanetFrom.size(); ++i) {
+        planetsFrom.push_back(control.PlanetFrom[i]);
     }
 
-    size_t planetTo = control.planetto();
+    size_t planetTo = control.PlanetTo;
     if (planetsFrom.empty()) {
         return;
     }
@@ -380,7 +384,8 @@ void TWorld::Attack(TPlayer& player, Space::TAttackCommand control) {
         if (from.PlayerId != (int)player.Id) {
             continue;
         }
-        float energyPercents = 0.01 * control.energypercent();
+        float energyPercents = 0.01 * control.EnergyPercent;
+        energyPercents = std::max(energyPercents, 1.f);
         if (from.Energy * energyPercents >= 1.0) {
             SpawnShips(from, to, energyPercents, player.Id, maxShips);
         }

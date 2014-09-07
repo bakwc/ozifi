@@ -10,15 +10,15 @@ TWorld::TWorld()
 {
 }
 
-void TWorld::UpdateWorld(Space::TWorld world) {
-    if (world.planets_size() != 0 || world.has_roundstartsat() || world.has_waitingplayers()) {
-        Space::TWorld::operator =(world);
+void TWorld::UpdateWorld(NSpace::TWorld world) {
+    if (world.Planets.size() != 0 || world.RoundStartsAt != uint8_t(-1) || world.WaitingPlayers) {
+        NSpace::TWorld::operator =(world);
     } else {
-        *mutable_ships() = world.ships();
+        Ships = world.Ships;
     }
     IdToPlayer.clear();
-    for (size_t i = 0; i < players_size(); ++i) {
-        IdToPlayer[players(i).id()] = mutable_players(i);
+    for (size_t i = 0; i < Players.size(); ++i) {
+        IdToPlayer[Players[i].ID] = &Players[i];
     }
     emit OnWorldUpdated();
 }
@@ -31,10 +31,10 @@ void TWorld::RemoveSelection() {
     Selection.reset();
 }
 
-Space::TPlayer *TWorld::SelfPlayer() {
-    if (IdToPlayer.find(this->selfid()) == IdToPlayer.end()) {
-        qDebug() << "SelfPlayer(): player with id" << this->selfid() << "missing";
+NSpace::TPlayer* TWorld::SelfPlayer() {
+    if (IdToPlayer.find(this->SelfId) == IdToPlayer.end()) {
+        qDebug() << "SelfPlayer(): player with id" << this->SelfId << "missing";
         return nullptr;
     }
-    return IdToPlayer[this->selfid()];
+    return IdToPlayer[this->SelfId];
 }

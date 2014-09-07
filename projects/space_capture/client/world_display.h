@@ -10,8 +10,8 @@ public:
     TWorldDisplay(TWorld* world);
     void Draw(QPainter& painter);
 private:
-    void DrawPlanet(QPainter& painter, const Space::TPlanet& planet);
-    void DrawShip(QPainter& painter, const Space::TShip& ship);
+    void DrawPlanet(QPainter& painter, const NSpace::TPlanet& planet);
+    void DrawShip(QPainter& painter, const NSpace::TShip& ship);
     void DrawSelection(QPainter& painter);
     void DrawPower(QPainter& painter);
     void DrawRoundRestart(QPainter& painter, int restartTime);
