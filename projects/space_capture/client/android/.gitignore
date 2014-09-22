@@ -1,3 +1,7 @@
 local.properties
 proguard-project.txt
 project.properties
+obj
+assets
+bin
+gen
