@@ -1,6 +1,7 @@
 #pragma once
 
-#include <utils/types.h>
+#include <cinttypes>
+#include <stdlib.h>
 
 const float WORLD_WIDTH = 1000;
 const float WORLD_HEIGHT = 800;

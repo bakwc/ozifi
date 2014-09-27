@@ -3,6 +3,8 @@ PROJECT(SpaceCapture)
 
 set(GAME_NAME SpaceCapture)
 
+set(CMAKE_CXX_FLAGS "-std=c++0x -g")
+
 if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
     set(ARCH_DIR "x64" )
 else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
@@ -88,6 +90,7 @@ macro(copy_files TARGET_NAME GLOBPAT SOURCE DESTINATION RECUR)
 endmacro(copy_files)
 
 include_directories( 
+    ${PROJECT_SOURCE_DIR}/../
     ${GAMEPLAY_SRC_PATH}/gameplay/src
     ${GAMEPLAY_SRC_PATH}/external-deps/lua/include
     ${GAMEPLAY_SRC_PATH}/external-deps/bullet/include
@@ -95,7 +98,7 @@ include_directories(
     ${GAMEPLAY_SRC_PATH}/external-deps/oggvorbis/include
     ${GAMEPLAY_SRC_PATH}/external-deps/zlib/include
     ${GAMEPLAY_SRC_PATH}/external-deps/openal/include
-	${GAMEPLAY_SRC_PATH}/external-deps/openal/include/AL
+    ${GAMEPLAY_SRC_PATH}/external-deps/openal/include/AL
     ${GAMEPLAY_SRC_PATH}/external-deps/glew/include
 )
 
@@ -135,6 +138,16 @@ source_group(src FILES ${GAME_SRC})
 set(GAME_SRC
 	src/TApplication.cpp
 	src/TApplication.h
+        src/world.cpp
+        src/world.h
+        src/network.h
+        src/network.cpp
+        src/display.h
+        src/world_display.cpp
+        src/control.cpp
+        src/main_menu.cpp
+        ../lib/defines.h
+        ../lib/space.h
 )
 
 add_executable(${GAME_NAME}

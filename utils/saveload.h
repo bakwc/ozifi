@@ -54,6 +54,9 @@ public:
     static inline void Load(std::istream& in, TVec& object) {
         unsigned short size;
         in.read((char*)(&size), 2);
+        if (size > 1024) {
+            throw 0;
+        }
         object.clear();
         for (size_t i = 0; i < size; ++i) {
             TObj obj;
@@ -78,6 +81,9 @@ public:
     static inline void Load(std::istream& in, std::string& object) {
         unsigned short size;
         in.read((char*)(&size), 2);
+        if (size > 1024) {
+            throw 0;
+        }
         object.clear();
         object.resize(size);
         in.read((char*)(&object[0]), size);

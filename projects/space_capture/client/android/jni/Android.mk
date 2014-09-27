@@ -75,10 +75,15 @@ LOCAL_PATH := $(SAMPLE_PATH)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := space_capture
-LOCAL_SRC_FILES := /home/fippo/koding/GamePlay/gameplay/src/gameplay-main-android.cpp TApplication.cpp
+LOCAL_SRC_FILES := /home/fippo/koding/GamePlay/gameplay/src/gameplay-main-android.cpp \
+                   TApplication.cpp \
+                   world.cpp \
+                   network.cpp \
+                   world_display.cpp \
+                   control.cpp
 
 LOCAL_LDLIBS    := -llog -landroid -lEGL -lGLESv2 -lOpenSLES
-LOCAL_CFLAGS    := -D__ANDROID__ -Wno-psabi -I"/home/fippo/koding/GamePlay/external-deps/lua/include" -I"/home/fippo/koding/GamePlay/external-deps/bullet/include" -I"/home/fippo/koding/GamePlay/external-deps/png/include" -I"/home/fippo/koding/GamePlay/external-deps/oggvorbis/include" -I"/home/fippo/koding/GamePlay/external-deps/openal/include" -I"/home/fippo/koding/GamePlay/gameplay/src"
+LOCAL_CFLAGS    := -std=gnu++11 -D__ANDROID__ -Wno-psabi -I"../../" -I"/home/fippo/koding/GamePlay/external-deps/lua/include" -I"/home/fippo/koding/GamePlay/external-deps/bullet/include" -I"/home/fippo/koding/GamePlay/external-deps/png/include" -I"/home/fippo/koding/GamePlay/external-deps/oggvorbis/include" -I"/home/fippo/koding/GamePlay/external-deps/openal/include" -I"/home/fippo/koding/GamePlay/gameplay/src"
 
 LOCAL_STATIC_LIBRARIES := android_native_app_glue libgameplay libpng libzlib liblua libbullet libvorbis libOpenAL
 

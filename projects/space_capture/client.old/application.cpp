@@ -39,7 +39,7 @@ void TApplication::QuickGame() {
         if (!hostPort.size() == 2) {
             throw UException("Failed to get servers list");
         }
-        ui16 port = FromString(hostPort[1].toStdString());
+        uint16_t port = FromString(hostPort[1].toStdString());
 
         disconnect(&MainMenu, &TMainMenu::Render, &Display, &TDisplay::Render);
         Display.UpdateContol(&Control);
