@@ -14,7 +14,7 @@ public:
         , Text(text)
         , OnClick(onClick)
         , Selected(false)
-        , Font(gameplay::Font::create("res/font-bold.gpb"))
+        , Font(gameplay::Font::create("res/font-menu.gpb"))
     {
     }
     ~TMenuElement() {

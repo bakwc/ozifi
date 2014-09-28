@@ -23,4 +23,5 @@ private:
     gameplay::Node* Sphere;
     gameplay::SpriteBatch* Ship;
     gameplay::Font* Font;
+    gameplay::Font* FontBig;
 };

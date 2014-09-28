@@ -61,6 +61,8 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
     Ship = SpriteBatch::create("res/ship.png");
 
     Font = Font::create("res/font-bold.gpb");
+
+    FontBig = Font::create("res/font-big.gpb");
 }
 
 void TWorldDisplay::Draw(float elapsedTime) {
@@ -152,7 +154,7 @@ void TWorldDisplay::DrawPlanet(const NSpace::TPlanet& planet) {
         fontX -= 0.5 * textWidth;
         Vector4 fontColor(1, 1, 1, 1);
         if (color == NSpace::CR_Yellow) {
-            fontColor = Vector4(0, 0, 0, 1);
+            fontColor = Vector4(0, 0, 1, 1);
         }
         Font->drawText(text.c_str(), fontX, fontY, fontColor, Font->getSize());
         Font->finish();
@@ -230,22 +232,29 @@ void TWorldDisplay::DrawPower() {
 }
 
 void TWorldDisplay::DrawRoundRestart(int restartTime) {
-//    int x = 0.5 * WORLD_WIDTH * World->Scale + World->OffsetX;
-//    int y = 0.5 * WORLD_HEIGHT * World->Scale + World->OffsetY;
-//    QPen pen(Qt::white);
-//    painter.setPen(pen);
-//    painter.setFont(QFont("arial", 28));
-//    painter.drawText(x, y, QString("%1").arg(restartTime));
+    std::string text = t_to_string(restartTime);
+    float x = Application->getWidth() / 2;
+    float y = Application->getHeight() / 2;
+    unsigned int textWidth, textHeight;
+    FontBig->start();
+    FontBig->measureText(text.c_str(), FontBig->getSize(), &textWidth, &textHeight);
+    y -= 0.5 * textHeight;
+    x -= 0.5 * textWidth;
+    Vector4 fontColor(1, 1, 1, 1);
+    FontBig->drawText(text.c_str(), x, y, fontColor, FontBig->getSize());
+    FontBig->finish();
 }
 
 void TWorldDisplay::DrawWaitingPlayers() {
-//    int x = 0.5 * WORLD_WIDTH * World->Scale + World->OffsetX;
-//    int y = 0.5 * WORLD_HEIGHT * World->Scale + World->OffsetY;
-//    QPen pen(Qt::white);
-//    painter.setPen(pen);
-//    painter.setFont(QFont("arial", 28));
-//    QString text = "Waiting for players...";
-//    QFontMetrics fm(painter.font());
-//    int textWidth = fm.width(text);
-//    painter.drawText(x - textWidth / 2, y, text);
+    std::string text = "waiting for players...";
+    float x = Application->getWidth() / 2;
+    float y = Application->getHeight() / 2;
+    unsigned int textWidth, textHeight;
+    FontBig->start();
+    FontBig->measureText(text.c_str(), FontBig->getSize(), &textWidth, &textHeight);
+    y -= 0.5 * textHeight;
+    x -= 0.5 * textWidth;
+    Vector4 fontColor(1, 1, 1, 1);
+    FontBig->drawText(text.c_str(), x, y, fontColor, FontBig->getSize());
+    FontBig->finish();
 }
