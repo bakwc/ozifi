@@ -58,17 +58,18 @@ bool TWorld::Full() const {
 
 std::string TWorld::Serialize() {
     stringstream out;
-    ::SaveMany(out, Planets, Players, Ships, MassCenter, Time, RoundStartsAt, Generator);
+    ::SaveMany(out, Planets, Players, Ships, MassCenter, Time, GroupsCounter, RoundStartsAt, Generator);
     return out.str();
 }
 
 void TWorld::Deserialize(const std::string& data) {
     imemstream in(data.data(), data.size());
-    ::LoadMany(in, Planets, Players, Ships, MassCenter, Time, RoundStartsAt, Generator);
+    ::LoadMany(in, Planets, Players, Ships, MassCenter, Time, GroupsCounter, RoundStartsAt, Generator);
 }
 
 void TWorld::DoRestartRound() {
     Time = 0;
+    GroupsCounter = 0;
     Planets.clear();
     Ships.clear();
     cout << "[INFO] New round in" << ROUND_RESTART_TIME << "seconds\n";
@@ -337,8 +338,7 @@ TPointF TWorld::Rule1(size_t shipNum) {
     size_t ships = 0;
     for (int i = 0; i < Ships.size(); ++i) {
         if (i != shipNum &&
-            Ships[i].PlayerId == Ships[shipNum].PlayerId &&
-            Ships[i].Target == Ships[shipNum].Target)
+            Ships[i].Group == Ships[shipNum].Group)
         {
             massCenter += Ships[i].Position;
             ++ships;
@@ -372,8 +372,7 @@ TPointF TWorld::Rule3(size_t shipNum) {
     size_t ships = 0;
     for (int i = 0; i < Ships.size(); ++i) {
         if (i != shipNum &&
-            Ships[i].PlayerId == Ships[shipNum].PlayerId &&
-            Ships[i].Target == Ships[shipNum].Target)
+            Ships[i].Group == Ships[shipNum].Group)
         {
             massCenter += Ships[i].Speed;
             ++ships;
@@ -467,6 +466,8 @@ void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents,
     shipPosition.Y = shipPosition.Y + direction.Y * (from.Radius + 6.0f);
     TPointF shipSpeed = direction * 2.5f;
 
+    uint16_t group = ++GroupsCounter;
+
     for (size_t i = 0; i < shipsCount; ++i) {
         TShip ship;
         ship.Position = shipPosition;
@@ -476,6 +477,7 @@ void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents,
         ship.PlayerId = playerId;
         ship.Speed = shipSpeed;
         ship.Target = to.Position;
+        ship.Group = group;
         from.SpawnQueue.push_back(ship);
     }
 }

@@ -28,6 +28,7 @@ struct TShip {
     TPointF Target;
     float Energy;
     uint8_t PlayerId;
+    uint16_t Group;
     float GetAngle() const {
         return atan(Speed.Y / Speed.X);
     }
@@ -112,6 +113,7 @@ public:
     std::vector<TShip> Ships;
     TPointF MassCenter;
     uint64_t Time;
+    uint16_t GroupsCounter;
     int RoundStartsAt;
     std::mt19937_64 Generator;
 };
