@@ -6,17 +6,22 @@
 #include <sys/socket.h>
 #include "../../lib/space.h"
 
-using TOnWorldUpdate = std::function<void(const NSpace::TWorld&)>;
+using TOnWorldUpdate = std::function<void(size_t, const std::string&)>;
+using TOnCommandReceived = std::function<void(const std::string&)>;
 class TNetwork {
 public:
-    explicit TNetwork(const std::string& address, uint16_t port, TOnWorldUpdate onUpdate);
+    explicit TNetwork(const std::string& address, uint16_t port,
+                      TOnWorldUpdate onUpdate,
+                      TOnCommandReceived onCommand);
     ~TNetwork();
-    void SendControl(NSpace::TAttackCommand control);
+    void SendCommand(const std::string& command);
 private:
     void Worker();
 private:
     TOnWorldUpdate OnWorldReceived;
+    TOnCommandReceived OnCommand;
     std::unique_ptr<std::thread> WorkerThread;
     bool Finished;
+    bool HasWorld = false;
     int Socket;
 };

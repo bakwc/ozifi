@@ -69,7 +69,7 @@ void TMainMenu::OnTouchEvent(gameplay::Touch::TouchEvent evt,
                              int x, int y, unsigned int contactIndex)
 {
     for (auto& element: Elements) {
-        element->CheckSelection(TPoint({x, y}), DisplaySize);
+        element->CheckSelection(TPoint(x, y), DisplaySize);
         if (evt == Touch::TOUCH_RELEASE) {
             element->CheckClicked();
         }
@@ -77,7 +77,7 @@ void TMainMenu::OnTouchEvent(gameplay::Touch::TouchEvent evt,
 }
 
 void TMainMenu::OnResized(size_t width, size_t height) {
-    DisplaySize = TSize({(int)width, (int)height});
+    DisplaySize = TSize((int)width, (int)height);
 }
 
 

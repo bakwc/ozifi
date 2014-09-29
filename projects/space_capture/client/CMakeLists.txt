@@ -148,6 +148,7 @@ set(GAME_SRC
         src/main_menu.cpp
         ../lib/defines.h
         ../lib/space.h
+        ../lib/world.cpp
 )
 
 add_executable(${GAME_NAME}

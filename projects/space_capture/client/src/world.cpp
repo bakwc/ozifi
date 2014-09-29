@@ -1,17 +1,20 @@
 #include "world.h"
 
-void TWorld::UpdateWorld(const NSpace::TWorld& world) {
-    if (world.Planets.size() != 0 || world.RoundStartsAt != uint8_t(-1) || world.WaitingPlayers) {
-        NSpace::TWorld::operator =(world);
-    } else {
-        Ships = world.Ships;
-    }
-    IdToPlayer.clear();
-    for (size_t i = 0; i < Players.size(); ++i) {
-        IdToPlayer[Players[i].ID] = &Players[i];
-    }
-    if (OnWorldUpdated) {
-        OnWorldUpdated();
+TWorld::TWorld(std::function<void(const std::string& command)> onCommand)
+    : NSpaceEngine::TWorld(false, onCommand)
+{
+}
+
+void TWorld::UpdateWorld(const std::string& data) {
+    this->Deserialize(data);
+}
+
+void TWorld::OnCommandReceived(const std::string& command) {
+    try {
+        this->PlayCommand(command);
+    } catch(const std::string& e) {
+        std::cerr << "error: " << e << "\n";
+        throw;
     }
 }
 
@@ -24,10 +27,10 @@ void TWorld::RemoveSelection() {
     HaveSelection = false;
 }
 
-NSpace::TPlayer* TWorld::SelfPlayer() {
-    if (IdToPlayer.find(this->SelfId) == IdToPlayer.end()) {
+NSpaceEngine::TPlayer* TWorld::SelfPlayer() {
+    if (Players.find(this->SelfId) == Players.end()) {
         std::cerr << "SelfPlayer(): player with id " << this->SelfId << " missing" << "\n";
         return nullptr;
     }
-    return IdToPlayer[this->SelfId];
+    return &Players[this->SelfId];
 }

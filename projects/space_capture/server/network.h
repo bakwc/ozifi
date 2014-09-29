@@ -1,6 +1,7 @@
 #pragma once
 
-#include <QtNetwork/QUdpSocket>
+#include <QtNetwork/QTcpSocket>
+#include <QtNetwork/QTcpServer>
 #include <QHash>
 #include <QTime>
 
@@ -13,6 +14,8 @@ struct TClient {
     QHostAddress Address;
     quint16 Port;
     QTime LastActivity;
+    QTcpSocket* Socket;
+    std::string Buffer;
 };
 
 const size_t CLIENT_TIMEOUT = 5000;
@@ -24,16 +27,15 @@ public:
     TNetwork(ui16 port);
     virtual ~TNetwork();
 signals:
-    void OnControlReceived(size_t playerId, NSpace::TAttackCommand command);
+    void OnControlReceived(size_t playerId, const std::string& command);
     void OnNewPlayerConnected(size_t playerId);
     void OnPlayerDisconnected(size_t playerId);
 public slots:
-    void OnDataReceived();
-    void SendWorld(NSpace::TWorld world, size_t playerId);
+    void OnClientConnected();
+    void SendWorld(uint8_t playerId, const std::string& data);
+    void SendCommand(const std::string& command);
 private:
-    void timerEvent(QTimerEvent*);
-private:
-    QUdpSocket Socket;
+    QTcpServer Socket;
     QHash<QString, TClient> Clients;
     QHash<size_t, TClient*> ClientsById;
 };

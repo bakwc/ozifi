@@ -10,52 +10,78 @@
 TNetwork::TNetwork(ui16 port)
     : QObject(NULL)
 {
-    Socket.bind(port);
-    QObject::connect(&Socket, &QUdpSocket::readyRead, this, &TNetwork::OnDataReceived);
-    startTimer(100);
+    Socket.listen(QHostAddress::Any, port);
+    QObject::connect(&Socket, &QTcpServer::newConnection, this, &TNetwork::OnClientConnected);
 }
 
 TNetwork::~TNetwork() {
 }
 
-void TNetwork::OnDataReceived() {
-    QByteArray buff;
-    buff.resize(512);
-    QHostAddress fromAddr;
-    quint16 fromPort;
-    qint64 received = Socket.readDatagram(buff.data(), buff.size(), &fromAddr, &fromPort);
-    buff.resize(received);
-    QString senderAddr = fromAddr.toString() + ":" + QString("%1").arg(fromPort);
-    NSpace::TAttackCommand command;
-    imemstream in(buff.data(), buff.size());
-    ::Load(in, command);
-    auto it = Clients.find(senderAddr);
-    if (it == Clients.end()) {
-        if (Clients.size() == MAX_PLAYERS) {
-            qDebug() << "server is full";
-            return;
-        }
-        int id = rand() % MAX_PLAYERS;
-        while (ClientsById.find(id) != ClientsById.end()) {
-            id = rand() % MAX_PLAYERS;
-        }
-
-        TClient client;
-        client.Id = id;
-        client.Address = fromAddr;
-        client.Port = fromPort;
-        client.LastActivity.start();
-        Clients[senderAddr] = client;
-        ClientsById[client.Id] = &Clients[senderAddr];
-        qDebug() << "Player connected: " << senderAddr;
-        emit OnNewPlayerConnected(id);
+void TNetwork::OnClientConnected() {
+    if (Clients.size() == MAX_PLAYERS) {
+        qDebug() << "[WARNING] server is full";
+        return;
     }
-    TClient& client = Clients[senderAddr];
-    client.LastActivity.restart();
-    emit OnControlReceived(client.Id, command);
+    int id = rand() % MAX_PLAYERS;
+    while (ClientsById.find(id) != ClientsById.end()) {
+        id = rand() % MAX_PLAYERS;
+    }
+
+    TClient client;
+    client.Socket = Socket.nextPendingConnection();
+    client.Id = id;
+    client.Address = client.Socket->peerAddress();
+    client.Port = client.Socket->peerPort();
+    client.LastActivity.start();
+    QString senderAddr = client.Address.toString() + ":" + QString("%1").arg(client.Port);
+    Clients[senderAddr] = client;
+    ClientsById[client.Id] = &Clients[senderAddr];
+    qDebug() << "[INFO] Player connected: " << senderAddr;
+
+    QTcpSocket* socket = client.Socket;
+    QObject::connect(client.Socket, &QTcpSocket::readyRead, [this, socket, senderAddr] {
+        QByteArray data = socket->readAll();
+        auto it = Clients.find(senderAddr);
+        TClient& client = Clients[senderAddr];
+        client.Buffer += std::string(data.data(), data.size());
+        client.LastActivity.restart();
+        while (true) {
+            std::string command;
+            try {
+                imemstream in(client.Buffer.data(), client.Buffer.size());
+                ::Load(in, command);
+                if (!in) {
+                    throw 0;
+                }
+                emit OnControlReceived(client.Id, command);
+                client.Buffer = client.Buffer.substr(in.pos());
+            } catch (...) {
+                break;
+            }
+        }
+    });
+    QObject::connect(client.Socket, &QTcpSocket::disconnected, [this, senderAddr] {
+        auto it = Clients.find(senderAddr);
+        emit OnPlayerDisconnected(it.value().Id);
+        ClientsById.remove(it.value().Id);
+        Clients.erase(it);
+    });
+
+    emit OnNewPlayerConnected(id);
 }
 
-void TNetwork::SendWorld(NSpace::TWorld world, size_t playerId) {
+void TNetwork::SendCommand(const std::string& command) {
+
+    std::stringstream out;
+    ::Save(out, command);
+    std::string packet = out.str();
+
+    for (auto&& cli: Clients) {
+        cli.Socket->write(packet.data(), packet.size());
+    }
+}
+
+void TNetwork::SendWorld(uint8_t playerId, const std::string& data) {
     auto cliIt = ClientsById.find(playerId);
     if (cliIt == ClientsById.end()) {
         return;
@@ -63,22 +89,8 @@ void TNetwork::SendWorld(NSpace::TWorld world, size_t playerId) {
     TClient* client = cliIt.value();
 
     std::stringstream out;
-    ::Save(out, world);
-    std::string data = out.str();
+    ::SaveMany(out, playerId, data);
+    std::string packet = out.str();
 
-    // todo: compress data
-
-    Socket.writeDatagram(data.data(), data.size(), client->Address, client->Port);
-}
-
-void TNetwork::timerEvent(QTimerEvent*) {
-    for (QHash<QString, TClient>::iterator it = Clients.begin(); it != Clients.end();) {
-        if (it.value().LastActivity.elapsed() >= CLIENT_TIMEOUT) {
-            emit OnPlayerDisconnected(it.value().Id);
-            ClientsById.remove(it.value().Id);
-            it = Clients.erase(it);
-        } else {
-            ++it;
-        }
-    }
+    client->Socket->write(packet.data(), packet.size());
 }

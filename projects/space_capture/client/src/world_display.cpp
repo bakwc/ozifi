@@ -68,13 +68,13 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
 void TWorldDisplay::Draw(float elapsedTime) {
     Ang += elapsedTime * 0.0004;
 
-    if (World->RoundStartsAt != uint8_t(-1)) {
-        DrawRoundRestart(World->RoundStartsAt);
-    } else if (World->WaitingPlayers) {
+    if (World->Players.size() < 2) {
         DrawWaitingPlayers();
+    } else if (World->RoundStartsAt != -1) {
+        DrawRoundRestart(World->RoundStartsAt);
     } else {
-        for (size_t i = 0; i < World->Planets.size(); ++i) {
-            DrawPlanet(World->Planets[i]);
+        for (auto&& p: World->Planets) {
+            DrawPlanet(p.second);
         }
         Ship->start();
         for (size_t i = 0; i < World->Ships.size(); ++i) {
@@ -109,15 +109,15 @@ std::string t_to_string(T i)
     return s;
 }
 
-void TWorldDisplay::DrawPlanet(const NSpace::TPlanet& planet) {
+void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
 
     float radius = planet.Radius * World->Scale;
-    float x = 0.01 * World->Scale * (planet.X - 0.5 * WORLD_WIDTH);
-    float y = 0.01 * World->Scale * (planet.Y - 0.5 * WORLD_HEIGHT);
+    float x = 0.01 * World->Scale * (planet.Position.X - 0.5 * WORLD_WIDTH);
+    float y = 0.01 * World->Scale * (planet.Position.Y - 0.5 * WORLD_HEIGHT);
 
     NSpace::EColor color = (NSpace::EColor)255;
     if (planet.PlayerId != -1) {
-        color = World->IdToPlayer[planet.PlayerId]->Color;
+        color = World->Players[planet.PlayerId].Color;
     }
 
     Vector3 planetColor = GetColor(color);
@@ -144,7 +144,7 @@ void TWorldDisplay::DrawPlanet(const NSpace::TPlanet& planet) {
 
 
     if (planet.PlayerId == -1 || planet.PlayerId == World->SelfId) {
-        std::string text = t_to_string(planet.Energy);
+        std::string text = t_to_string((int)planet.Energy);
         float fontX, fontY;
         unsigned int textWidth, textHeight;
         Font->start();
@@ -163,7 +163,7 @@ void TWorldDisplay::DrawPlanet(const NSpace::TPlanet& planet) {
     if (planet.PlayerId == World->SelfId)
 
     if (planet.PlayerId == World->SelfId &&
-        World->SelectedPlanets.find(planet.ID) != World->SelectedPlanets.end())
+        World->SelectedPlanets.find(planet.Id) != World->SelectedPlanets.end())
     {
 //        Application->Scene->
 //        pen.setColor(planetColor);
@@ -190,12 +190,12 @@ void TWorldDisplay::DrawPlanet(const NSpace::TPlanet& planet) {
 //    }
 }
 
-void TWorldDisplay::DrawShip(const NSpace::TShip& ship) {
+void TWorldDisplay::DrawShip(const NSpaceEngine::TShip& ship) {
 
-    float x = 0.01 * World->Scale * (ship.X - 0.5 * WORLD_WIDTH);
-    float y = 0.01 * World->Scale * (ship.Y - 0.5 * WORLD_HEIGHT);
+    float x = 0.01 * World->Scale * (ship.Position.X - 0.5 * WORLD_WIDTH);
+    float y = 0.01 * World->Scale * (ship.Position.Y - 0.5 * WORLD_HEIGHT);
 
-    Vector3 planetColor = GetColor(World->IdToPlayer[ship.PlayerID]->Color);
+    Vector3 planetColor = GetColor(World->Players[ship.PlayerId].Color);
     Vector3 pos(x, y, -10.0);
 
     float x2d, y2d;
@@ -203,7 +203,7 @@ void TWorldDisplay::DrawShip(const NSpace::TShip& ship) {
 
     Ship->draw(Vector3(x2d, y2d, 0), Rectangle(0, 0, 8, 13), Vector2(8, 13),
                Vector4(planetColor.x, planetColor.y, planetColor.z, 1),
-               Vector2(0.5f, 0.5f), - float(ship.Angle) / 100.0 - M_PI_2);
+               Vector2(0.5f, 0.5f), - ship.GetAngle() - M_PI_2);
 }
 
 void TWorldDisplay::DrawSelection() {

@@ -2,7 +2,7 @@
 #include "TApplication.h"
 
 TControl::TControl(TWorld *world,
-                   std::function<void(NSpace::TAttackCommand)> onControl,
+                   TControlFn onControl,
                    TApplication* app)
     : World(world)
     , State(CS_None)
@@ -37,15 +37,16 @@ void TControl::CheckSelection(TPoint from, TPoint to) {
     int ay1 = from.Y;
     int ax2 = to.X;
     int ay2 = to.Y;
-    for (size_t i = 0; i < World->Planets.size(); ++i) {
-        if (World->Planets[i].PlayerId != World->SelfId) {
+    for (auto&& p: World->Planets) {
+        NSpaceEngine::TPlanet& planet = p.second;
+        if (planet.PlayerId != World->SelfId) {
             continue;
         }
-        float r = World->Planets[i].Radius;
-        float bx1 = 0.01 * World->Scale * (World->Planets[i].X - r - 0.5 * WORLD_WIDTH);
-        float bx2 = 0.01 * World->Scale * (World->Planets[i].X + r - 0.5 * WORLD_WIDTH);
-        float by1 = 0.01 * World->Scale * (World->Planets[i].Y - r - 0.5 * WORLD_HEIGHT);
-        float by2 = 0.01 * World->Scale * (World->Planets[i].Y + r - 0.5 * WORLD_HEIGHT);
+        float r = planet.Radius;
+        float bx1 = 0.01 * World->Scale * (planet.Position.X - r - 0.5 * WORLD_WIDTH);
+        float bx2 = 0.01 * World->Scale * (planet.Position.X + r - 0.5 * WORLD_WIDTH);
+        float by1 = 0.01 * World->Scale * (planet.Position.Y - r - 0.5 * WORLD_HEIGHT);
+        float by2 = 0.01 * World->Scale * (planet.Position.Y + r - 0.5 * WORLD_HEIGHT);
         float bbx1, bby1, bbx2, bby2;
         Application->project(gameplay::Vector3(bx1, by1, -10), bbx1, bby1);
         Application->project(gameplay::Vector3(bx2, by2, -10), bbx2, bby2);
@@ -53,7 +54,7 @@ void TControl::CheckSelection(TPoint from, TPoint to) {
         bby2 = Application->getHeight() - bby2;
 
         if (Intersects(ax1, ax2, ay1, ay2, bbx1, bbx2, bby1, bby2)) {
-            World->SelectedPlanets.insert(World->Planets[i].ID);
+            World->SelectedPlanets.insert(planet.Id);
         }
     }
 }
@@ -64,12 +65,13 @@ void TControl::CheckTargetSelection(TPoint position) {
     int ay1 = position.Y;
     int ay2 = position.Y;
 
-    for (size_t i = 0; i < World->Planets.size(); ++i) {
-        float r = World->Planets[i].Radius;
-        float bx1 = 0.01 * World->Scale * (World->Planets[i].X - r - 0.5 * WORLD_WIDTH);
-        float bx2 = 0.01 * World->Scale * (World->Planets[i].X + r - 0.5 * WORLD_WIDTH);
-        float by1 = 0.01 * World->Scale * (World->Planets[i].Y - r - 0.5 * WORLD_HEIGHT);
-        float by2 = 0.01 * World->Scale * (World->Planets[i].Y + r - 0.5 * WORLD_HEIGHT);
+    for (auto&& p: World->Planets) {
+        NSpaceEngine::TPlanet& planet = p.second;
+        float r = planet.Radius;
+        float bx1 = 0.01 * World->Scale * (planet.Position.X - r - 0.5 * WORLD_WIDTH);
+        float bx2 = 0.01 * World->Scale * (planet.Position.X + r - 0.5 * WORLD_WIDTH);
+        float by1 = 0.01 * World->Scale * (planet.Position.Y - r - 0.5 * WORLD_HEIGHT);
+        float by2 = 0.01 * World->Scale * (planet.Position.Y + r - 0.5 * WORLD_HEIGHT);
         float bbx1, bby1, bbx2, bby2;
         Application->project(gameplay::Vector3(bx1, by1, -10), bbx1, bby1);
         Application->project(gameplay::Vector3(bx2, by2, -10), bbx2, bby2);
@@ -77,7 +79,7 @@ void TControl::CheckTargetSelection(TPoint position) {
         bby2 = Application->getHeight() - bby2;
 
         if (Intersects(ax1, ax2, ay1, ay2, bbx1, bbx2, bby1, bby2)) {
-            World->SelectedTarget = i;
+            World->SelectedTarget = planet.Id;
             return;
         }
     }
@@ -96,13 +98,11 @@ void TControl::SpawnShips() {
         return;
     }
 
-    NSpace::TAttackCommand attack;
+    std::vector<uint8_t> planetsFrom;
     for (auto& planet: World->SelectedPlanets) {
-        attack.PlanetFrom.push_back(planet);
+        planetsFrom.push_back(planet);
     }
-    attack.PlanetTo = World->SelectedTarget;
-    attack.EnergyPercent = World->Power;
-    OnControl(attack);
+    OnControl(planetsFrom, World->SelectedTarget, World->Power);
 }
 
 void TControl::OnTouchEvent(gameplay::Touch::TouchEvent evt,

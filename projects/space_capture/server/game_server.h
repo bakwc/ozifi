@@ -1,9 +1,13 @@
 #pragma once
 
 #include <QObject>
+#include <memory>
 
 #include "network.h"
-#include "world.h"
+
+#include "../lib/world.h"
+
+//#include "world.h"
 
 class TGameServer : public QObject
 {
@@ -14,6 +18,9 @@ public:
     bool Empty() const;
     bool Full() const;
 private:
+    void timerEvent(QTimerEvent*);
+private:
     TNetwork Network;
-    TWorld World;
+    std::unique_ptr<NSpaceEngine::TWorld> World;
+//    TWorld World;
 };

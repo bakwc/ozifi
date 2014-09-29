@@ -80,7 +80,9 @@ LOCAL_SRC_FILES := /home/fippo/koding/GamePlay/gameplay/src/gameplay-main-androi
                    world.cpp \
                    network.cpp \
                    world_display.cpp \
-                   control.cpp
+                   control.cpp \
+                   main_menu.cpp \
+                   ../../lib/world.cpp
 
 LOCAL_LDLIBS    := -llog -landroid -lEGL -lGLESv2 -lOpenSLES
 LOCAL_CFLAGS    := -std=gnu++11 -D__ANDROID__ -Wno-psabi -I"../../" -I"/home/fippo/koding/GamePlay/external-deps/lua/include" -I"/home/fippo/koding/GamePlay/external-deps/bullet/include" -I"/home/fippo/koding/GamePlay/external-deps/png/include" -I"/home/fippo/koding/GamePlay/external-deps/oggvorbis/include" -I"/home/fippo/koding/GamePlay/external-deps/openal/include" -I"/home/fippo/koding/GamePlay/gameplay/src"

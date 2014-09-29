@@ -33,18 +33,6 @@ struct TPlanet {
     size_t SpawnCounter;
 };
 
-const float PLAYER_PLANET_RADIUS = 30.0f;
-const float MINIMUM_PLAYER_PLANET_DISTANCE = 100.0f;
-const float MINIMUM_PLANET_DISTANCE = 31.0f;
-const float PLAYER_PLANET_ENERGY = 100.0f;
-const size_t PLANETS_MAX_NUMBER = 20;
-const size_t PLANETS_MIN_NUMBER = 10;
-const float PLANET_MAX_RADIUS = 50.0f;
-const float PLANET_MIN_RADIUS = 10.0f;
-const float PLANET_MAX_ENERGY = 50.0f;
-const float PLANET_MIN_ENERGY = 0.0f;
-const size_t ROUND_RESTART_TIME = 2;
-
 class TWorld : public QObject
 {
     Q_OBJECT

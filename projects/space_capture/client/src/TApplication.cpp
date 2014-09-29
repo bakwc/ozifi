@@ -6,6 +6,9 @@ TApplication game;
 
 TApplication::TApplication()
     : Scene(NULL)
+    , World([this] (const std::string& command) {
+        Network->SendCommand(command);
+    })
 {
 }
 
@@ -19,17 +22,26 @@ void TApplication::initialize() {
     Scene->setActiveCamera(cam);
 
     WorldDisplay.reset(new TWorldDisplay(&World, Scene, this));
-    Control.reset(new TControl(&World, [this](NSpace::TAttackCommand control) {
-        Network->SendControl(control);
+    Control.reset(new TControl(&World, [this](const std::vector<uint8_t>& planetsFrom,
+                                              uint8_t planetTo,
+                                              uint8_t energyPercent)
+    {
+        World.Attack(World.SelfId, planetsFrom, planetTo, energyPercent);
     }, this));
 
     MainMenu.reset(new TMainMenu([this] {
         exit();
     }, [this] {
-        Network.reset(new TNetwork("172.28.0.100", 8883, [this](const NSpace::TWorld& world) {
+        Network.reset(new TNetwork("172.28.0.100", 8883, [this](size_t selfId, const std::string& world) {
+            std::cerr << "OnWorld update: " << selfId << "\n";
             std::lock_guard<std::recursive_mutex> guard(Lock);
+            World.SelfId = selfId;
             World.UpdateWorld(world);
+
+        }, [this] (const std::string& command) {
+            World.OnCommandReceived(command);
         }));
+
         State = AS_Game;
         resizeEvent(getWidth(), getHeight());
     }));
@@ -45,10 +57,10 @@ void TApplication::finalize() {
 }
 
 void TApplication::update(float elapsedTime) {
-    if (++Counter % 10 == 0 && State == AS_Game) {
-        NSpace::TAttackCommand control;
-        Network->SendControl(control);
-    }
+//    if (++Counter % 10 == 0 && State == AS_Game) {
+//        NSpace::TAttackCommand control;
+//        Network->SendControl(control);
+//    }
 }
 
 void TApplication::render(float elapsedTime) {

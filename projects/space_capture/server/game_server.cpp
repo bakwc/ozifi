@@ -4,20 +4,36 @@ TGameServer::TGameServer(ui16 port, QObject *parent)
     : QObject(parent)
     , Network(port)
 {
-    connect(&Network, &TNetwork::OnControlReceived, &World, &TWorld::OnControl);
-    connect(&Network, &TNetwork::OnNewPlayerConnected, &World, &TWorld::OnNewPlayer);
-    connect(&Network, &TNetwork::OnPlayerDisconnected, &World, &TWorld::OnPlayerLeft);
-    connect(&World, &TWorld::SendWorldToPlayer, &Network, &TNetwork::SendWorld);
+    World.reset(new NSpaceEngine::TWorld(true, [this](const std::string& command) {
+        Network.SendCommand(command);
+    }));
+    connect(&Network, &TNetwork::OnControlReceived,
+            [this](size_t playerId, const std::string& command)
+    {
+        World->PlayCommand(command);
+    });
+    connect(&Network, &TNetwork::OnNewPlayerConnected, [this] (size_t playerId) {
+        Network.SendWorld(playerId, World->Serialize());
+        World->OnNewPlayer(playerId);
+    });
+    connect(&Network, &TNetwork::OnPlayerDisconnected, [this] (size_t playerId) {
+        World->OnPlayerLeft(playerId);
+    });
+    startTimer(50);
 }
 
 size_t TGameServer::GetPlayersNumber() const {
-    return World.GetPlayersCount();
+    return World->GetPlayersCount();
 }
 
 bool TGameServer::Empty() const {
-    return World.Empty();
+    return World->Empty();
 }
 
 bool TGameServer::Full() const {
-    return World.Full();
+    return World->Full();
+}
+
+void TGameServer::timerEvent(QTimerEvent*) {
+    World->Process();
 }

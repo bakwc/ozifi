@@ -9,8 +9,8 @@ public:
     TWorldDisplay(TWorld* world, gameplay::Scene* scene, TApplication* app);
     void Draw(float elapsedTime) override;
 private:
-    void DrawPlanet(const NSpace::TPlanet& planet);
-    void DrawShip(const NSpace::TShip& ship);
+    void DrawPlanet(const NSpaceEngine::TPlanet& planet);
+    void DrawShip(const NSpaceEngine::TShip& ship);
     void DrawSelection();
     void DrawPower();
     void DrawRoundRestart(int restartTime);

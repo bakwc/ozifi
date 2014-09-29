@@ -10,11 +10,14 @@
 
 using namespace std;
 
-TNetwork::TNetwork(const std::string& address, uint16_t port, TOnWorldUpdate onUpdate)
+TNetwork::TNetwork(const std::string& address, uint16_t port,
+                   TOnWorldUpdate onUpdate,
+                   TOnCommandReceived onCommand)
     : OnWorldReceived(onUpdate)
+    , OnCommand(onCommand)
     , Finished(false)
 {
-    Socket = socket(AF_INET, SOCK_DGRAM, 0);
+    Socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr;
     struct hostent *he;
     if(Socket < 0)
@@ -41,27 +44,54 @@ TNetwork::~TNetwork() {
     WorkerThread->join();
 }
 
-void TNetwork::SendControl(NSpace::TAttackCommand control) {
+void TNetwork::SendCommand(const std::string& command) {
     std::stringstream out;
-    ::Save(out, control);
-    std::string data = out.str();
-    send(Socket, data.c_str(), data.size(), 0);
+    ::Save(out, command);
+    std::string packet = out.str();
+
+    send(Socket, packet.c_str(), packet.size(), 0);
 }
+
 
 void TNetwork::Worker() {
     int flags = fcntl(Socket, F_GETFL, 0);
     fcntl(Socket, F_SETFL, flags | O_NONBLOCK);
+    std::string totalBuff;
     std::string buff;
     buff.resize(4096);
     while (!Finished) {
         ssize_t ret = recv(Socket, &buff[0], buff.size(), 0);
         if (ret > 0) {
-            NSpace::TWorld world;
-            imemstream in(&buff[0], ret);
-            try {
-                ::Load(in, world);
-                OnWorldReceived(world);
-            } catch(...) {
+            totalBuff += std::string(&buff[0], ret);
+            while (true) {
+                imemstream in(&totalBuff[0], totalBuff.size());
+                if (!HasWorld) {
+                    uint8_t selfId;
+                    std::string world;
+                    try {
+                        ::LoadMany(in, selfId, world);
+                        if (!in) {
+                            throw 0;
+                        }
+                    } catch(...) {
+                        break;
+                    }
+
+                    OnWorldReceived(selfId, world);
+                    HasWorld = true;
+                } else {
+                    std::string command;
+                    try {
+                        ::Load(in, command);
+                        if (!in) {
+                            throw 0;
+                        }
+                    } catch(...) {
+                        break;
+                    }
+                    OnCommand(command);
+                }
+                totalBuff = totalBuff.substr(in.pos());
             }
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));

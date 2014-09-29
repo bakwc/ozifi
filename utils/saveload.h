@@ -1,13 +1,32 @@
 #pragma once
 
 #include <string>
+#include <sstream>
 #include <vector>
+#include <random>
+#include <map>
 #include <list>
 #include <utility>
 #include <iostream>
 #include <streambuf>
 
 #include <cinttypes>
+
+struct membuf: std::streambuf {
+    membuf(char const* base, size_t size) {
+        char* p(const_cast<char*>(base));
+        this->setg(p, p, p + size);
+    }
+    size_t pos() {
+        return _M_in_cur - _M_in_beg;
+    }
+};
+struct imemstream: virtual membuf, std::istream {
+    imemstream(char const* base, size_t size)
+        : membuf(base, size)
+        , std::istream(static_cast<std::streambuf*>(this)) {
+    }
+};
 
 template<class T>
 class TSerializer {
@@ -40,6 +59,22 @@ public:
     }
 };
 
+template<>
+class TSerializer<std::mt19937_64> {
+public:
+    static void Save(std::ostream& out, const std::mt19937_64& object) {
+        std::stringstream o;
+        o << object;
+        ::Save(out, o.str());
+    }
+    static void Load(std::istream& in, std::mt19937_64& object) {
+        std::string s;
+        ::Load(in, s);
+        imemstream i(&s[0], s.size());
+        i >> object;
+    }
+};
+
 template<class TVec, class TObj>
 class TVectorSerializer {
 public:
@@ -54,7 +89,7 @@ public:
     static inline void Load(std::istream& in, TVec& object) {
         unsigned short size;
         in.read((char*)(&size), 2);
-        if (size > 1024) {
+        if (size > 150000) {
             throw 0;
         }
         object.clear();
@@ -69,6 +104,37 @@ public:
 template <class T> class TSerializer<std::vector<T> >: public TVectorSerializer<std::vector<T>, T > {};
 template <class T> class TSerializer<std::list<T> >: public TVectorSerializer<std::list<T>, T > {};
 
+template<class TMap, class TKey, class TVal>
+class TMapSerializer {
+public:
+    static inline void Save(std::ostream& out, const TMap& object) {
+        unsigned short size = object.size();
+        out.write((const char*)(&size), 2);
+        for (const auto& obj: object) {
+            ::Save(out, obj.first);
+            ::Save(out, obj.second);
+        }
+    }
+
+    static inline void Load(std::istream& in, TMap& object) {
+        unsigned short size;
+        in.read((char*)(&size), 2);
+        if (size > 150000) {
+            throw 0;
+        }
+        object.clear();
+        for (size_t i = 0; i < size; ++i) {
+            TKey first;
+            TVal second;
+            ::Load(in, first);
+            ::Load(in, second);
+            object.insert(std::make_pair(first, second));
+        }
+    }
+};
+
+template<class K, class V> class TSerializer<std::map<K, V>>: public TMapSerializer<std::map<K, V>, K, V> {};
+
 template<>
 class TSerializer<std::string> {
 public:
@@ -81,12 +147,15 @@ public:
     static inline void Load(std::istream& in, std::string& object) {
         unsigned short size;
         in.read((char*)(&size), 2);
-        if (size > 1024) {
+        if (size > 150000 || !in) {
             throw 0;
         }
         object.clear();
         object.resize(size);
         in.read((char*)(&object[0]), size);
+        if (!in) {
+            throw 0;
+        }
     }
 };
 
@@ -99,6 +168,9 @@ public:
     }
     static inline void Load(std::istream& in, T& object) {
         in.read((char*)(&object), sizeof(T));
+        if (!in) {
+            throw 0;
+        }
     }
 };
 
@@ -311,18 +383,5 @@ static inline void LoadMany(std::istream& in, T1& t1, T2& t2, T3& t3,
         ::LoadMany(in, __VA_ARGS__);             \
     }
 
-
-struct membuf: std::streambuf {
-    membuf(char const* base, size_t size) {
-        char* p(const_cast<char*>(base));
-        this->setg(p, p, p + size);
-    }
-};
-struct imemstream: virtual membuf, std::istream {
-    imemstream(char const* base, size_t size)
-        : membuf(base, size)
-        , std::istream(static_cast<std::streambuf*>(this)) {
-    }
-};
 
 #define SAVELOAD_POD(TypeName) template <> class TSerializer<TypeName>: public TPodSerializer<TypeName> {};
