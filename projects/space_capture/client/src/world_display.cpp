@@ -3,6 +3,17 @@
 
 using namespace gameplay;
 
+template<class T>
+std::string t_to_string(T i)
+{
+    std::stringstream ss;
+    std::string s;
+    ss << i;
+    s = ss.str();
+
+    return s;
+}
+
 void AddSpherePoint(std::vector<float>::iterator& v, int r, int s, float R, float S, float radius) {
     float const y = sin( -M_PI_2 + M_PI * r * R );
     float const x = cos(2*M_PI * s * S) * sin( M_PI * r * R );
@@ -58,7 +69,7 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
         gameplay::Material* material = gameplay::Material::create("res/test.material#base");
         material->getTechniqueByIndex(0)->getPassByIndex(0)->
                   getParameter("u_diffuseTexture")->setSampler(std::string(
-                               "res/planet" + std::to_string(i) + ".png").c_str(), true);
+                               "res/planet" + t_to_string(i) + ".png").c_str(), true);
         Materials.push_back(material);
     }
 
@@ -104,17 +115,6 @@ inline gameplay::Vector3 GetColor(NSpace::EColor color) {
         case NSpace::CR_Yellow: return gameplay::Vector3(1, 1, 0.0);
     }
     return gameplay::Vector3(0.4, 0.4, 0.4);
-}
-
-template<class T>
-std::string t_to_string(T i)
-{
-    std::stringstream ss;
-    std::string s;
-    ss << i;
-    s = ss.str();
-
-    return s;
 }
 
 void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
