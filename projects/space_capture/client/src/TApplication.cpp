@@ -26,6 +26,7 @@ void TApplication::initialize() {
                                               uint8_t planetTo,
                                               uint8_t energyPercent)
     {
+        std::lock_guard<std::recursive_mutex> guard(Lock);
         World.Attack(World.SelfId, planetsFrom, planetTo, energyPercent);
     }, this));
 
@@ -39,6 +40,7 @@ void TApplication::initialize() {
             World.UpdateWorld(world);
 
         }, [this] (const std::string& command) {
+            std::lock_guard<std::recursive_mutex> guard(Lock);
             World.OnCommandReceived(command);
         }));
 
@@ -57,10 +59,6 @@ void TApplication::finalize() {
 }
 
 void TApplication::update(float elapsedTime) {
-//    if (++Counter % 10 == 0 && State == AS_Game) {
-//        NSpace::TAttackCommand control;
-//        Network->SendControl(control);
-//    }
 }
 
 void TApplication::render(float elapsedTime) {
@@ -89,6 +87,7 @@ void TApplication::resizeEvent(unsigned int width, unsigned int height) {
 }
 
 bool TApplication::mouseEvent(Mouse::MouseEvent evt, int x, int y, int wheelDelta) {
+    std::lock_guard<std::recursive_mutex> guard(Lock);
     if (evt == Mouse::MOUSE_MOVE) {
         touchEvent(Touch::TOUCH_MOVE, x, y, 0);
         return true;

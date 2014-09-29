@@ -15,7 +15,7 @@ namespace NSpaceEngine {
 
 struct TPlayer {
     std::string Name;
-    size_t Id;
+    uint8_t Id;
     NSpace::EColor Color;
     bool NeedFullUpdate;
 
@@ -27,7 +27,7 @@ struct TShip {
     TPointF Speed;
     TPointF Target;
     float Energy;
-    size_t PlayerId;
+    uint8_t PlayerId;
     float GetAngle() const {
         return atan(Speed.Y / Speed.X);
     }
@@ -36,14 +36,14 @@ struct TShip {
 };
 
 struct TPlanet {
-    size_t Id;
+    uint8_t Id;
     TPointF Position;
     float Radius;
     float Energy;
     int PlayerId;
     int Type;
     std::vector<TShip> SpawnQueue;
-    size_t SpawnCounter;
+    uint8_t SpawnCounter;
 
     SAVELOAD(Id, Position, Radius, Energy, PlayerId, Type, SpawnQueue)
 };
@@ -107,8 +107,8 @@ private:
 public:
     bool IsServer;
     std::function<void(const std::string& command)> OnCommand;
-    std::map<size_t, TPlanet> Planets;
-    std::map<size_t, TPlayer> Players;
+    std::map<uint8_t, TPlanet> Planets;
+    std::map<uint8_t, TPlayer> Players;
     std::vector<TShip> Ships;
     TPointF MassCenter;
     uint64_t Time;
