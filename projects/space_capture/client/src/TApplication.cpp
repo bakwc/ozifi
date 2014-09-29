@@ -34,7 +34,6 @@ void TApplication::initialize() {
         exit();
     }, [this] {
         Network.reset(new TNetwork("172.28.0.100", 8883, [this](size_t selfId, const std::string& world) {
-            std::cerr << "OnWorld update: " << selfId << "\n";
             std::lock_guard<std::recursive_mutex> guard(Lock);
             World.SelfId = selfId;
             World.UpdateWorld(world);

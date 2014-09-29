@@ -54,9 +54,17 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
     mesh->setPrimitiveType(Mesh::TRIANGLES);
     mesh->setVertexData(&vertices[0], 0, vertices.size() / 8);
 
+    for (size_t i = 0; i < MAX_PLANET_TYPES; ++i) {
+        gameplay::Material* material = gameplay::Material::create("res/test.material#base");
+        material->getTechniqueByIndex(0)->getPassByIndex(0)->
+                  getParameter("u_diffuseTexture")->setSampler(std::string(
+                               "res/planet" + std::to_string(i) + ".png").c_str(), true);
+        Materials.push_back(material);
+    }
+
     Sphere = Scene->addNode("sphere");
     Sphere->setModel(gameplay::Model::create(mesh));
-    Sphere->getModel()->setMaterial("res/test.material#base");
+    Sphere->getModel()->setMaterial(Materials[0]);
 
     Ship = SpriteBatch::create("res/ship.png");
 
@@ -122,6 +130,7 @@ void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
 
     Vector3 planetColor = GetColor(color);
 
+    Sphere->getModel()->setMaterial(Materials[planet.Type]);
     Sphere->getModel()->getMaterial()->getTechniqueByIndex(0)->getPassByIndex(0)->
             getParameter("u_ambientColor")->setVector3(planetColor);
 
@@ -130,15 +139,6 @@ void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
     Sphere->setScale(0.01 * radius, 0.01 * radius, 0.01 * radius);
 
     Sphere->setRotation(Vector3(0, 1, 0), Ang);
-
-
-//    Sphere->getModel()->getMaterial()->getTechniqueByIndex(0)->getPassByIndex(0)->
-//            getParameter("u_diffuseTexture")->setSampler(std::string(
-//                "res/planet" + std::to_string(planet.Type) + ".png").c_str(), true);
-
-//    Sphere->getModel()->getMaterial()->getTechniqueByIndex(0)->getPassByIndex(0)->
-//            getParameter("u_diffuseTexture")->setSampler(std::string(
-//                "res/planet" + std::to_string(0) + ".png").c_str(), true);
 
     Sphere->getModel()->draw();
 

@@ -21,6 +21,7 @@ private:
     TApplication* Application;
     float Ang;
     gameplay::Node* Sphere;
+    std::vector<gameplay::Material*> Materials;
     gameplay::SpriteBatch* Ship;
     gameplay::Font* Font;
     gameplay::Font* FontBig;
