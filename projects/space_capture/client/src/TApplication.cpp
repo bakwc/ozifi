@@ -80,6 +80,7 @@ void TApplication::resizeEvent(unsigned int width, unsigned int height) {
     CamNode->setTranslation(0, 0, 0);
     if (State == AS_Game) {
         Control->OnResized(width, height);
+        WorldDisplay->OnResized(width, height);
     } else if (State == AS_MainMenu) {
         MainMenu->OnResized(width, height);
     }
@@ -119,6 +120,6 @@ void TApplication::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int 
     }
 }
 
-void TApplication::project(Vector3 pos, float& x, float& y) {
+void TApplication::project(Vector3 pos, float& x, float& y, bool fixed) {
     CamNode->getCamera()->project(this->getViewport(), pos, &x, &y);
 }

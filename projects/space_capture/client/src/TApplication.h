@@ -22,7 +22,7 @@ public:
     TApplication();
     void keyEvent(gameplay::Keyboard::KeyEvent evt, int key) override;
     void touchEvent(gameplay::Touch::TouchEvent evt, int x, int y, unsigned int contactIndex) override;
-    void project(gameplay::Vector3 pos, float& x, float& y);
+    void project(gameplay::Vector3 pos, float& x, float& y, bool fixed = false);
 protected:
     void initialize() override;
     void finalize() override;

@@ -4,10 +4,11 @@
 #include "world.h"
 
 class TApplication;
-class TWorldDisplay: public IDrawable {
+class TWorldDisplay: public IDrawable, public IControlable {
 public:
     TWorldDisplay(TWorld* world, gameplay::Scene* scene, TApplication* app);
     void Draw(float elapsedTime) override;
+    void OnResized(size_t width, size_t heigth) override;
 private:
     void DrawPlanet(const NSpaceEngine::TPlanet& planet);
     void DrawShip(const NSpaceEngine::TShip& ship);

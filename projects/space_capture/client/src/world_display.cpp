@@ -105,6 +105,13 @@ void TWorldDisplay::Draw(float elapsedTime) {
     }
 }
 
+void TWorldDisplay::OnResized(size_t width, size_t heigth) {
+    Game* game = Game::getInstance();
+    Matrix matrix = Ship->getProjectionMatrix();
+    Matrix::createOrthographicOffCenter(0, game->getViewport().width, game->getViewport().height, 0, 0, 1, &matrix);
+    Ship->setProjectionMatrix(matrix);
+}
+
 inline gameplay::Vector3 GetColor(NSpace::EColor color) {
     switch (color) {
         case NSpace::CR_Cyan: return gameplay::Vector3(0, 1, 1);
@@ -191,7 +198,6 @@ void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
 }
 
 void TWorldDisplay::DrawShip(const NSpaceEngine::TShip& ship) {
-
     float x = 0.01 * World->Scale * (ship.Position.X - 0.5 * WORLD_WIDTH);
     float y = 0.01 * World->Scale * (ship.Position.Y - 0.5 * WORLD_HEIGHT);
 
@@ -199,7 +205,7 @@ void TWorldDisplay::DrawShip(const NSpaceEngine::TShip& ship) {
     Vector3 pos(x, y, -10.0);
 
     float x2d, y2d;
-    Application->project(pos, x2d, y2d);
+    Application->project(pos, x2d, y2d, true);
 
     Ship->draw(Vector3(x2d, y2d, 0), Rectangle(0, 0, 8, 13), Vector2(8, 13),
                Vector4(planetColor.x, planetColor.y, planetColor.z, 1),
