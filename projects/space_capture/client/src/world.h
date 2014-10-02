@@ -35,4 +35,5 @@ public:
     int ScreenHeight = 0;
     float Ratio = 0;
     size_t SelfId = 0;
+    size_t BotId = 0;
 };

@@ -72,6 +72,9 @@ public:
     bool Full() const;
     std::string Serialize();
     void Deserialize(const std::string& data);
+    void SetServer(bool server) {
+        IsServer = server;
+    }
 private:
     void DoRestartRound();
 

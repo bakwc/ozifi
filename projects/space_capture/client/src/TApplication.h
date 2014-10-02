@@ -14,7 +14,8 @@
 enum EApplicationState {
     AS_None,
     AS_MainMenu,
-    AS_Game
+    AS_GameOnline,
+    AS_GameSingle
 };
 
 class TApplication: public gameplay::Game {
@@ -40,7 +41,8 @@ private:
     std::unique_ptr<TControl> Control;
     std::unique_ptr<TMainMenu> MainMenu;
     std::unique_ptr<TNetwork> Network;
-    uint16_t Counter = 0;
+    uint64_t Counter = 0;
     std::recursive_mutex Lock;
     EApplicationState State = AS_None;
+    std::chrono::system_clock::time_point GameStart;
 };
