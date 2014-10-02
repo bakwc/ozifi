@@ -56,6 +56,8 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
     , Application(app)
     , Ang(0)
 {
+
+
     std::vector<float> vertices = BuildSphere(1.0, 20, 20);
     std::vector<VertexFormat::Element> elements;
     elements.push_back(VertexFormat::Element(VertexFormat::POSITION, 3));
@@ -82,7 +84,37 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
     Font = Font::create("res/font-bold.gpb");
 
     FontBig = Font::create("res/font-big.gpb");
+
+
+    LinePosition.resize(191 * 3, 0);
+    LinePosition[3] = 0.2;
+    LinePosition[4] = 0.2;
+
+    {
+        VertexFormat::Element e(VertexFormat::POSITION, 3);
+        {
+            Mesh* mesh = Mesh::createMesh(VertexFormat(&e, 1), 191, true);
+            mesh->setPrimitiveType(Mesh::LINE_STRIP);
+            mesh->setVertexData(&LinePosition[0], 0, 191);
+            Circle = Model::create(mesh);
+            Circle->setMaterial("res/test.material#line");
+        }
+        {
+            mesh = Mesh::createMesh(VertexFormat(&e, 1), 5, true);
+            mesh->setPrimitiveType(Mesh::LINE_STRIP);
+            mesh->setVertexData(&LinePosition[0], 0, 5);
+            Selection = Model::create(mesh);
+            Selection->setMaterial("res/test.material#line");
+        }
+
+
+        LineNode = Node::create();
+        LineNode->setTranslation(Vector3::zero());
+    }
 }
+
+#define SPRITE_VSH "res/shaders/sprite.vert"
+#define SPRITE_FSH "res/shaders/sprite.frag"
 
 void TWorldDisplay::Draw(float elapsedTime) {
     Ang += elapsedTime * 0.0004;
@@ -105,10 +137,11 @@ void TWorldDisplay::Draw(float elapsedTime) {
     }
 }
 
-void TWorldDisplay::OnResized(size_t width, size_t heigth) {
-    Game* game = Game::getInstance();
+void TWorldDisplay::OnResized(size_t width, size_t height) {
+    Width = width;
+    Height = height;
     Matrix matrix = Ship->getProjectionMatrix();
-    Matrix::createOrthographicOffCenter(0, game->getViewport().width, game->getViewport().height, 0, 0, 1, &matrix);
+    Matrix::createOrthographicOffCenter(0, width, height, 0, 0, 1, &matrix);
     Ship->setProjectionMatrix(matrix);
 }
 
@@ -152,6 +185,7 @@ void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
 
     if (planet.PlayerId == -1 || planet.PlayerId == World->SelfId) {
         std::string text = t_to_string((int)planet.Energy);
+
         float fontX, fontY;
         unsigned int textWidth, textHeight;
         Font->start();
@@ -167,34 +201,17 @@ void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
         Font->finish();
     }
 
-    if (planet.PlayerId == World->SelfId)
+
 
     if (planet.PlayerId == World->SelfId &&
-        World->SelectedPlanets.find(planet.Id) != World->SelectedPlanets.end())
+        World->SelectedPlanets.find(planet.Id) != World->SelectedPlanets.end() ||
+        World->SelectedTarget != size_t(-1) && planet.Id == World->SelectedTarget)
     {
-//        Application->Scene->
-//        pen.setColor(planetColor);
-//        painter.setPen(pen);
-//        painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
+        float cx, cy;
+        Application->project(pos, cx, cy);
+        cy = Height - cy;
+        DrawCircle(cx + 1, cy + 1, 2.0 * radius);
     }
-
-//    if (planet.PlayerId == World->SelfId &&
-//        World->SelectedPlanets.find(planet.ID) != World->SelectedPlanets.end())
-//    {
-//        pen.setColor(planetColor);
-//        painter.setPen(pen);
-//        painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
-//    } else if (World->SelectedTarget.is_initialized() &&
-//               planet.ID == *World->SelectedTarget)
-//    {
-//        NSpace::TPlayer* selfPlayer = World->SelfPlayer();
-//        if (selfPlayer != nullptr) {
-//            planetColor = GetQColor(selfPlayer->Color);
-//            pen.setColor(planetColor);
-//            painter.setPen(pen);
-//            painter.drawEllipse(x - radius - 4, y - radius - 4, radius * 2 + 8, radius * 2 + 8);
-//        }
-//    }
 }
 
 void TWorldDisplay::DrawShip(const NSpaceEngine::TShip& ship) {
@@ -212,29 +229,58 @@ void TWorldDisplay::DrawShip(const NSpaceEngine::TShip& ship) {
                Vector2(0.5f, 0.5f), - ship.GetAngle() - M_PI_2);
 }
 
+void TWorldDisplay::AddPoint(float x, float y) {
+    float cx = -1.0 + 2.0 * float(x) / Width;
+    float cy = -1.0 + 2.0 * float(y) / Height;
+    LinePosition.push_back(cx);
+    LinePosition.push_back(cy);
+    LinePosition.push_back(0);
+}
+
+void TWorldDisplay::DrawRect(int x1, int y1, int x2, int y2) {
+    LinePosition.clear();
+    AddPoint(x1, y1);
+    AddPoint(x2, y1);
+    AddPoint(x2, y2);
+    AddPoint(x1, y2);
+    AddPoint(x1, y1);
+    LineNode->setModel(Selection);
+    LineNode->getModel()->getMesh()->setVertexData(&LinePosition[0], 0, LinePosition.size() / 3);
+    LineNode->getModel()->draw(true);
+}
+
+void TWorldDisplay::DrawCircle(int x, int y, int radius) {
+    LinePosition.clear();
+    float angle = 0;
+    for (size_t i = 0; i <= 190; ++i) {
+        angle = float(M_PI * 2 * i) / 190;
+        float cx = x + cos(angle) * radius;
+        float cy = y + sin(angle) * radius;
+        AddPoint(cx, cy);
+    }
+    LineNode->setModel(Circle);
+    LineNode->getModel()->getMesh()->setVertexData(&LinePosition[0], 0, LinePosition.size() / 3);
+    LineNode->getModel()->draw(true);
+}
+
 void TWorldDisplay::DrawSelection() {
-//    if (World->Selection.is_initialized()) {
-//        painter.setPen(Qt::cyan);
-//        int x = std::min(World->Selection->From.x(), World->Selection->To.x());
-//        int y = std::min(World->Selection->From.y(), World->Selection->To.y());
-//        int w = abs(World->Selection->From.x() - World->Selection->To.x());
-//        int h = abs(World->Selection->From.y() - World->Selection->To.y());
-//        painter.drawRect(x, y, w, h);
-//    }
+    if (World->HaveSelection) {
+        DrawRect(World->Selection.From.X, World->Selection.From.Y, World->Selection.To.X, World->Selection.To.Y);
+    }
 }
 
 void TWorldDisplay::DrawPower() {
-//    int x = 0.97 * WORLD_WIDTH * World->Scale + World->OffsetX;
-//    int y = 0.78 * WORLD_HEIGHT * World->Scale + World->OffsetY;
-//    int width = 0.012 * WORLD_WIDTH * World->Scale;
-//    int height = 0.2 * WORLD_HEIGHT * World->Scale;
-//    QPen pen(Qt::white);
-//    pen.setWidth(2);
-//    painter.setPen(pen);
-//    painter.drawRect(x, y, width, height);
+    int x = 0.96 * Width;
+    int y = 0.10 * Height;
+    int w = 9;
+    int h = 120;
 
-//    int filled = 0.01 * World->Power * height;
-//    painter.fillRect(x, y + height - filled, width, filled, Qt::white);
+    int filled = h - 0.01 * World->Power * h;
+
+    DrawRect(x, y, x + w, y + h);
+    if (filled < 110) {
+        DrawRect(x + 3, y + 2, x + w - 4, y + h - filled - 4);
+    }
 }
 
 void TWorldDisplay::DrawRoundRestart(int restartTime) {

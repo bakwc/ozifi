@@ -106,10 +106,12 @@ vec3 computeLighting(vec3 normalVector, vec3 lightDirection, vec3 lightColor, fl
     vec3 vertexToEye = normalize(v_cameraDirection);
     vec3 halfVector = normalize(lightDirection + vertexToEye);
     float specularAngle = clamp(dot(normalVector, halfVector), 0.0, 1.0);
-    vec3 specularColor = vec3(pow(specularAngle, u_specularExponent)) * attenuation;
-
+    vec3 specularColor = vec3(pow(specularAngle, u_specularExponent)) * attenuation * 0.7;
+    
+    
     return diffuseColor + specularColor;
-
+    
+    
     #else
     
     return diffuseColor;
@@ -199,6 +201,8 @@ void main()
     
     gl_FragColor.a = _baseColor.a;
     gl_FragColor.rgb = getLitPixel();
+    gl_FragColor.rgb = vec3(1, 1, 1);
+    gl_FragColor.a = 1;
     
     #else
     

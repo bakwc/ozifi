@@ -21,11 +21,12 @@ public:
                       TApplication *app);
 public:
     void OnTouchEvent(gameplay::Touch::TouchEvent evt, int x, int y, unsigned int contactIndex) override;
-    void OnResized(size_t width, size_t heigth) override;
+    void OnResized(size_t width, size_t height) override;
     void OnWheelEvent(int wheelDelta) override;
 private:
     void OnMouseEvent(TPoint pos, bool mouseDown);
     void OnMouseMove(TPoint pos);
+    void CheckPower(TPoint pos);
 private:
     void CheckSelection(TPoint from, TPoint to);
     void CheckTargetSelection(TPoint position);
@@ -36,4 +37,7 @@ private:
     TPoint SelectionFrom;
     TControlFn OnControl;
     TApplication* Application;
+    int Width;
+    int Height;
+    bool Pressed = false;
 };

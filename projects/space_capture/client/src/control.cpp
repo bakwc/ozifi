@@ -110,18 +110,26 @@ void TControl::OnTouchEvent(gameplay::Touch::TouchEvent evt,
 {
     TPoint pos = {x, (int)Application->getHeight() - y};
     if (evt == gameplay::Touch::TOUCH_PRESS) {
+        Pressed = true;
         OnMouseEvent(pos, true);
     } else if (evt == gameplay::Touch::TOUCH_RELEASE) {
+        Pressed = false;
         OnMouseEvent(pos, false);
     } else if (evt == gameplay::Touch::TOUCH_MOVE) {
         OnMouseMove(pos);
     }
+    CheckPower(pos);
 }
 
-void TControl::OnResized(size_t width, size_t heigth) {
+void TControl::OnResized(size_t width, size_t height) {
+    Width = width;
+    Height = height;
 }
 
 void TControl::OnWheelEvent(int wheelDelta) {
+    World->Power += wheelDelta * 10;
+    World->Power = std::min(World->Power, 100);
+    World->Power = std::max(World->Power, 0);
 }
 
 void TControl::OnMouseEvent(TPoint pos, bool mouseDown) {
@@ -175,3 +183,16 @@ void TControl::OnMouseMove(TPoint pos) {
     }
 }
 
+void TControl::CheckPower(TPoint pos) {
+    int x = 0.96 * Width;
+    int y = 0.10 * Height;
+    int w = 9;
+    int h = 120;
+
+    if (pos.X > x && pos.X < x + w &&
+        pos.Y > y && pos.Y < y + h &&
+            Pressed)
+    {
+        World->Power = 100 - 100.f * float(y + h - pos.Y) / h;
+    }
+}

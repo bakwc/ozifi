@@ -72,7 +72,7 @@ void TWorld::DoRestartRound() {
     GroupsCounter = 0;
     Planets.clear();
     Ships.clear();
-    cout << "[INFO] New round in" << ROUND_RESTART_TIME << "seconds\n";
+    cout << "[INFO] New round in " << ROUND_RESTART_TIME << " seconds\n";
     RoundStartsAt = ROUND_RESTART_TIME;
 }
 
@@ -105,7 +105,9 @@ void TWorld::DoAttack(uint8_t playerId,
         if (from.PlayerId != (int)playerId) {
             return;
         }
-        float energyPercentF = std::max(0.01f * energyPercent, 1.f);
+        float energyPercentF = 0.01f * energyPercent;
+        energyPercentF = std::max(energyPercentF, 0.f);
+        energyPercentF = std::min(energyPercentF, 1.f);
         if (from.Energy * energyPercentF >= 1.0) {
             SpawnShips(from, to, energyPercentF, playerId, maxShips);
         }
