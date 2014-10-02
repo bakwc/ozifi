@@ -1,5 +1,7 @@
 #pragma once
 
+#include <chrono>
+
 #include "world.h"
 #include "display.h"
 
@@ -23,6 +25,7 @@ public:
     void OnTouchEvent(gameplay::Touch::TouchEvent evt, int x, int y, unsigned int contactIndex) override;
     void OnResized(size_t width, size_t height) override;
     void OnWheelEvent(int wheelDelta) override;
+    void OnDoubleClick();
 private:
     void OnMouseEvent(TPoint pos, bool mouseDown);
     void OnMouseMove(TPoint pos);
@@ -37,6 +40,7 @@ private:
     TPoint SelectionFrom;
     TControlFn OnControl;
     TApplication* Application;
+    std::chrono::system_clock::time_point LastClick;
     int Width;
     int Height;
     bool Pressed = false;

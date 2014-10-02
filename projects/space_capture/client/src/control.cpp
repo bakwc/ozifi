@@ -132,7 +132,25 @@ void TControl::OnWheelEvent(int wheelDelta) {
     World->Power = std::max(World->Power, 0);
 }
 
+void TControl::OnDoubleClick() {
+    World->SelectedPlanets.clear();
+    for (auto&& planet: World->Planets) {
+        if (planet.second.PlayerId == World->SelfId) {
+            World->SelectedPlanets.insert(planet.second.Id);
+        }
+    }
+}
+
 void TControl::OnMouseEvent(TPoint pos, bool mouseDown) {
+    if (!mouseDown) {
+        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+        size_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - LastClick).count();
+        LastClick = now;
+        if (elapsed < 300) {
+            OnDoubleClick();
+        }
+    }
+
     if (State == CS_None) {
         CheckSelection(pos, pos);
         if (!World->SelectedPlanets.empty()) {
