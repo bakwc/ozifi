@@ -10,8 +10,7 @@ using TOnWorldUpdate = std::function<void(size_t, const std::string&)>;
 using TOnCommandReceived = std::function<void(const std::string&)>;
 class TNetwork {
 public:
-    explicit TNetwork(const std::string& address, uint16_t port,
-                      TOnWorldUpdate onUpdate,
+    explicit TNetwork(TOnWorldUpdate onUpdate,
                       TOnCommandReceived onCommand);
     ~TNetwork();
     void SendCommand(const std::string& command);

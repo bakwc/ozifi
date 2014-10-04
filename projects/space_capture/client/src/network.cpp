@@ -8,29 +8,70 @@
 
 #include "network.h"
 
+#include "../../lib/defines.h"
+
 using namespace std;
 
-TNetwork::TNetwork(const std::string& address, uint16_t port,
-                   TOnWorldUpdate onUpdate,
+TNetwork::TNetwork(TOnWorldUpdate onUpdate,
                    TOnCommandReceived onCommand)
     : OnWorldReceived(onUpdate)
     , OnCommand(onCommand)
     , Finished(false)
 {
+
+    Socket = socket(AF_INET, SOCK_STREAM, 0);
     Socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr;
     struct hostent *he;
-    if(Socket < 0)
-    {
+    if(Socket < 0) {
         perror("socket");
         throw 43;
     }
-    if ((he = gethostbyname(address.c_str())) == NULL ) {
+    if ((he = gethostbyname(CONTROL_SERVER_ADDRESS)) == NULL ) {
          perror("socket");
          throw 43;
     }
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
+    addr.sin_port = htons(CONTROL_SERVER_PORT);
+    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+    connect(Socket, (struct sockaddr *)&addr, sizeof(addr));
+    std::string request = "GET /quick HTTP/1.0\r\n\r\n";
+    send(Socket, request.data(), request.size(), 0);
+    std::string buff;
+    buff.resize(2048);
+    ssize_t ret = recv(Socket, &buff[0], buff.size(), 0);
+    if (ret < 0) {
+        std::cerr << "Error!\n";
+        throw 43;
+    }
+    buff.resize(ret);
+    size_t n = buff.find("\r\n\r\n");
+    if (n == std::string::npos) {
+        std::cerr << "failed to connect\n";
+        throw 42;
+    }
+    buff = buff.substr(n + 4);
+    n = buff.find(":");
+    if (n == std::string::npos) {
+        std::cerr << "failed to connect\n";
+        throw 42;
+    }
+    std::string host = buff.substr(0, n);
+    uint16_t gamePort = std::stoi(buff.substr(n + 1));
+    shutdown(Socket, SHUT_RDWR);
+
+
+    Socket = socket(AF_INET, SOCK_STREAM, 0);
+    if(Socket < 0) {
+        perror("socket");
+        throw 43;
+    }
+    if ((he = gethostbyname(host.c_str())) == NULL ) {
+         perror("socket");
+         throw 43;
+    }
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(gamePort);
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
     connect(Socket, (struct sockaddr *)&addr, sizeof(addr));
     WorkerThread.reset(new std::thread([this] {
