@@ -388,7 +388,8 @@ TPointF TWorld::Rule3(size_t shipNum) {
 }
 
 TPointF TWorld::Rule4(size_t shipNum) {
-    TPointF direction = Ships[shipNum].Target - Ships[shipNum].Position;
+    TPointF target = Planets[Ships[shipNum].Target].Position;
+    TPointF direction = target - Ships[shipNum].Position;
     LimitSpeed(direction, 0.85);
     return direction;
 }
@@ -396,7 +397,7 @@ TPointF TWorld::Rule4(size_t shipNum) {
 TPointF TWorld::Rule5(size_t shipNum) {
     TPointF c(0, 0);
     for (int i = 0; i < Planets.size(); ++i) {
-        if (Ships[shipNum].Target != Planets[i].Position) {
+        if (Ships[shipNum].Target != Planets[i].Id) {
             float distance = Distance(Planets[i].Position, Ships[shipNum].Position);
             if (distance < 10.0 + 1.4 * Planets[i].Radius) {
                 TPointF direction = Planets[i].Position - Ships[shipNum].Position;
@@ -478,7 +479,7 @@ void TWorld::SpawnShips(TPlanet& from, TPlanet& to, float energyPercents,
         ship.Energy = energyPerShip;
         ship.PlayerId = playerId;
         ship.Speed = shipSpeed;
-        ship.Target = to.Position;
+        ship.Target = to.Id;
         ship.Group = group;
         from.SpawnQueue.push_back(ship);
     }
@@ -505,6 +506,9 @@ void TWorld::CheckRoundEnd() {
             continue;
         }
         playersLeft.insert(Planets[i].PlayerId);
+    }
+    for (auto&& s: Ships) {
+        playersLeft.insert(s.PlayerId);
     }
     if (playersLeft.size() < 2) {
         DoRestartRound();

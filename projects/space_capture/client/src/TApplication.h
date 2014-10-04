@@ -33,6 +33,7 @@ protected:
     bool mouseEvent(gameplay::Mouse::MouseEvent evt, int x, int y, int wheelDelta) override;
 private:
     void initializeMaterial(gameplay::Material* material, bool lighting, bool specular);
+    void ProcessBot();
 private:
     gameplay::Scene* Scene;
     gameplay::Node* CamNode;

@@ -7,6 +7,7 @@ TGameServer::TGameServer(ui16 port, QObject *parent)
     World.reset(new NSpaceEngine::TWorld(true, [this](const std::string& command) {
         Network.SendCommand(command);
     }));
+    World->SetSeed(rand() % 4096);
     connect(&Network, &TNetwork::OnControlReceived,
             [this](size_t playerId, const std::string& command)
     {

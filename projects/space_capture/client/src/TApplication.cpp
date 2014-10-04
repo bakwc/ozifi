@@ -15,6 +15,8 @@ TApplication::TApplication()
 }
 
 void TApplication::initialize() {
+    srand(time(NULL));
+    World.SetSeed(rand() % 4096);
     Scene = gameplay::Scene::create();
     Scene->setAmbientColor(1.f, 1.f, 1.f);
 
@@ -48,8 +50,9 @@ void TApplication::initialize() {
 
         State = AS_GameOnline;
         resizeEvent(getWidth(), getHeight());
-    }, [this] {
+    }, [this](size_t level) {
         std::lock_guard<std::recursive_mutex> guard(Lock);
+        World.BotLevel = level;
         State = AS_GameSingle;
         World.SetServer(true);
         World.SelfId = rand() % MAX_PLAYERS;
@@ -80,6 +83,15 @@ void TApplication::update(float elapsedTime) {
         size_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - GameStart).count();
         if (elapsed / 50 > Counter) {
             ++Counter;
+            size_t botAction = 10;
+            if (World.BotLevel == 0) {
+                botAction = 220;
+            } else if (World.BotLevel == 1) {
+                botAction = 10;
+            }
+            if (Counter % botAction == 0) {
+                ProcessBot();
+            }
             World.Process();
         }
     }
@@ -123,6 +135,102 @@ bool TApplication::mouseEvent(Mouse::MouseEvent evt, int x, int y, int wheelDelt
         }
     }
     return false;
+}
+
+void TApplication::ProcessBot() {
+    float myEnergy = 0;
+    float enemyEnergy = 0;
+    std::vector<uint8_t> myPlanets;
+    std::vector<uint8_t> enemyPlanets;
+    for (auto&& planet: World.Planets) {
+        if (planet.second.PlayerId == World.BotId) {
+            myPlanets.push_back(planet.second.Id);
+            myEnergy += planet.second.Energy;
+        } else if (planet.second.PlayerId == World.SelfId) {
+            enemyPlanets.push_back(planet.second.Id);
+            enemyEnergy += planet.second.Energy;
+        }
+    }
+
+    std::unordered_map<uint8_t, float> attackDanger;
+    std::unordered_map<uint8_t, float> supportDanger;
+    for (auto&& ship: World.Ships) {
+        if (ship.PlayerId != World.BotId && World.Planets[ship.Target].PlayerId != size_t(-1)) {
+            attackDanger[ship.Target] += ship.Energy;
+        } else {
+            supportDanger[ship.Target] += ship.Energy;
+        }
+    }
+
+    bool haveDanger = false;
+    for (auto&& danger: attackDanger) {
+        std::vector<NSpaceEngine::TPlanet*> supportPlanets;
+        NSpaceEngine::TPlanet* from = &World.Planets[danger.first];
+        if (danger.second < from->Energy ||
+            1.1 * danger.second < from->Energy + supportDanger[danger.first])
+        {
+            continue; // enemy have not enought resources to capture the planet
+        }
+        haveDanger = true;
+
+        for (auto&& planet: World.Planets) {
+            if (planet.second.PlayerId == World.BotId &&
+                planet.second.Id != from->Id)
+            {
+                supportPlanets.push_back(&planet.second);
+            }
+        }
+
+        std::sort(supportPlanets.begin(), supportPlanets.end(),
+                  [from](const NSpaceEngine::TPlanet* first,
+                  const NSpaceEngine::TPlanet* second) {
+            float r1 = pow(from->Position.X - first->Position.X, 2) + pow(from->Position.Y - first->Position.Y, 2);
+            float r2 = pow(from->Position.X - second->Position.X, 2) + pow(from->Position.Y - second->Position.Y, 2);
+            return r1 < r2;
+        });
+        float totalEnergy = from->Energy + supportDanger[danger.first];
+        for (auto&& support: supportPlanets) {
+            if (support->Energy < 4.f) {
+                continue; // do not have enough energy to support
+            }
+            float requiredEnergy = danger.second - totalEnergy;
+            requiredEnergy = std::min(requiredEnergy, support->Energy);
+            World.Attack(World.BotId, {support->Id}, from->Id, 100.f * requiredEnergy / support->Energy);
+            totalEnergy += requiredEnergy;
+            if (totalEnergy > 1.1 * danger.second) {
+                break;
+            }
+        }
+    }
+
+    if (!haveDanger) {
+        if (enemyEnergy * 1.2 < myEnergy && enemyPlanets.size() == 1) {
+            World.Attack(World.BotId, myPlanets, enemyPlanets[0], 100);
+            return;
+        }
+    }
+
+    for (auto&& planet: World.Planets) {
+        if (planet.second.PlayerId == World.BotId) {
+            // todo: check if can safely leave
+            size_t bestPlanet = -1;
+            for (auto&& planetToAttack: World.Planets) {
+                if (planetToAttack.second.PlayerId != World.BotId) {
+                    if (bestPlanet == size_t(-1) ||
+                        planetToAttack.second.BetterToAttack(World.Planets[bestPlanet], planet.second))
+                    {
+                        bestPlanet = planetToAttack.second.Id;
+                    }
+                }
+            }
+            if (bestPlanet != size_t(-1) &&
+                World.Planets[bestPlanet].Energy < 0.5 * planet.second.Energy &&
+                attackDanger[planet.second.Id] < 0.5 * planet.second.Energy)
+            {
+                World.Attack(World.BotId, {planet.second.Id}, bestPlanet, 50);
+            }
+        }
+    }
 }
 
 void TApplication::keyEvent(Keyboard::KeyEvent evt, int key) {

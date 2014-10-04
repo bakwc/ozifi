@@ -34,3 +34,7 @@ NSpaceEngine::TPlayer* TWorld::SelfPlayer() {
     }
     return &Players[this->SelfId];
 }
+
+void TWorld::SetSeed(uint32_t seed) {
+    Generator.seed(seed);
+}

@@ -20,6 +20,7 @@ public:
     void UpdateSelection(TPoint from, TPoint to);
     void RemoveSelection();
     NSpaceEngine::TPlayer* SelfPlayer();
+    void SetSeed(uint32_t seed);
 public:
     std::function<void()> OnWorldUpdated;
     float Scale = 0.65;
@@ -36,4 +37,5 @@ public:
     float Ratio = 0;
     size_t SelfId = 0;
     size_t BotId = 0;
+    size_t BotLevel = 0;
 };

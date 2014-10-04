@@ -25,7 +25,7 @@ struct TPlayer {
 struct TShip {
     TPointF Position;
     TPointF Speed;
-    TPointF Target;
+    uint8_t Target;
     float Energy;
     uint8_t PlayerId;
     uint16_t Group;
@@ -36,7 +36,26 @@ struct TShip {
     SAVELOAD(Position, Speed, Target, Energy, PlayerId)
 };
 
+
+constexpr float MAX_RADIUS = WORLD_WIDTH * WORLD_WIDTH + WORLD_HEIGHT * WORLD_HEIGHT;
 struct TPlanet {
+    size_t GetSizeGroup() const {
+        return 3.f * (Radius - PLANET_MIN_RADIUS) / (PLANET_MAX_RADIUS - PLANET_MIN_RADIUS);
+    }
+    size_t GetRadiusGroup(const TPlanet& from) const {
+        float radius = pow(Position.X - from.Position.X, 2) + pow(Position.Y - from.Position.Y, 2);
+        return 9.f * radius / MAX_RADIUS;
+    }
+    bool BetterToAttack(const TPlanet& other, const TPlanet& from) const {
+        if (GetRadiusGroup(from) != other.GetRadiusGroup(from)) {
+            return GetRadiusGroup(from) < other.GetRadiusGroup(from);
+        }
+        if (GetSizeGroup() != other.GetSizeGroup()) {
+            return GetSizeGroup() > other.GetSizeGroup();
+        }
+        return Energy < other.Energy;
+    }
+public:
     uint8_t Id;
     TPointF Position;
     float Radius;

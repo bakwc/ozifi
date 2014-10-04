@@ -47,20 +47,24 @@ void TMenuElement::CheckClicked() {
 
 TMainMenu::TMainMenu(std::function<void()> onExit,
                      std::function<void()> onQuickGame,
-                     std::function<void()> onSingleGame)
+                     std::function<void(size_t)> onSingleGame)
     : OnExit(onExit)
     , OnQuickGame(onQuickGame)
     , OnSingleGame(onSingleGame)
 {
-    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.4), "Play Single", [this] {
-        OnSingleGame();
+    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.35), "Easy", [this] {
+        OnSingleGame(0);
     }));
 
-    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.5), "Play Online", [this] {
+    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.45), "Normal", [this] {
+        OnSingleGame(1);
+    }));
+
+    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.55), "Online", [this] {
         OnQuickGame();
     }));
 
-    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.6), "Exit", [this] {
+    Elements.push_back(std::make_shared<TMenuElement>(TPointF(0.5, 0.65), "Exit", [this] {
         OnExit();
     }));
 }

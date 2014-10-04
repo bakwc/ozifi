@@ -37,14 +37,14 @@ class TMainMenu : public IDrawable, public IControlable {
 public:
     explicit TMainMenu(std::function<void()> onExit,
                        std::function<void()> onQuickGame,
-                       std::function<void()> onSingleGame);
+                       std::function<void(size_t)> onSingleGame);
     void Draw(float) override;
     void OnTouchEvent(gameplay::Touch::TouchEvent evt, int x, int y, unsigned int contactIndex) override;
     void OnResized(size_t width, size_t height) override;
 private:
     std::function<void()> OnExit;
     std::function<void()> OnQuickGame;
-    std::function<void()> OnSingleGame;
+    std::function<void(size_t)> OnSingleGame;
     std::vector<TMenuElementRef> Elements;
     TSize DisplaySize;
 };
