@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <fcntl.h>
 
 #include "network.h"
@@ -38,14 +39,24 @@ TNetwork::TNetwork(TOnWorldUpdate onUpdate,
     std::string request = "GET /quick HTTP/1.0\r\n\r\n";
     send(Socket, request.data(), request.size(), 0);
     std::string buff;
-    buff.resize(2048);
-    ssize_t ret = recv(Socket, &buff[0], buff.size(), 0);
-    if (ret < 0) {
-        std::cerr << "Error!\n";
-        throw 43;
+
+    size_t respCount = 0;
+    while (true) {
+        std::string currentBuff;
+        currentBuff.resize(2048);
+        ssize_t ret = recv(Socket, &currentBuff[0], currentBuff.size(), 0);
+        if (ret <= 0) {
+            break;
+        }
+        currentBuff.resize(ret);
+        buff += currentBuff;
+        if (respCount++ > 8) {
+            break;
+        }
     }
-    buff.resize(ret);
+
     size_t n = buff.find("\r\n\r\n");
+
     if (n == std::string::npos) {
         std::cerr << "failed to connect\n";
         throw 42;
@@ -76,6 +87,8 @@ TNetwork::TNetwork(TOnWorldUpdate onUpdate,
     addr.sin_family = AF_INET;
     addr.sin_port = htons(gamePort);
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+    int flag = 1;
+    setsockopt(Socket, IPPROTO_TCP, TCP_NODELAY, (char*)&flag, sizeof flag);
     connect(Socket, (struct sockaddr *)&addr, sizeof(addr));
     WorkerThread.reset(new std::thread([this] {
         Worker();

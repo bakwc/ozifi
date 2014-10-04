@@ -39,6 +39,8 @@ void TNetwork::OnClientConnected() {
     qDebug() << "[INFO] Player connected: " << senderAddr;
 
     QTcpSocket* socket = client.Socket;
+    socket->setSocketOption(QTcpSocket::LowDelayOption, 1);
+
     QObject::connect(client.Socket, &QTcpSocket::readyRead, [this, socket, senderAddr] {
         QByteArray data = socket->readAll();
         auto it = Clients.find(senderAddr);
