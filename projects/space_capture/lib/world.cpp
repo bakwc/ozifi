@@ -58,13 +58,15 @@ bool TWorld::Full() const {
 
 std::string TWorld::Serialize() {
     stringstream out;
-    ::SaveMany(out, Planets, Players, Ships, MassCenter, Time, GroupsCounter, RoundStartsAt, Generator);
+    ::SaveMany(out, Planets, Players, Ships, MassCenter, Time, GroupsCounter);
+    ::SaveMany(out, RoundStartsAt, Generator, Score);
     return out.str();
 }
 
 void TWorld::Deserialize(const std::string& data) {
     imemstream in(data.data(), data.size());
-    ::LoadMany(in, Planets, Players, Ships, MassCenter, Time, GroupsCounter, RoundStartsAt, Generator);
+    ::LoadMany(in, Planets, Players, Ships, MassCenter, Time, GroupsCounter);
+    ::LoadMany(in, RoundStartsAt, Generator, Score, Score);
 }
 
 void TWorld::DoRestartRound() {
