@@ -57,7 +57,10 @@ TNetwork::TNetwork(TOnWorldUpdate onUpdate,
         throw 42;
     }
     std::string host = buff.substr(0, n);
-    uint16_t gamePort = std::stoi(buff.substr(n + 1));
+    std::string portStr = buff.substr(n + 1);
+    std::istringstream ss(portStr);
+    uint16_t gamePort;
+    ss >> gamePort;
     shutdown(Socket, SHUT_RDWR);
 
 

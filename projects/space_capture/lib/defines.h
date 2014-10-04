@@ -9,8 +9,8 @@ const float WORLD_WIDTH = 1000;
 const float WORLD_HEIGHT = 800;
 const size_t MAX_PLANET_TYPES = 5;
 const size_t MAX_PLAYERS = 6;
-const char* const CONTROL_SERVER_ADDRESS = "127.0.0.1";
-const size_t CONTROL_SERVER_PORT = 8100;
+const char* const CONTROL_SERVER_ADDRESS = "pastexen.com";
+const size_t CONTROL_SERVER_PORT = 9999;
 
 const float PLAYER_PLANET_RADIUS = 30.0f;
 const float MINIMUM_PLAYER_PLANET_DISTANCE = 100.0f;
