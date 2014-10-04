@@ -138,6 +138,7 @@ public:
     uint16_t GroupsCounter;
     int RoundStartsAt;
     std::mt19937_64 Generator;
+    std::map<uint8_t, size_t> Score;
 };
 
 }

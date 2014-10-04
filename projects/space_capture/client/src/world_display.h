@@ -17,6 +17,8 @@ private:
     void DrawCircle(int x, int y, int radius);
     void DrawSelection();
     void DrawPower();
+    void DrawScore();
+    void DrawSingleScore(uint8_t playerId, size_t score, size_t position);
     void DrawRoundRestart(int restartTime);
     void DrawWaitingPlayers();
 private:

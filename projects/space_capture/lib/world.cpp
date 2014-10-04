@@ -124,6 +124,7 @@ void TWorld::DoOnNewPlayer(uint8_t playerId) {
     if (Players.size() == 2) {
         DoRestartRound();
     }
+    Score[player.Id] = 0;
 }
 
 void TWorld::DoOnPlayerLeft(uint8_t playerId) {
@@ -143,6 +144,7 @@ void TWorld::DoOnPlayerLeft(uint8_t playerId) {
     }
     Ships.swap(newShips);
     Players.erase(playerId);
+    Score.erase(playerId);
 }
 
 void TWorld::Attack(uint8_t playerId,
@@ -511,6 +513,9 @@ void TWorld::CheckRoundEnd() {
         playersLeft.insert(s.PlayerId);
     }
     if (playersLeft.size() < 2) {
+        if (playersLeft.size() == 1) {
+            ++Score[*playersLeft.begin()];
+        }
         DoRestartRound();
     }
 }

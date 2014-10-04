@@ -134,6 +134,7 @@ void TWorldDisplay::Draw(float elapsedTime) {
         Ship->finish();
         DrawPower();
         DrawSelection();
+        DrawScore();
     }
 }
 
@@ -155,6 +156,18 @@ inline gameplay::Vector3 GetColor(NSpace::EColor color) {
         case NSpace::CR_Yellow: return gameplay::Vector3(1, 1, 0.0);
     }
     return gameplay::Vector3(0.4, 0.4, 0.4);
+}
+
+inline std::string GetColorName(NSpace::EColor color) {
+    switch (color) {
+        case NSpace::CR_Cyan: return "Cyan";
+        case NSpace::CR_Blue: return "Blue";
+        case NSpace::CR_Green: return "Green";
+        case NSpace::CR_Red: return "Red";
+        case NSpace::CR_White: return "Pink";
+        case NSpace::CR_Yellow: return "Yellow";
+    }
+    return "Unknown";
 }
 
 void TWorldDisplay::DrawPlanet(const NSpaceEngine::TPlanet& planet) {
@@ -281,6 +294,36 @@ void TWorldDisplay::DrawPower() {
     if (filled < 110) {
         DrawRect(x + 3, y + 2, x + w - 4, y + h - filled - 4);
     }
+}
+
+void TWorldDisplay::DrawScore() {
+    std::vector<std::pair<size_t, uint8_t>> scores;
+    for (auto&& score: World->Score) {
+        scores.push_back(std::pair<int, uint8_t>(score.second, score.first));
+    }
+    std::sort(scores.begin(), scores.end(),
+              [](const std::pair<size_t, uint8_t>& a,
+                 const std::pair<size_t, uint8_t>& b)
+    {
+        return a.first > b.first;
+    });
+    for (size_t i = 0; i < scores.size(); ++i) {
+        DrawSingleScore(scores[i].second, scores[i].first, i);
+    }
+}
+
+void TWorldDisplay::DrawSingleScore(uint8_t playerId, size_t score, size_t position) {
+    std::string text = t_to_string(score) + " - Mr. " + GetColorName(World->Players[playerId].Color);
+    float x = 50;
+    float y = 30 + 20 * position;
+    FontBig->start();
+    Vector4 fontColor(1, 1, 1, 1);
+    Vector3 color = GetColor(World->Players[playerId].Color);
+    fontColor.x = color.x;
+    fontColor.y = color.y;
+    fontColor.z = color.z;
+    FontBig->drawText(text.c_str(), x, y, fontColor, Font->getSize());
+    FontBig->finish();
 }
 
 void TWorldDisplay::DrawRoundRestart(int restartTime) {
