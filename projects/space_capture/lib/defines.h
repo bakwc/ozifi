@@ -22,7 +22,7 @@ const float PLANET_MAX_RADIUS = 50.0f;
 const float PLANET_MIN_RADIUS = 10.0f;
 const float PLANET_MAX_ENERGY = 50.0f;
 const float PLANET_MIN_ENERGY = 0.0f;
-const size_t ROUND_RESTART_TIME = 2;
+const size_t ROUND_RESTART_TIME = 7;
 
 struct TPointF {
     float X;

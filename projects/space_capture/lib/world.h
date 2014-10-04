@@ -94,6 +94,12 @@ public:
     void SetServer(bool server) {
         IsServer = server;
     }
+    void SetOnPlanetAttackedCallback(std::function<void(uint8_t)> callBack) {
+        OnPlanetAttacked = callBack;
+    }
+    void SetOnPlanetCapturedCallback(std::function<void()> callBack) {
+        OnPlanetCaptured = callBack;
+    }
 private:
     void DoRestartRound();
 
@@ -139,6 +145,8 @@ public:
     int RoundStartsAt;
     std::mt19937_64 Generator;
     std::map<uint8_t, size_t> Score;
+    std::function<void(uint8_t)> OnPlanetAttacked;
+    std::function<void()> OnPlanetCaptured;
 };
 
 }

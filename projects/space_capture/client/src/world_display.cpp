@@ -56,8 +56,6 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
     , Application(app)
     , Ang(0)
 {
-
-
     std::vector<float> vertices = BuildSphere(1.0, 20, 20);
     std::vector<VertexFormat::Element> elements;
     elements.push_back(VertexFormat::Element(VertexFormat::POSITION, 3));
@@ -111,6 +109,41 @@ TWorldDisplay::TWorldDisplay(TWorld *world, gameplay::Scene* scene, TApplication
         LineNode = Node::create();
         LineNode->setTranslation(Vector3::zero());
     }
+
+    AudioSource* audioSource = AudioSource::create("res/1.wav");
+    audioSource->setGain(0.3);
+    for (size_t i = 0; i < 30; ++i) {
+        PlanetAttackedSound.push_back(Scene->addNode("planetAttackedSound"));
+        PlanetAttackedSound.back()->setAudioSource(audioSource);
+    }
+    SAFE_RELEASE(audioSource);
+
+    audioSource = AudioSource::create("res/2.wav");
+    audioSource->setGain(1.2f);
+    audioSource->setPitch(3.f);
+    for (size_t i = 0; i < 10; ++i) {
+        PlanetCapturedSound.push_back(Scene->addNode("planetCapturedSound"));
+        PlanetCapturedSound.back()->setAudioSource(audioSource);
+    }
+    SAFE_RELEASE(audioSource);
+
+    World->SetOnPlanetAttackedCallback([this](uint8_t playerId) {
+        AudioSource* audioSource = PlanetAttackedSound[rand() % PlanetAttackedSound.size()]->getAudioSource();
+        int attempts = 0;
+        while (audioSource->getState() == AudioSource::PLAYING)
+        {
+            audioSource = PlanetAttackedSound[rand() % PlanetAttackedSound.size()]->getAudioSource();
+            if (++attempts > PlanetAttackedSound.size()) {
+                return;
+            }
+        }
+        audioSource->setPitch(playerId == World->SelfId ? 1.6f : 1.3f);
+        audioSource->play();
+    });
+
+    World->SetOnPlanetCapturedCallback([this] {
+        PlanetCapturedSound[rand() % PlanetCapturedSound.size()]->getAudioSource()->play();
+    });
 }
 
 #define SPRITE_VSH "res/shaders/sprite.vert"

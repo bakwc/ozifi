@@ -37,4 +37,6 @@ private:
     gameplay::Node* LineNode;
     size_t Width;
     size_t Height;
+    std::vector<gameplay::Node*> PlanetAttackedSound;
+    std::vector<gameplay::Node*> PlanetCapturedSound;
 };

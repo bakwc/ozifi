@@ -94,14 +94,20 @@ void TWorld::DoAttack(uint8_t playerId,
     }
 
     TPlanet& to = Planets[planetTo];
+    std::vector<uint8_t> newPlanetsFrom;
+    for (auto&& planet: planetsFrom) {
+        if (planet != planetTo) {
+            newPlanetsFrom.push_back(planet);
+        }
+    }
 
-    size_t maxShips = std::min(int(40.0 / planetsFrom.size()), 14);
+    size_t maxShips = std::min(int(70.0 / newPlanetsFrom.size()), 80);
 
-    for (size_t i = 0; i < planetsFrom.size(); ++i) {
-        if (Planets.find(planetsFrom[i]) == Planets.end()) {
+    for (size_t i = 0; i < newPlanetsFrom.size(); ++i) {
+        if (Planets.find(newPlanetsFrom[i]) == Planets.end()) {
             return;
         }
-        TPlanet& from = Planets[planetsFrom[i]];
+        TPlanet& from = Planets[newPlanetsFrom[i]];
         if (from.PlayerId != (int)playerId) {
             return;
         }
@@ -425,6 +431,12 @@ bool TWorld::ProcessCollision(TShip& ship) {
         } else {
             planet.Energy = ship.Energy - planet.Energy;
             planet.PlayerId = ship.PlayerId;
+            if (OnPlanetCaptured) {
+                OnPlanetCaptured();
+            }
+        }
+        if (OnPlanetAttacked) {
+            OnPlanetAttacked(ship.PlayerId);
         }
         return true;
     }
