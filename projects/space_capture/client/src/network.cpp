@@ -19,7 +19,6 @@ TNetwork::TNetwork(TOnWorldUpdate onUpdate,
     , OnCommand(onCommand)
     , Finished(false)
 {
-
     Socket = socket(AF_INET, SOCK_STREAM, 0);
     Socket = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr;
@@ -74,7 +73,6 @@ TNetwork::TNetwork(TOnWorldUpdate onUpdate,
     ss >> gamePort;
     shutdown(Socket, SHUT_RDWR);
 
-
     Socket = socket(AF_INET, SOCK_STREAM, 0);
     if(Socket < 0) {
         perror("socket");
@@ -111,47 +109,54 @@ void TNetwork::SendCommand(const std::string& command) {
 
 
 void TNetwork::Worker() {
-    int flags = fcntl(Socket, F_GETFL, 0);
-    fcntl(Socket, F_SETFL, flags | O_NONBLOCK);
-    std::string totalBuff;
-    std::string buff;
-    buff.resize(4096);
-    while (!Finished) {
-        ssize_t ret = recv(Socket, &buff[0], buff.size(), 0);
-        if (ret > 0) {
-            totalBuff += std::string(&buff[0], ret);
-            while (true) {
-                imemstream in(&totalBuff[0], totalBuff.size());
-                if (!HasWorld) {
-                    uint8_t selfId;
-                    std::string world;
-                    try {
-                        ::LoadMany(in, selfId, world);
-                        if (!in) {
-                            throw 0;
+    try {
+        int flags = fcntl(Socket, F_GETFL, 0);
+        fcntl(Socket, F_SETFL, flags | O_NONBLOCK);
+        std::string totalBuff;
+        std::string buff;
+        buff.resize(4096);
+        while (!Finished) {
+            ssize_t ret = recv(Socket, &buff[0], buff.size(), 0);
+            if (ret > 0) {
+                totalBuff += std::string(&buff[0], ret);
+                while (true) {
+                    imemstream in(&totalBuff[0], totalBuff.size());
+                    if (!HasWorld) {
+                        uint8_t selfId;
+                        std::string world;
+                        try {
+                            ::LoadMany(in, selfId, world);
+                            if (!in) {
+                                throw 1;
+                            }
+                        } catch(...) {
+                            break;
                         }
-                    } catch(...) {
-                        break;
-                    }
 
-                    OnWorldReceived(selfId, world);
-                    HasWorld = true;
-                } else {
-                    std::string command;
-                    try {
-                        ::Load(in, command);
-                        if (!in) {
-                            throw 0;
+                        OnWorldReceived(selfId, world);
+                        HasWorld = true;
+                    } else {
+                        std::string command;
+                        try {
+                            ::Load(in, command);
+                            if (!in) {
+                                throw 2;
+                            }
+                        } catch(...) {
+                            break;
                         }
-                    } catch(...) {
-                        break;
+                        OnCommand(command);
                     }
-                    OnCommand(command);
+                    totalBuff = totalBuff.substr(in.pos());
                 }
-                totalBuff = totalBuff.substr(in.pos());
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+    } catch (int e) {
+        std::cerr << "Error " << e << "\n";
+    } catch (...) {
+        std::cerr << "Unknown error\n";
     }
+    exit(42);
 }

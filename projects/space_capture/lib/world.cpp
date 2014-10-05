@@ -66,7 +66,7 @@ std::string TWorld::Serialize() {
 void TWorld::Deserialize(const std::string& data) {
     imemstream in(data.data(), data.size());
     ::LoadMany(in, Planets, Players, Ships, MassCenter, Time, GroupsCounter);
-    ::LoadMany(in, RoundStartsAt, Generator, Score, Score);
+    ::LoadMany(in, RoundStartsAt, Generator, Score);
 }
 
 void TWorld::DoRestartRound() {
